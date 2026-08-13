@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Khai báo Xuất Nhập Cảnh & Di Chuyển</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 15px; background: #f4f6f9; }
+    .card { background: #fff; padding: 20px; border-radius: 8px; max-width: 500px; margin: 0 auto; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+    h2 { text-align: center; color: #003366; margin-bottom: 20px; }
+    label { font-weight: bold; display: block; margin-top: 12px; }
+    input, select, textarea { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+    button { width: 100%; padding: 12px; background: #003366; color: white; border: none; border-radius: 4px; font-size: 16px; font-weight: bold; margin-top: 20px; cursor: pointer; }
+    button:hover { background: #002244; }
+  </style>
+</head>
+<body>
+
+<div class="card">
+  <h2>KHAI BÁO DI CHUYỂN / TRAVEL DECLARATION</h2>
+  <form id="travelForm">
+    <label>Mã Nhân Viên / Employee ID (*)</label>
+    <input type="text" id="maNV" required placeholder="VD: NV123">
+
+    <label>Loại hoạt động / Event Type (*)</label>
+    <select id="loaiHoatDong" required>
+      <option value="Nhập cảnh Việt Nam">Nhập cảnh Việt Nam (Entry to VN)</option>
+      <option value="Xuất cảnh khỏi Việt Nam">Xuất cảnh khỏi Việt Nam (Exit from VN)</option>
+      <option value="Di chuyển nội địa">Di chuyển nội địa (Domestic Travel)</option>
+    </select>
+
+    <label>Ngày giờ thực hiện / Date & Time (*)</label>
+    <input type="datetime-local" id="ngayGio" required>
+
+    <label>Địa điểm / Chặng bay (Origin - Destination)</label>
+    <input type="text" id="diaDiem" placeholder="VD: SGN - HAN hoặc Seoul - TSN">
+
+    <label>Mã chuyến bay / Flight No.</label>
+    <input type="text" id="maChuyenBay" placeholder="VD: VN123, KE683">
+
+    <label>Link vé máy bay / Google Drive Ticket Link</label>
+    <input type="url" id="linkVe" placeholder="https://drive.google.com/...">
+
+    <label>Ghi chú / Notes</label>
+    <textarea id="ghiChu" rows="3"></textarea>
+
+    <button type="button" onclick="guiKhaiBao()">GỬI KHAI BÁO / SUBMIT</button>
+  </form>
+</div>
+
+<script>
+  const API_URL = "DÁN_WEB_APP_URL_GIAO_DIEN_VÀO_DAY";
+
+  function guiKhaiBao() {
+    const data = {
+      maNV: document.getElementById('maNV').value,
+      loaiHoatDong: document.getElementById('loaiHoatDong').value,
+      ngayGio: document.getElementById('ngayGio').value,
+      diaDiem: document.getElementById('diaDiem').value,
+      maChuyenBay: document.getElementById('maChuyenBay').value,
+      linkVe: document.getElementById('linkVe').value,
+      ghiChu: document.getElementById('ghiChu').value
+    };
+
+    if(!data.maNV || !data.ngayGio) {
+      alert("Vui lòng điền đủ thông tin bắt buộc!");
+      return;
+    }
+
+    fetch(API_URL, {
+      method: "POST",
+      body: JSON.stringify(data)
+    })
+    .then(res => res.json())
+    .then(res => {
+      if(res.status === "SUCCESS") {
+        alert("Khai báo thành công!");
+        document.getElementById('travelForm').reset();
+      } else {
+        alert("Lỗi gửi dữ liệu, vui lòng thử lại.");
+      }
+    })
+    .catch(err => alert("Có lỗi xảy ra: " + err));
+  }
+</script>
+</body>
+</html>
