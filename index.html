@@ -1,87 +1,159 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Khai báo Xuất Nhập Cảnh & Di Chuyển</title>
-  <style>
-    body { font-family: Arial, sans-serif; margin: 15px; background: #f4f6f9; }
-    .card { background: #fff; padding: 20px; border-radius: 8px; max-width: 500px; margin: 0 auto; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-    h2 { text-align: center; color: #003366; margin-bottom: 20px; }
-    label { font-weight: bold; display: block; margin-top: 12px; }
-    input, select, textarea { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
-    button { width: 100%; padding: 12px; background: #003366; color: white; border: none; border-radius: 4px; font-size: 16px; font-weight: bold; margin-top: 20px; cursor: pointer; }
-    button:hover { background: #002244; }
-  </style>
+  <title>Foreign Employee Travel & Immigration Management</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-<body>
+<body class="bg-slate-100 font-sans text-slate-800">
 
-<div class="card">
-  <h2>KHAI BÁO DI CHUYỂN / TRAVEL DECLARATION</h2>
-  <form id="travelForm">
-    <label>Mã Nhân Viên / Employee ID (*)</label>
-    <input type="text" id="maNV" required placeholder="VD: NV123">
+  <!-- Navigation Bar -->
+  <nav class="bg-slate-900 text-white px-6 py-4 flex justify-between items-center shadow-md">
+    <div class="flex items-center space-x-3">
+      <i class="fa-solid fa-globe text-blue-400 text-2xl"></i>
+      <span class="font-bold text-xl tracking-wide">FOREIGN TRAVEL MANAGEMENT</span>
+    </div>
+    <div id="userNav" class="flex items-center space-x-4">
+      <span id="roleBadge" class="bg-blue-600 text-xs px-3 py-1 rounded-full font-semibold uppercase">Guest</span>
+      <button onclick="logout()" class="text-slate-300 hover:text-white text-sm"><i class="fa-solid fa-right-from-bracket"></i> Đăng xuất</button>
+    </div>
+  </nav>
 
-    <label>Loại hoạt động / Event Type (*)</label>
-    <select id="loaiHoatDong" required>
-      <option value="Nhập cảnh Việt Nam">Nhập cảnh Việt Nam (Entry to VN)</option>
-      <option value="Xuất cảnh khỏi Việt Nam">Xuất cảnh khỏi Việt Nam (Exit from VN)</option>
-      <option value="Di chuyển nội địa">Di chuyển nội địa (Domestic Travel)</option>
-    </select>
+  <!-- Main Container -->
+  <div class="container mx-auto p-6">
 
-    <label>Ngày giờ thực hiện / Date & Time (*)</label>
-    <input type="datetime-local" id="ngayGio" required>
+    <!-- 1. Màn hình Đăng Nhập -->
+    <div id="loginSection" class="max-w-md mx-auto bg-white p-8 rounded-xl shadow-lg mt-12 border border-slate-200">
+      <h2 class="text-2xl font-bold text-center text-slate-900 mb-6">ĐĂNG NHẬP HỆ THỐNG</h2>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-semibold mb-1">Mã NV / Email</label>
+          <input type="text" id="loginUser" class="w-full border p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="VD: NV001 hoặc john@company.com">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">Mật khẩu / PIN</label>
+          <input type="password" id="loginPass" class="w-full border p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="••••••••">
+        </div>
+        <button onclick="doLogin()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg shadow-md transition">Đăng Nhập</button>
+      </div>
+    </div>
 
-    <label>Địa điểm / Chặng bay (Origin - Destination)</label>
-    <input type="text" id="diaDiem" placeholder="VD: SGN - HAN hoặc Seoul - TSN">
+    <!-- 2. Dashboard dành cho GIÁM ĐỐC & HR -->
+    <div id="dashboardSection" class="hidden space-y-6">
+      
+      <!-- Top KPIs Summary -->
+      <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+          <p class="text-xs font-bold text-slate-400 uppercase">Tổng NNN</p>
+          <p id="kpiTotal" class="text-3xl font-extrabold text-slate-900 mt-1">0</p>
+        </div>
+        <div class="bg-emerald-50 p-5 rounded-xl border border-emerald-200 shadow-sm">
+          <p class="text-xs font-bold text-emerald-600 uppercase">🟢 Đang ở VN</p>
+          <p id="kpiInVN" class="text-3xl font-extrabold text-emerald-700 mt-1">0</p>
+        </div>
+        <div class="bg-blue-50 p-5 rounded-xl border border-blue-200 shadow-sm">
+          <p class="text-xs font-bold text-blue-600 uppercase">✈️ Đang công tác</p>
+          <p id="kpiBusiness" class="text-3xl font-extrabold text-blue-700 mt-1">0</p>
+        </div>
+        <div class="bg-slate-50 p-5 rounded-xl border border-slate-200 shadow-sm">
+          <p class="text-xs font-bold text-slate-500 uppercase">🔴 Đã xuất cảnh</p>
+          <p id="kpiExited" class="text-3xl font-extrabold text-slate-700 mt-1">0</p>
+        </div>
+        <div class="bg-amber-50 p-5 rounded-xl border border-amber-200 shadow-sm">
+          <p class="text-xs font-bold text-amber-600 uppercase">🟠 Cảnh báo giấy tờ</p>
+          <p id="kpiWarning" class="text-3xl font-extrabold text-amber-700 mt-1">0</p>
+        </div>
+      </div>
 
-    <label>Mã chuyến bay / Flight No.</label>
-    <input type="text" id="maChuyenBay" placeholder="VD: VN123, KE683">
+      <!-- Màn hình Timeline Lịch trình Di chuyển -->
+      <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+        <h3 class="text-lg font-bold text-slate-900 mb-4 flex items-center justify-between">
+          <span><i class="fa-solid fa-timeline text-blue-600 mr-2"></i> Lịch trình & Timeline Chi tiết Chuyên gia</span>
+          <span class="text-xs text-slate-500 font-normal">Real-time status tracking</span>
+        </h3>
 
-    <label>Link vé máy bay / Google Drive Ticket Link</label>
-    <input type="url" id="linkVe" placeholder="https://drive.google.com/...">
+        <!-- Mẫu hiển thị Timeline như mô tả (Ms. Leiden) -->
+        <div class="border-l-4 border-blue-600 pl-6 space-y-6 my-4">
+          <div class="relative">
+            <div class="absolute -left-[31px] top-0 bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs"><i class="fa-solid fa-plane-arrival"></i></div>
+            <p class="text-xs font-bold text-slate-400">15/08/2026</p>
+            <p class="text-sm font-semibold text-slate-800">✈️ Nhập cảnh Việt Nam $\rightarrow$ HCMC (Sân bay Tân Sơn Nhất)</p>
+          </div>
+          <div class="relative">
+            <div class="absolute -left-[31px] top-0 bg-amber-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs"><i class="fa-solid fa-car"></i></div>
+            <p class="text-xs font-bold text-slate-400">18/08/2026 - 22/08/2026</p>
+            <p class="text-sm font-semibold text-slate-800">💼 Đi công tác Đà Nẵng (Khách sạn XYZ, Chuyến bay VN123)</p>
+          </div>
+          <div class="relative">
+            <div class="absolute -left-[31px] top-0 bg-emerald-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs"><i class="fa-solid fa-house"></i></div>
+            <p class="text-xs font-bold text-slate-400">22/08/2026</p>
+            <p class="text-sm font-semibold text-slate-800">🏠 Quay lại HCMC (Căn hộ Thảo Điền)</p>
+          </div>
+          <div class="relative">
+            <div class="absolute -left-[31px] top-0 bg-rose-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs"><i class="fa-solid fa-plane-departure"></i></div>
+            <p class="text-xs font-bold text-slate-400">01/02/2027 (Kế hoạch)</p>
+            <p class="text-sm font-semibold text-slate-800">✈️ Xuất cảnh khỏi Việt Nam</p>
+          </div>
+        </div>
+      </div>
 
-    <label>Ghi chú / Notes</label>
-    <textarea id="ghiChu" rows="3"></textarea>
+    </div>
 
-    <button type="button" onclick="guiKhaiBao()">GỬI KHAI BÁO / SUBMIT</button>
-  </form>
-</div>
+  </div>
 
-<script>
-  const API_URL = "https://script.google.com/macros/s/AKfycbz9Lnh8qjzprQdj-RASrb7DQ3gVsWE27KUpEcwm-aXgq3EqvrZVY4X-jFMMXYzO5V2R9g/exec";
+  <script>
+    const API_URL = "https://script.google.com/macros/s/AKfycbz9Lnh8qjzprQdj-RASrb7DQ3gVsWE27KUpEcwm-aXgq3EqvrZVY4X-jFMMXYzO5V2R9g/exec";
+    let currentUser = null;
 
-  function guiKhaiBao() {
-    const data = {
-      maNV: document.getElementById('maNV').value,
-      loaiHoatDong: document.getElementById('loaiHoatDong').value,
-      ngayGio: document.getElementById('ngayGio').value,
-      diaDiem: document.getElementById('diaDiem').value,
-      maChuyenBay: document.getElementById('maChuyenBay').value,
-      linkVe: document.getElementById('linkVe').value,
-      ghiChu: document.getElementById('ghiChu').value
-    };
+    function doLogin() {
+      const u = document.getElementById("loginUser").value;
+      const p = document.getElementById("loginPass").value;
+      if(!u || !p) return alert("Vui lòng nhập tài khoản và mật khẩu!");
 
-    if(!data.maNV || !data.ngayGio) {
-      alert("Vui lòng điền đủ thông tin bắt buộc!");
-      return;
+      fetch(API_URL, {
+        method: "POST",
+        body: JSON.stringify({ action: "LOGIN", username: u, password: p })
+      })
+      .then(r => r.json())
+      .then(res => {
+        if(res.status === "SUCCESS") {
+          currentUser = res.user;
+          setupRoleUI();
+        } else {
+          alert(res.message);
+        }
+      });
     }
 
-    fetch(API_URL, {
-      method: "POST",
-      body: JSON.stringify(data)
-    })
-    .then(res => res.json())
-    .then(res => {
-      if(res.status === "SUCCESS") {
-        alert("Khai báo thành công!");
-        document.getElementById('travelForm').reset();
-      } else {
-        alert("Lỗi gửi dữ liệu, vui lòng thử lại.");
+    function setupRoleUI() {
+      document.getElementById("loginSection").classList.add("hidden");
+      document.getElementById("roleBadge").innerText = currentUser.role;
+
+      if(currentUser.role === "DIRECTOR" || currentUser.role === "HR" || currentUser.role === "HR ADMIN") {
+        document.getElementById("dashboardSection").classList.remove("hidden");
+        loadDashboardData();
       }
-    })
-    .catch(err => alert("Có lỗi xảy ra: " + err));
-  }
-</script>
+    }
+
+    function loadDashboardData() {
+      fetch(`${API_URL}?action=GET_DASHBOARD_DATA`)
+      .then(r => r.json())
+      .then(res => {
+        if(res.status === "SUCCESS") {
+          document.getElementById("kpiTotal").innerText = res.kpi.total;
+          document.getElementById("kpiInVN").innerText = res.kpi.inVN;
+          document.getElementById("kpiBusiness").innerText = res.kpi.business;
+          document.getElementById("kpiExited").innerText = res.kpi.exited;
+          document.getElementById("kpiWarning").innerText = res.kpi.expPassport + res.kpi.expVisa + res.kpi.expTRC + res.kpi.expWP;
+        }
+      });
+    }
+
+    function logout() {
+      location.reload();
+    }
+  </script>
 </body>
 </html>
