@@ -1,159 +1,1498 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="vi">
+
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Foreign Employee Travel & Immigration Management</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0">
+
+<title>
+Foreign Employee Travel Management
+</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+
+<link rel="stylesheet"
+href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
 </head>
-<body class="bg-slate-100 font-sans text-slate-800">
 
-  <!-- Navigation Bar -->
-  <nav class="bg-slate-900 text-white px-6 py-4 flex justify-between items-center shadow-md">
-    <div class="flex items-center space-x-3">
-      <i class="fa-solid fa-globe text-blue-400 text-2xl"></i>
-      <span class="font-bold text-xl tracking-wide">FOREIGN TRAVEL MANAGEMENT</span>
-    </div>
-    <div id="userNav" class="flex items-center space-x-4">
-      <span id="roleBadge" class="bg-blue-600 text-xs px-3 py-1 rounded-full font-semibold uppercase">Guest</span>
-      <button onclick="logout()" class="text-slate-300 hover:text-white text-sm"><i class="fa-solid fa-right-from-bracket"></i> Đăng xuất</button>
-    </div>
-  </nav>
 
-  <!-- Main Container -->
-  <div class="container mx-auto p-6">
+<body class="bg-slate-100 text-slate-800">
 
-    <!-- 1. Màn hình Đăng Nhập -->
-    <div id="loginSection" class="max-w-md mx-auto bg-white p-8 rounded-xl shadow-lg mt-12 border border-slate-200">
-      <h2 class="text-2xl font-bold text-center text-slate-900 mb-6">ĐĂNG NHẬP HỆ THỐNG</h2>
-      <div class="space-y-4">
-        <div>
-          <label class="block text-sm font-semibold mb-1">Mã NV / Email</label>
-          <input type="text" id="loginUser" class="w-full border p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="VD: NV001 hoặc john@company.com">
-        </div>
-        <div>
-          <label class="block text-sm font-semibold mb-1">Mật khẩu / PIN</label>
-          <input type="password" id="loginPass" class="w-full border p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="••••••••">
-        </div>
-        <button onclick="doLogin()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg shadow-md transition">Đăng Nhập</button>
-      </div>
-    </div>
 
-    <!-- 2. Dashboard dành cho GIÁM ĐỐC & HR -->
-    <div id="dashboardSection" class="hidden space-y-6">
-      
-      <!-- Top KPIs Summary -->
-      <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-          <p class="text-xs font-bold text-slate-400 uppercase">Tổng NNN</p>
-          <p id="kpiTotal" class="text-3xl font-extrabold text-slate-900 mt-1">0</p>
-        </div>
-        <div class="bg-emerald-50 p-5 rounded-xl border border-emerald-200 shadow-sm">
-          <p class="text-xs font-bold text-emerald-600 uppercase">🟢 Đang ở VN</p>
-          <p id="kpiInVN" class="text-3xl font-extrabold text-emerald-700 mt-1">0</p>
-        </div>
-        <div class="bg-blue-50 p-5 rounded-xl border border-blue-200 shadow-sm">
-          <p class="text-xs font-bold text-blue-600 uppercase">✈️ Đang công tác</p>
-          <p id="kpiBusiness" class="text-3xl font-extrabold text-blue-700 mt-1">0</p>
-        </div>
-        <div class="bg-slate-50 p-5 rounded-xl border border-slate-200 shadow-sm">
-          <p class="text-xs font-bold text-slate-500 uppercase">🔴 Đã xuất cảnh</p>
-          <p id="kpiExited" class="text-3xl font-extrabold text-slate-700 mt-1">0</p>
-        </div>
-        <div class="bg-amber-50 p-5 rounded-xl border border-amber-200 shadow-sm">
-          <p class="text-xs font-bold text-amber-600 uppercase">🟠 Cảnh báo giấy tờ</p>
-          <p id="kpiWarning" class="text-3xl font-extrabold text-amber-700 mt-1">0</p>
-        </div>
-      </div>
+<!-- ================= NAVBAR ================= -->
 
-      <!-- Màn hình Timeline Lịch trình Di chuyển -->
-      <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-        <h3 class="text-lg font-bold text-slate-900 mb-4 flex items-center justify-between">
-          <span><i class="fa-solid fa-timeline text-blue-600 mr-2"></i> Lịch trình & Timeline Chi tiết Chuyên gia</span>
-          <span class="text-xs text-slate-500 font-normal">Real-time status tracking</span>
-        </h3>
+<nav class="bg-slate-900 text-white px-6 py-4
+flex justify-between items-center shadow-lg">
 
-        <!-- Mẫu hiển thị Timeline như mô tả (Ms. Leiden) -->
-        <div class="border-l-4 border-blue-600 pl-6 space-y-6 my-4">
-          <div class="relative">
-            <div class="absolute -left-[31px] top-0 bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs"><i class="fa-solid fa-plane-arrival"></i></div>
-            <p class="text-xs font-bold text-slate-400">15/08/2026</p>
-            <p class="text-sm font-semibold text-slate-800">✈️ Nhập cảnh Việt Nam $\rightarrow$ HCMC (Sân bay Tân Sơn Nhất)</p>
-          </div>
-          <div class="relative">
-            <div class="absolute -left-[31px] top-0 bg-amber-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs"><i class="fa-solid fa-car"></i></div>
-            <p class="text-xs font-bold text-slate-400">18/08/2026 - 22/08/2026</p>
-            <p class="text-sm font-semibold text-slate-800">💼 Đi công tác Đà Nẵng (Khách sạn XYZ, Chuyến bay VN123)</p>
-          </div>
-          <div class="relative">
-            <div class="absolute -left-[31px] top-0 bg-emerald-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs"><i class="fa-solid fa-house"></i></div>
-            <p class="text-xs font-bold text-slate-400">22/08/2026</p>
-            <p class="text-sm font-semibold text-slate-800">🏠 Quay lại HCMC (Căn hộ Thảo Điền)</p>
-          </div>
-          <div class="relative">
-            <div class="absolute -left-[31px] top-0 bg-rose-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs"><i class="fa-solid fa-plane-departure"></i></div>
-            <p class="text-xs font-bold text-slate-400">01/02/2027 (Kế hoạch)</p>
-            <p class="text-sm font-semibold text-slate-800">✈️ Xuất cảnh khỏi Việt Nam</p>
-          </div>
-        </div>
-      </div>
+<div class="flex items-center gap-3">
 
-    </div>
+<i class="fa-solid fa-globe
+text-blue-400 text-2xl"></i>
 
-  </div>
+<div>
 
-  <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbz9Lnh8qjzprQdj-RASrb7DQ3gVsWE27KUpEcwm-aXgq3EqvrZVY4X-jFMMXYzO5V2R9g/exec";
-    let currentUser = null;
+<div class="font-bold text-lg">
+FOREIGN TRAVEL MANAGEMENT
+</div>
 
-    function doLogin() {
-      const u = document.getElementById("loginUser").value;
-      const p = document.getElementById("loginPass").value;
-      if(!u || !p) return alert("Vui lòng nhập tài khoản và mật khẩu!");
+<div class="text-xs text-slate-400">
+Immigration & Domestic Travel
+</div>
 
-      fetch(API_URL, {
-        method: "POST",
-        body: JSON.stringify({ action: "LOGIN", username: u, password: p })
-      })
-      .then(r => r.json())
-      .then(res => {
-        if(res.status === "SUCCESS") {
-          currentUser = res.user;
-          setupRoleUI();
-        } else {
-          alert(res.message);
-        }
-      });
-    }
+</div>
 
-    function setupRoleUI() {
-      document.getElementById("loginSection").classList.add("hidden");
-      document.getElementById("roleBadge").innerText = currentUser.role;
+</div>
 
-      if(currentUser.role === "DIRECTOR" || currentUser.role === "HR" || currentUser.role === "HR ADMIN") {
-        document.getElementById("dashboardSection").classList.remove("hidden");
-        loadDashboardData();
-      }
-    }
 
-    function loadDashboardData() {
-      fetch(`${API_URL}?action=GET_DASHBOARD_DATA`)
-      .then(r => r.json())
-      .then(res => {
-        if(res.status === "SUCCESS") {
-          document.getElementById("kpiTotal").innerText = res.kpi.total;
-          document.getElementById("kpiInVN").innerText = res.kpi.inVN;
-          document.getElementById("kpiBusiness").innerText = res.kpi.business;
-          document.getElementById("kpiExited").innerText = res.kpi.exited;
-          document.getElementById("kpiWarning").innerText = res.kpi.expPassport + res.kpi.expVisa + res.kpi.expTRC + res.kpi.expWP;
-        }
-      });
-    }
+<div id="userNav"
+class="hidden items-center gap-4">
 
-    function logout() {
-      location.reload();
-    }
-  </script>
+<span id="userName"></span>
+
+<span id="roleBadge"
+class="bg-blue-600 px-3 py-1
+rounded-full text-xs font-bold">
+</span>
+
+<button onclick="logout()"
+class="text-slate-300 hover:text-white">
+
+<i class="fa-solid fa-right-from-bracket"></i>
+
+</button>
+
+</div>
+
+</nav>
+
+
+
+<!-- ================= LOGIN ================= -->
+
+<section id="loginSection"
+class="max-w-md mx-auto mt-16">
+
+<div class="bg-white rounded-2xl shadow-xl
+border border-slate-200 p-8">
+
+<div class="text-center mb-8">
+
+<div class="w-16 h-16 mx-auto
+bg-blue-100 rounded-full
+flex items-center justify-center">
+
+<i class="fa-solid fa-user-shield
+text-blue-600 text-2xl"></i>
+
+</div>
+
+<h2 class="text-2xl font-bold mt-4">
+ĐĂNG NHẬP
+</h2>
+
+<p class="text-sm text-slate-500 mt-1">
+Foreign Employee Management
+</p>
+
+</div>
+
+
+<label class="text-sm font-semibold">
+Mã NV / Email
+</label>
+
+<input id="loginUser"
+class="w-full border rounded-lg p-3 mt-1 mb-4"
+placeholder="john@company.com">
+
+
+<label class="text-sm font-semibold">
+Mật khẩu / PIN
+</label>
+
+<input id="loginPass"
+type="password"
+class="w-full border rounded-lg p-3 mt-1 mb-6"
+placeholder="••••••••">
+
+
+<button onclick="doLogin()"
+class="w-full bg-blue-600 hover:bg-blue-700
+text-white font-bold py-3 rounded-lg">
+
+<i class="fa-solid fa-right-to-bracket mr-2"></i>
+
+Đăng nhập
+
+</button>
+
+</div>
+
+</section>
+
+
+
+<!-- ================= APP ================= -->
+
+<div id="app"
+class="hidden max-w-7xl mx-auto p-6">
+
+
+<!-- MENU -->
+
+<div class="flex flex-wrap gap-2 mb-6">
+
+<button onclick="showPage('dashboard')"
+class="menuBtn">
+
+<i class="fa-solid fa-chart-line"></i>
+Dashboard
+
+</button>
+
+<button onclick="showPage('profile')"
+class="menuBtn">
+
+<i class="fa-solid fa-user"></i>
+My Profile
+
+</button>
+
+<button onclick="showPage('immigration')"
+class="menuBtn">
+
+<i class="fa-solid fa-plane"></i>
+Immigration
+
+</button>
+
+<button onclick="showPage('travel')"
+class="menuBtn">
+
+<i class="fa-solid fa-car"></i>
+Domestic Travel
+
+</button>
+
+<button id="employeeMenu"
+onclick="showPage('employees')"
+class="menuBtn hidden">
+
+<i class="fa-solid fa-users"></i>
+Employees
+
+</button>
+
+</div>
+
+
+
+<!-- ================= DASHBOARD ================= -->
+
+<section id="page-dashboard"
+class="page space-y-6">
+
+
+<div class="grid grid-cols-2
+md:grid-cols-5 gap-4">
+
+
+<div class="kpi">
+
+<div class="text-xs text-slate-400">
+TOTAL FOREIGNERS
+</div>
+
+<div id="kpiTotal"
+class="text-3xl font-bold">
+0
+</div>
+
+</div>
+
+
+<div class="kpi bg-emerald-50">
+
+<div class="text-xs text-emerald-600">
+🟢 IN VIETNAM
+</div>
+
+<div id="kpiInVN"
+class="text-3xl font-bold text-emerald-700">
+0
+</div>
+
+</div>
+
+
+<div class="kpi bg-blue-50">
+
+<div class="text-xs text-blue-600">
+✈️ TRAVELING
+</div>
+
+<div id="kpiBusiness"
+class="text-3xl font-bold text-blue-700">
+0
+</div>
+
+</div>
+
+
+<div class="kpi">
+
+<div class="text-xs text-slate-400">
+🔴 EXITED
+</div>
+
+<div id="kpiExited"
+class="text-3xl font-bold">
+0
+</div>
+
+</div>
+
+
+<div class="kpi bg-amber-50">
+
+<div class="text-xs text-amber-600">
+⚠ DOCUMENT WARNING
+</div>
+
+<div id="kpiWarning"
+class="text-3xl font-bold text-amber-700">
+0
+</div>
+
+</div>
+
+</div>
+
+
+
+<div class="bg-white rounded-xl
+shadow-sm border p-6">
+
+<div class="flex justify-between mb-5">
+
+<h2 class="font-bold text-lg">
+<i class="fa-solid fa-clock-rotate-left
+text-blue-600 mr-2"></i>
+
+Recent Employee Movement
+</h2>
+
+</div>
+
+
+<div id="timeline"
+class="space-y-5">
+
+<div class="text-slate-400">
+Đang tải...
+</div>
+
+</div>
+
+</div>
+
+</section>
+
+
+
+<!-- ================= PROFILE ================= -->
+
+<section id="page-profile"
+class="page hidden">
+
+<div class="bg-white rounded-xl
+shadow-sm border p-6">
+
+<h2 class="font-bold text-xl mb-6">
+👤 My Profile
+</h2>
+
+<div id="profileContent">
+</div>
+
+</div>
+
+</section>
+
+
+
+<!-- ================= IMMIGRATION ================= -->
+
+<section id="page-immigration"
+class="page hidden">
+
+<div class="grid md:grid-cols-2 gap-6">
+
+
+<div class="bg-white rounded-xl
+shadow-sm border p-6">
+
+<h2 class="font-bold text-lg mb-5">
+✈️ Khai báo nhập / xuất cảnh
+</h2>
+
+
+<select id="eeType"
+class="input">
+
+<option value="ENTRY">
+Nhập cảnh Việt Nam
+</option>
+
+<option value="EXIT">
+Xuất cảnh Việt Nam
+</option>
+
+</select>
+
+
+<input id="eeDate"
+type="datetime-local"
+class="input">
+
+
+<input id="eeAirport"
+class="input"
+placeholder="Sân bay / cửa khẩu">
+
+
+<input id="eeFlight"
+class="input"
+placeholder="Số chuyến bay">
+
+
+<input id="eeDestination"
+class="input"
+placeholder="Điểm đến">
+
+
+<input id="eePurpose"
+class="input"
+placeholder="Mục đích">
+
+
+<button onclick="saveEntryExit()"
+class="btn">
+
+<i class="fa-solid fa-save mr-2"></i>
+
+Lưu thông tin
+
+</button>
+
+</div>
+
+
+<div class="bg-white rounded-xl
+shadow-sm border p-6">
+
+<h2 class="font-bold text-lg mb-5">
+📋 Lịch sử nhập / xuất cảnh
+</h2>
+
+<div id="entryExitList">
+</div>
+
+</div>
+
+</div>
+
+</section>
+
+
+
+<!-- ================= DOMESTIC ================= -->
+
+<section id="page-travel"
+class="page hidden">
+
+<div class="grid md:grid-cols-2 gap-6">
+
+
+<div class="bg-white rounded-xl
+shadow-sm border p-6">
+
+<h2 class="font-bold text-lg mb-5">
+🚗 Đăng ký đi lại trong Việt Nam
+</h2>
+
+
+<input id="travelFromDate"
+type="date"
+class="input">
+
+
+<input id="travelToDate"
+type="date"
+class="input">
+
+
+<input id="travelFrom"
+class="input"
+placeholder="Từ đâu">
+
+
+<input id="travelTo"
+class="input"
+placeholder="Đến đâu">
+
+
+<input id="travelPurpose"
+class="input"
+placeholder="Mục đích">
+
+
+<select id="travelTransport"
+class="input">
+
+<option>Flight</option>
+<option>Car</option>
+<option>Train</option>
+<option>Bus</option>
+
+</select>
+
+
+<input id="travelFlight"
+class="input"
+placeholder="Số chuyến bay">
+
+
+<input id="travelHotel"
+class="input"
+placeholder="Khách sạn">
+
+
+<input id="travelHotelAddress"
+class="input"
+placeholder="Địa chỉ khách sạn">
+
+
+<button onclick="saveDomesticTravel()"
+class="btn">
+
+<i class="fa-solid fa-save mr-2"></i>
+
+Lưu lịch trình
+
+</button>
+
+</div>
+
+
+<div class="bg-white rounded-xl
+shadow-sm border p-6">
+
+<h2 class="font-bold text-lg mb-5">
+📋 Lịch sử đi lại
+</h2>
+
+<div id="travelList">
+</div>
+
+</div>
+
+</div>
+
+</section>
+
+
+
+<!-- ================= EMPLOYEES ================= -->
+
+<section id="page-employees"
+class="page hidden">
+
+<div class="bg-white rounded-xl
+shadow-sm border p-6">
+
+<h2 class="font-bold text-xl mb-5">
+👥 Foreign Employees
+</h2>
+
+<input
+id="employeeSearch"
+oninput="filterEmployees()"
+class="input"
+placeholder="Tìm tên / mã NV / quốc tịch...">
+
+
+<div class="overflow-x-auto">
+
+<table class="w-full text-sm">
+
+<thead>
+
+<tr class="border-b bg-slate-50">
+
+<th class="text-left p-3">
+Employee
+</th>
+
+<th class="text-left p-3">
+Nationality
+</th>
+
+<th class="text-left p-3">
+Status
+</th>
+
+<th class="text-left p-3">
+Location
+</th>
+
+<th class="text-left p-3">
+Passport
+</th>
+
+<th></th>
+
+</tr>
+
+</thead>
+
+<tbody id="employeeTable">
+</tbody>
+
+</table>
+
+</div>
+
+</div>
+
+</section>
+
+
+</div>
+
+
+
+<script>
+
+const API_URL =
+"https://script.google.com/macros/s/AKfycbz9Lnh8qjzprQdj-RASrb7DQ3gVsWE27KUpEcwm-aXgq3EqvrZVY4X-jFMMXYzO5V2R9g/exec";
+
+
+let currentUser = null;
+
+let employees = [];
+
+
+/* ================= LOGIN ================= */
+
+function doLogin(){
+
+const username =
+document.getElementById("loginUser").value.trim();
+
+const password =
+document.getElementById("loginPass").value.trim();
+
+if(!username || !password){
+
+alert("Vui lòng nhập tài khoản và mật khẩu!");
+
+return;
+
+}
+
+
+fetch(API_URL,{
+
+method:"POST",
+
+body:JSON.stringify({
+
+action:"LOGIN",
+
+username:username,
+
+password:password
+
+})
+
+})
+
+.then(r=>r.json())
+
+.then(res=>{
+
+if(res.status==="SUCCESS"){
+
+currentUser=res.user;
+
+document
+.getElementById("loginSection")
+.classList.add("hidden");
+
+document
+.getElementById("app")
+.classList.remove("hidden");
+
+document
+.getElementById("userNav")
+.classList.remove("hidden");
+
+document
+.getElementById("userNav")
+.classList.add("flex");
+
+document
+.getElementById("userName")
+.innerText=currentUser.name;
+
+document
+.getElementById("roleBadge")
+.innerText=currentUser.role;
+
+
+if(
+currentUser.role==="HR" ||
+currentUser.role==="HR ADMIN" ||
+currentUser.role==="DIRECTOR"
+){
+
+document
+.getElementById("employeeMenu")
+.classList.remove("hidden");
+
+}
+
+
+loadDashboard();
+
+loadProfile();
+
+loadEntryExit();
+
+loadTravel();
+
+}
+
+else{
+
+alert(res.message);
+
+}
+
+})
+
+.catch(err=>{
+
+console.error(err);
+
+alert("Không thể kết nối hệ thống.");
+
+});
+
+}
+
+
+/* ================= NAVIGATION ================= */
+
+function showPage(page){
+
+document
+.querySelectorAll(".page")
+.forEach(p=>p.classList.add("hidden"));
+
+document
+.getElementById("page-"+page)
+.classList.remove("hidden");
+
+}
+
+
+/* ================= DASHBOARD ================= */
+
+function loadDashboard(){
+
+fetch(API_URL+"?action=GET_DASHBOARD_DATA")
+
+.then(r=>r.json())
+
+.then(res=>{
+
+if(res.status!=="SUCCESS") return;
+
+document
+.getElementById("kpiTotal")
+.innerText=res.kpi.total;
+
+document
+.getElementById("kpiInVN")
+.innerText=res.kpi.inVN;
+
+document
+.getElementById("kpiBusiness")
+.innerText=res.kpi.business;
+
+document
+.getElementById("kpiExited")
+.innerText=res.kpi.exited;
+
+document
+.getElementById("kpiWarning")
+.innerText=res.kpi.warning;
+
+employees=res.employees||[];
+
+renderEmployees();
+
+renderTimeline();
+
+});
+
+}
+
+
+/* ================= PROFILE ================= */
+
+function loadProfile(){
+
+if(!currentUser.employeeId) return;
+
+fetch(
+API_URL+
+"?action=GET_PROFILE&employeeId="+
+encodeURIComponent(currentUser.employeeId)
+)
+
+.then(r=>r.json())
+
+.then(res=>{
+
+if(res.status!=="SUCCESS") return;
+
+const p=res.profile;
+
+document
+.getElementById("profileContent")
+.innerHTML=`
+
+<div class="grid md:grid-cols-2 gap-4">
+
+${field("Họ tên",p.fullName)}
+
+${field("Quốc tịch",p.nationality)}
+
+${field("Ngày sinh",p.dob)}
+
+${field("Số hộ chiếu",p.passportNo)}
+
+${field("Hộ chiếu hết hạn",p.passportExpiry)}
+
+${field("Visa",p.visaNo)}
+
+${field("Visa hết hạn",p.visaExpiry)}
+
+${field("TRC",p.trcNo)}
+
+${field("TRC hết hạn",p.trcExpiry)}
+
+${field("Work Permit",p.wpNo)}
+
+${field("WP hết hạn",p.wpExpiry)}
+
+${field("Chức vụ",p.position)}
+
+${field("Phòng ban",p.department)}
+
+${field("Điện thoại",p.phone)}
+
+${field("Email",p.email)}
+
+${field("Trạng thái",p.currentStatus)}
+
+${field("Địa điểm",p.currentLocation)}
+
+</div>
+
+`;
+
+});
+
+}
+
+
+function field(label,value){
+
+return`
+
+<div class="border rounded-lg p-3">
+
+<div class="text-xs text-slate-400">
+${label}
+</div>
+
+<div class="font-semibold mt-1">
+${value||"-"}
+</div>
+
+</div>
+
+`;
+
+}
+
+
+/* ================= ENTRY EXIT ================= */
+
+function saveEntryExit(){
+
+if(!currentUser.employeeId){
+
+alert("Tài khoản chưa được gắn EmployeeID.");
+
+return;
+
+}
+
+const data={
+
+employeeId:currentUser.employeeId,
+
+type:
+document.getElementById("eeType").value,
+
+dateTime:
+document.getElementById("eeDate").value,
+
+airport:
+document.getElementById("eeAirport").value,
+
+flightNo:
+document.getElementById("eeFlight").value,
+
+ticketFile:"",
+
+destination:
+document.getElementById("eeDestination").value,
+
+purpose:
+document.getElementById("eePurpose").value,
+
+createdBy:currentUser.id
+
+};
+
+
+postAPI("ADD_ENTRY_EXIT",data);
+
+}
+
+
+function loadEntryExit(){
+
+if(!currentUser.employeeId) return;
+
+fetch(
+API_URL+
+"?action=GET_ENTRY_EXIT&employeeId="+
+encodeURIComponent(currentUser.employeeId)
+)
+
+.then(r=>r.json())
+
+.then(res=>{
+
+const box=
+document.getElementById("entryExitList");
+
+box.innerHTML="";
+
+(res.records||[]).reverse().forEach(r=>{
+
+box.innerHTML+=`
+
+<div class="border-b py-3">
+
+<div class="font-bold">
+
+${r.type==="ENTRY"
+?"✈️ Nhập cảnh"
+:"🛫 Xuất cảnh"}
+
+</div>
+
+<div class="text-sm">
+${r.dateTime}
+</div>
+
+<div class="text-sm text-slate-500">
+${r.airport||""}
+${r.flightNo
+?" • "+r.flightNo:""}
+</div>
+
+</div>
+
+`;
+
+});
+
+});
+
+}
+
+
+/* ================= DOMESTIC ================= */
+
+function saveDomesticTravel(){
+
+const data={
+
+employeeId:currentUser.employeeId,
+
+fromDate:
+document.getElementById("travelFromDate").value,
+
+toDate:
+document.getElementById("travelToDate").value,
+
+fromLocation:
+document.getElementById("travelFrom").value,
+
+toLocation:
+document.getElementById("travelTo").value,
+
+purpose:
+document.getElementById("travelPurpose").value,
+
+transport:
+document.getElementById("travelTransport").value,
+
+flightNo:
+document.getElementById("travelFlight").value,
+
+hotel:
+document.getElementById("travelHotel").value,
+
+hotelAddress:
+document.getElementById("travelHotelAddress").value,
+
+ticketFile:"",
+
+createdBy:currentUser.id
+
+};
+
+
+postAPI(
+"ADD_DOMESTIC_TRAVEL",
+data
+);
+
+}
+
+
+function loadTravel(){
+
+if(!currentUser.employeeId) return;
+
+fetch(
+API_URL+
+"?action=GET_DOMESTIC_TRAVEL&employeeId="+
+encodeURIComponent(currentUser.employeeId)
+)
+
+.then(r=>r.json())
+
+.then(res=>{
+
+const box=
+document.getElementById("travelList");
+
+box.innerHTML="";
+
+(res.records||[]).reverse().forEach(r=>{
+
+box.innerHTML+=`
+
+<div class="border-b py-3">
+
+<div class="font-bold">
+
+${r.fromLocation}
+→
+${r.toLocation}
+
+</div>
+
+<div class="text-sm">
+${r.fromDate}
+→
+${r.toDate}
+</div>
+
+<div class="text-sm text-slate-500">
+
+${r.transport}
+
+${r.flightNo
+?" • "+r.flightNo:""}
+
+</div>
+
+<div class="text-sm">
+
+${r.hotel||""}
+
+</div>
+
+</div>
+
+`;
+
+});
+
+});
+
+}
+
+
+/* ================= POST ================= */
+
+function postAPI(action,data){
+
+fetch(API_URL,{
+
+method:"POST",
+
+body:JSON.stringify({
+
+action:action,
+
+data:data
+
+})
+
+})
+
+.then(r=>r.json())
+
+.then(res=>{
+
+if(res.status==="SUCCESS"){
+
+alert("Đã lưu thành công!");
+
+loadDashboard();
+
+loadEntryExit();
+
+loadTravel();
+
+}
+
+else{
+
+alert(res.message||"Không thể lưu dữ liệu.");
+
+}
+
+})
+
+.catch(err=>{
+
+console.error(err);
+
+alert("Lỗi kết nối API.");
+
+});
+
+}
+
+
+/* ================= EMPLOYEE TABLE ================= */
+
+function renderEmployees(){
+
+const tbody=
+document.getElementById("employeeTable");
+
+if(!tbody) return;
+
+tbody.innerHTML="";
+
+employees.forEach(e=>{
+
+tbody.innerHTML+=`
+
+<tr class="border-b hover:bg-slate-50">
+
+<td class="p-3">
+
+<div class="font-semibold">
+${e.fullName}
+</div>
+
+<div class="text-xs text-slate-400">
+${e.employeeId}
+</div>
+
+</td>
+
+<td class="p-3">
+${e.nationality}
+</td>
+
+<td class="p-3">
+${statusBadge(e.currentStatus)}
+</td>
+
+<td class="p-3">
+${e.currentLocation||"-"}
+</td>
+
+<td class="p-3">
+${e.passportExpiry||"-"}
+</td>
+
+<td class="p-3">
+
+<button
+onclick="viewEmployee('${e.employeeId}')"
+class="text-blue-600">
+
+<i class="fa-solid fa-eye"></i>
+
+</button>
+
+</td>
+
+</tr>
+
+`;
+
+});
+
+}
+
+
+function statusBadge(status){
+
+let cls="bg-slate-100 text-slate-600";
+
+if(status==="In Vietnam")
+cls="bg-emerald-100 text-emerald-700";
+
+if(status==="Traveling")
+cls="bg-blue-100 text-blue-700";
+
+if(status==="Exited")
+cls="bg-slate-200 text-slate-700";
+
+return`
+
+<span class="px-2 py-1 rounded-full text-xs font-bold ${cls}">
+${status||"-"}
+</span>
+
+`;
+
+}
+
+
+function filterEmployees(){
+
+const q=
+document
+.getElementById("employeeSearch")
+.value
+.toLowerCase();
+
+const tbody=
+document.getElementById("employeeTable");
+
+tbody.innerHTML="";
+
+employees
+.filter(e=>
+String(e.fullName)
+.toLowerCase()
+.includes(q)
+||
+String(e.employeeId)
+.toLowerCase()
+.includes(q)
+||
+String(e.nationality)
+.toLowerCase()
+.includes(q)
+)
+.forEach(e=>{
+
+tbody.innerHTML+=`
+
+<tr class="border-b">
+
+<td class="p-3 font-semibold">
+${e.fullName}
+</td>
+
+<td class="p-3">
+${e.nationality}
+</td>
+
+<td class="p-3">
+${statusBadge(e.currentStatus)}
+</td>
+
+<td class="p-3">
+${e.currentLocation||"-"}
+</td>
+
+<td class="p-3">
+${e.passportExpiry||"-"}
+</td>
+
+<td></td>
+
+</tr>
+
+`;
+
+});
+
+}
+
+
+/* ================= EMPLOYEE VIEW ================= */
+
+function viewEmployee(employeeId){
+
+fetch(
+API_URL+
+"?action=GET_TIMELINE&employeeId="+
+encodeURIComponent(employeeId)
+)
+
+.then(r=>r.json())
+
+.then(res=>{
+
+if(res.status!=="SUCCESS") return;
+
+let html="";
+
+(res.timeline||[]).forEach(e=>{
+
+let icon="📍";
+
+if(e.type==="ENTRY")
+icon="✈️";
+
+if(e.type==="EXIT")
+icon="🛫";
+
+if(e.type==="DOMESTIC")
+icon="🚗";
+
+html+=`
+
+<div class="border-l-4 border-blue-500
+pl-4 mb-5">
+
+<div class="text-xs text-slate-400">
+${e.date}
+</div>
+
+<div class="font-bold">
+
+${icon}
+${e.title}
+
+</div>
+
+<div class="text-sm text-slate-600">
+
+${e.location||""}
+
+${e.flight
+?" • "+e.flight:""}
+
+</div>
+
+</div>
+
+`;
+
+});
+
+alert(
+"Timeline Employee\n\n"+
+res.timeline
+.map(x=>x.date+" - "+x.title)
+.join("\n")
+);
+
+});
+
+}
+
+
+/* ================= TIMELINE ================= */
+
+function renderTimeline(){
+
+const box=
+document.getElementById("timeline");
+
+if(!employees.length){
+
+box.innerHTML=
+"Chưa có dữ liệu.";
+
+return;
+
+}
+
+box.innerHTML="";
+
+employees
+.filter(e=>e.currentStatus==="In Vietnam")
+.slice(0,10)
+.forEach(e=>{
+
+box.innerHTML+=`
+
+<div class="border-l-4 border-blue-500
+pl-4">
+
+<div class="font-bold">
+${e.fullName}
+</div>
+
+<div class="text-sm text-slate-500">
+
+${e.nationality}
+•
+${e.currentLocation||"Vietnam"}
+
+</div>
+
+</div>
+
+`;
+
+});
+
+}
+
+
+/* ================= LOGOUT ================= */
+
+function logout(){
+
+location.reload();
+
+}
+
+</script>
+
+
+
+<style>
+
+.menuBtn{
+
+background:white;
+
+border:1px solid #e2e8f0;
+
+padding:9px 14px;
+
+border-radius:8px;
+
+font-size:14px;
+
+font-weight:600;
+
+}
+
+.menuBtn:hover{
+
+background:#f1f5f9;
+
+}
+
+
+.kpi{
+
+background:white;
+
+padding:20px;
+
+border-radius:12px;
+
+border:1px solid #e2e8f0;
+
+box-shadow:
+0 1px 2px rgba(0,0,0,.03);
+
+}
+
+
+.input{
+
+width:100%;
+
+border:1px solid #cbd5e1;
+
+border-radius:8px;
+
+padding:10px;
+
+margin-bottom:12px;
+
+outline:none;
+
+}
+
+
+.input:focus{
+
+border-color:#3b82f6;
+
+box-shadow:
+0 0 0 2px rgba(59,130,246,.15);
+
+}
+
+
+.btn{
+
+background:#2563eb;
+
+color:white;
+
+font-weight:bold;
+
+padding:11px 18px;
+
+border-radius:8px;
+
+margin-top:5px;
+
+}
+
+.btn:hover{
+
+background:#1d4ed8;
+
+}
+
+</style>
+
 </body>
 </html>
