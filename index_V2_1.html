@@ -1,2 +1,597 @@
-<!doctype html><html lang="vi"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Foreign Employee Management</title><script src="https://cdn.tailwindcss.com"></script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"><style>body{background:#f1f5f9}.input{width:100%;border:1px solid #cbd5e1;border-radius:8px;padding:10px;margin-bottom:10px}.btn{background:#2563eb;color:#fff;font-weight:700;padding:10px 14px;border-radius:8px}.secondary{background:#fff;border:1px solid #cbd5e1;padding:10px 14px;border-radius:8px}.modal{background:#0008}.badge{padding:3px 8px;border-radius:999px;font-size:11px;font-weight:700}</style></head><body class="text-slate-800"><nav class="bg-slate-900 text-white p-4 flex justify-between"><b>🌐 FOREIGN EMPLOYEE MANAGEMENT</b><div id="userNav" class="hidden gap-3 items-center"><span id="userName"></span><span id="roleBadge" class="bg-blue-600 px-2 rounded-full text-xs"></span><button onclick="logout()">↪</button></div></nav><section id="login" class="max-w-md mx-auto mt-16 bg-white p-8 rounded-2xl shadow"><h1 class="text-2xl font-bold mb-6 text-center">ĐĂNG NHẬP</h1><input id="u" class="input" placeholder="Email / Mã NV"><input id="p" type="password" class="input" placeholder="Mật khẩu"><button id="lb" onclick="login()" class="btn w-full">Đăng nhập</button></section><main id="app" class="hidden max-w-7xl mx-auto p-4"><div class="flex flex-wrap gap-2 mb-5"><button id="dm" class="secondary" onclick="page('dash')">📊 Dashboard</button><button class="secondary" onclick="page('profile')">👤 My Profile</button><button class="secondary" onclick="page('imm')">✈️ Immigration</button><button class="secondary" onclick="page('travel')">🚗 Domestic Travel</button><button id="em" class="secondary" onclick="page('employees')">👥 Foreign Employees</button></div><section id="dash" class="pg hidden"><div class="grid grid-cols-2 md:grid-cols-5 gap-3"><div class="bg-white p-4 rounded-xl">TOTAL<div id="k1" class="text-3xl font-bold">0</div></div><div class="bg-white p-4 rounded-xl">🟢 IN VN<div id="k2" class="text-3xl font-bold">0</div></div><div class="bg-white p-4 rounded-xl">✈️ TRAVEL<div id="k3" class="text-3xl font-bold">0</div></div><div class="bg-white p-4 rounded-xl">🔴 EXITED<div id="k4" class="text-3xl font-bold">0</div></div><div class="bg-white p-4 rounded-xl">⚠ WARNINGS<div id="k5" class="text-3xl font-bold">0</div></div></div><div class="bg-white p-5 rounded-xl mt-5"><h2 class="font-bold mb-3">⚠ Document Warning</h2><div class="overflow-auto"><table class="w-full text-sm"><tbody id="warnings"></tbody></table></div></div></section><section id="profile" class="pg hidden bg-white p-5 rounded-xl"><h2 class="font-bold text-xl mb-4">👤 My Profile</h2><div id="prof"></div></section><section id="imm" class="pg hidden"><div class="grid md:grid-cols-2 gap-4"><div class="bg-white p-5 rounded-xl"><h2 class="font-bold mb-4">✈️ Entry / Exit</h2><select id="et" class="input"><option>ENTRY</option><option>EXIT</option></select><input id="ed" type="datetime-local" class="input"><input id="ea" class="input" placeholder="Sân bay / cửa khẩu"><input id="ef" class="input" placeholder="Flight No."><input id="ex" class="input" placeholder="Destination"><input id="ep" class="input" placeholder="Purpose"><select id="es" class="input"><option>Planned</option><option>Completed</option></select><button class="btn w-full" onclick="saveEE()">Lưu</button></div><div class="bg-white p-5 rounded-xl"><h2 class="font-bold mb-4">History</h2><div id="eel"></div></div></div></section><section id="travel" class="pg hidden"><div class="grid md:grid-cols-2 gap-4"><div class="bg-white p-5 rounded-xl"><h2 class="font-bold mb-4">🚗 Domestic Travel</h2><input id="tf" type="date" class="input"><input id="tt" type="date" class="input"><input id="tfrom" class="input" placeholder="From"><input id="tto" class="input" placeholder="To"><input id="tp" class="input" placeholder="Purpose"><select id="tr" class="input"><option>Flight</option><option>Car</option><option>Train</option><option>Bus</option></select><select id="ts" class="input"><option>Planned</option><option>In Progress</option></select><button class="btn w-full" onclick="saveTravel()">Lưu</button></div><div class="bg-white p-5 rounded-xl"><h2 class="font-bold mb-4">History</h2><div id="tl"></div></div></div></section><section id="employees" class="pg hidden bg-white p-5 rounded-xl"><div class="flex justify-between"><h2 class="font-bold text-xl">👥 Foreign Employees</h2><button class="btn" onclick="openEmp()">＋ Add Employee</button></div><input id="search" oninput="renderEmp()" class="input mt-4" placeholder="Search..."><div class="overflow-auto"><table class="w-full text-sm"><thead><tr class="bg-slate-50"><th class="p-2 text-left">Employee</th><th class="p-2">Nationality</th><th class="p-2">Status</th><th class="p-2">Docs</th><th class="p-2">Action</th></tr></thead><tbody id="etb"></tbody></table></div></section></main><div id="modal" class="hidden fixed inset-0 modal p-4 overflow-auto"><div class="max-w-5xl mx-auto bg-white rounded-xl p-5" id="mb"></div></div><script>
-const API='REPLACE_WITH_YOUR_NEW_EXEC_URL';let T=sessionStorage.getItem('T')||'',U=JSON.parse(sessionStorage.getItem('U')||'null'),ES=[];const $=x=>document.getElementById(x),esc=x=>String(x??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));async function GET(a,q={}){let r=await fetch(API+'?'+new URLSearchParams({action:a,token:T,...q})),x=await r.json();if(x.status!=='SUCCESS')throw Error(x.message);return x}async function POST(a,data={}){let r=await fetch(API,{method:'POST',body:JSON.stringify({action:a,token:T,data})}),x=await r.json();if(x.status!=='SUCCESS')throw Error(x.message);return x}function hr(){return U&&['HR','HR ADMIN','DIRECTOR','ADMIN'].includes(String(U.role).toUpperCase())}function page(x){document.querySelectorAll('.pg').forEach(e=>e.classList.add('hidden'));$(x).classList.remove('hidden');if(x==='employees')loadDash()}async function login(){try{let r=await fetch(API,{method:'POST',body:JSON.stringify({action:'LOGIN',username:$('u').value,password:$('p').value})}),x=await r.json();if(x.status!=='SUCCESS')throw Error(x.message);T=x.sessionToken;U=x.user;sessionStorage.setItem('T',T);sessionStorage.setItem('U',JSON.stringify(U));enter()}catch(e){alert(e.message)}}function enter(){$('login').classList.add('hidden');$('app').classList.remove('hidden');$('userNav').classList.remove('hidden');$('userNav').classList.add('flex');$('userName').textContent=U.name;$('roleBadge').textContent=U.role;$('dm').classList.toggle('hidden',!hr());$('em').classList.toggle('hidden',!hr());page(hr()?'dash':'profile');loadProfile();loadEE();loadTravel();if(hr())loadDash()}async function loadDash(){if(!hr())return;try{let r=await GET('GET_DASHBOARD_DATA');$('k1').textContent=r.kpi.total;$('k2').textContent=r.kpi.inVN;$('k3').textContent=r.kpi.business;$('k4').textContent=r.kpi.exited;$('k5').textContent=r.kpi.warning;ES=r.employees;$('warnings').innerHTML=r.warnings.map(x=>`<tr class="border-b"><td class="p-2">${esc(x.fullName)} (${esc(x.employeeId)})</td><td class="p-2">${esc(x.type)}</td><td class="p-2">${esc(x.expiry)}</td><td class="p-2">${esc(x.status)}</td></tr>`).join('')||'<tr><td class="p-3">No warnings</td></tr>';renderEmp()}catch(e){alert(e.message)}}function renderEmp(){let q=($('search')?.value||'').toLowerCase();$('etb').innerHTML=ES.filter(e=>(e.fullName+' '+e.employeeId+' '+e.nationality).toLowerCase().includes(q)).map(e=>`<tr class="border-b"><td class="p-2"><b>${esc(e.fullName)}</b><div>${esc(e.employeeId)}</div></td><td class="p-2 text-center">${esc(e.nationality)}</td><td class="p-2 text-center">${esc(e.currentStatus)}</td><td class="p-2 text-center">${e.warningCount?'⚠ '+e.warningCount:'🟢'}</td><td class="p-2 text-center"><button onclick="detail('${encodeURIComponent(e.employeeId)}')">👁</button> <button onclick="openDoc('${esc(e.employeeId)}')">📄</button> <button onclick="openContract('${esc(e.employeeId)}')">📑</button></td></tr>`).join('')}async function detail(z){try{let r=await GET('GET_EMPLOYEE_DETAIL',{employeeId:decodeURIComponent(z)}),e=r.detail.employee;$('mb').innerHTML=`<div class="flex justify-between"><h2 class="text-xl font-bold">${esc(e.fullName)}</h2><button onclick="closeM()">✕</button></div><div class="grid md:grid-cols-3 gap-2 my-4">${f('Employee ID',e.employeeId)}${f('Nationality',e.nationality)}${f('Position',e.position)}${f('Passport',e.passportNo)}${f('Visa',e.visaNo)}${f('TRC',e.trcNo)}${f('Work Permit',e.wpNo)}${f('Status',e.currentStatus)}${f('Location',e.currentLocation)}</div><h3 class="font-bold">📑 Documents</h3><div class="overflow-auto">${r.detail.documents.map(d=>`<div class="border-b p-2 flex justify-between"><span>${esc(d.documentType)} • ${esc(d.documentNo)} • Exp: ${esc(d.expiryDate)}</span>${d.fileId?`<button onclick="viewDoc('${esc(d.documentId)}')">🖼 Xem</button>`:''}</div>`).join('')||'Chưa có'}</div><h3 class="font-bold mt-5">📄 Contracts</h3>${r.detail.contracts.map(c=>`<div class="border p-3 rounded my-2"><b>HĐ ${esc(c.contractNo)}</b> • ${esc(c.startDate)} → ${esc(c.endDate)}<br>Lương: ${esc(c.salary)} ${esc(c.salaryCurrency)}<br>Phụ cấp: ${esc(c.allowanceTotal)} ${esc(c.allowanceCurrency)}<br>${esc(c.allowanceNote)}<div class="mt-2"><button onclick="openApp('${esc(c.contractId)}','${esc(c.employeeId)}')" class="text-blue-600">＋ Phụ lục</button>${c.fileId?` <button onclick="viewContract('CONTRACT','${esc(c.contractId)}')">📄 Xem HĐ</button>`:''}</div></div>`).join('')||'Chưa có'}<button class="btn mt-4" onclick="openDoc('${esc(e.employeeId)}')">＋ Document</button> <button class="btn mt-4" onclick="openContract('${esc(e.employeeId)}')">＋ Contract</button>`;showM()}catch(e){alert(e.message)}}function f(a,b){return`<div class="bg-slate-50 p-2 rounded"><small>${a}</small><br><b>${esc(b||'-')}</b></div>`}function showM(){$('modal').classList.remove('hidden')}function closeM(){$('modal').classList.add('hidden')}function openEmp(){let fields=['employeeId','fullName','nationality','passportNo','passportExpiry','visaNo','visaExpiry','trcNo','trcExpiry','wpNo','wpExpiry','position','department','phone','email','currentLocation'];$('mb').innerHTML='<h2 class="font-bold text-xl">Add Employee</h2>'+fields.map(x=>`<input id="E_${x}" class="input" placeholder="${x}">`).join('')+'<button class="btn" onclick="saveEmp()">Save</button>';showM()}async function saveEmp(){let keys=['employeeId','fullName','nationality','passportNo','passportExpiry','visaNo','visaExpiry','trcNo','trcExpiry','wpNo','wpExpiry','position','department','phone','email','currentLocation'],d={currentStatus:'In Vietnam'};keys.forEach(k=>d[k]=$('E_'+k).value);try{await POST('ADD_EMPLOYEE',d);closeM();loadDash()}catch(e){alert(e.message)}}function openDoc(id){$('mb').innerHTML=`<h2 class="font-bold text-xl">Document</h2><input id="D_type" class="input" placeholder="Passport / Visa / TRC / Work Permit"><input id="D_no" class="input" placeholder="Document No."><input id="D_issue" type="date" class="input"><input id="D_exp" type="date" class="input"><input id="D_note" class="input" placeholder="Note"><input id="D_file" type="file" accept="image/*,application/pdf" class="input"><button class="btn" onclick="saveDoc('${esc(id)}')">Save</button>`;showM()}async function saveDoc(id){try{let d={employeeId:id,documentType:$('D_type').value,documentNo:$('D_no').value,issueDate:$('D_issue').value,expiryDate:$('D_exp').value,note:$('D_note').value};let f=$('D_file').files[0];if(f)Object.assign(d,await readFile(f));await POST('SAVE_DOCUMENT',d);closeM();loadDash()}catch(e){alert(e.message)}}function openContract(id){$('mb').innerHTML=`<h2 class="font-bold text-xl">Contract</h2><input id="C_no" class="input" placeholder="Số hợp đồng *"><input id="C_type" class="input" placeholder="Loại hợp đồng"><input id="C_start" type="date" class="input"><input id="C_end" type="date" class="input"><input id="C_salary" class="input" placeholder="Mức lương"><input id="C_cur" class="input" value="VND"><input id="C_allow" class="input" placeholder="Tổng phụ cấp"><input id="C_acur" class="input" value="VND"><input id="C_note" class="input" placeholder="Chi tiết phụ cấp"><input id="C_file" type="file" accept="image/*,application/pdf" class="input"><button class="btn" onclick="saveContract('${esc(id)}')">Save</button>`;showM()}async function saveContract(id){try{let d={employeeId:id,contractNo:$('C_no').value,contractType:$('C_type').value,startDate:$('C_start').value,endDate:$('C_end').value,salary:$('C_salary').value,salaryCurrency:$('C_cur').value,allowanceTotal:$('C_allow').value,allowanceCurrency:$('C_acur').value,allowanceNote:$('C_note').value};let f=$('C_file').files[0];if(f)Object.assign(d,await readFile(f));await POST('SAVE_CONTRACT',d);closeM();loadDash()}catch(e){alert(e.message)}}function openApp(cid,eid){$('mb').innerHTML=`<h2 class="font-bold text-xl">Contract Appendix</h2><input id="A_no" class="input" placeholder="Số phụ lục *"><input id="A_eff" type="date" class="input"><input id="A_end" type="date" class="input"><input id="A_sal" class="input" placeholder="Mức lương"><input id="A_cur" class="input" value="VND"><input id="A_all" class="input" placeholder="Phụ cấp"><input id="A_acur" class="input" value="VND"><input id="A_note" class="input" placeholder="Chi tiết phụ cấp"><input id="A_file" type="file" accept="image/*,application/pdf" class="input"><button class="btn" onclick="saveApp('${esc(cid)}','${esc(eid)}')">Save</button>`;showM()}async function saveApp(cid,eid){try{let d={contractId:cid,employeeId:eid,appendixNo:$('A_no').value,effectiveDate:$('A_eff').value,endDate:$('A_end').value,salary:$('A_sal').value,salaryCurrency:$('A_cur').value,allowanceTotal:$('A_all').value,allowanceCurrency:$('A_acur').value,allowanceNote:$('A_note').value};let f=$('A_file').files[0];if(f)Object.assign(d,await readFile(f));await POST('SAVE_APPENDIX',d);closeM();detail(encodeURIComponent(eid))}catch(e){alert(e.message)}}function readFile(f){return new Promise((ok,no)=>{if(f.size>8*1024*1024)return no(Error('File tối đa 8MB'));let r=new FileReader();r.onload=()=>ok({fileBase64:r.result,fileName:f.name,mimeType:f.type});r.onerror=no;r.readAsDataURL(f)})}async function viewDoc(id){try{let r=await GET('GET_DOCUMENT_IMAGE',{documentId:id});viewData(r)}catch(e){alert(e.message)}}async function viewContract(t,id){try{let r=await GET('GET_CONTRACT_FILE',{type:t,id:id});viewData(r)}catch(e){alert(e.message)}}function viewData(r){$('mb').innerHTML=`<button class="secondary" onclick="closeM()">← Back</button><h2 class="font-bold my-3">${esc(r.fileName)}</h2>${r.mimeType.startsWith('image/')?`<img class="max-h-[75vh] mx-auto" src="data:${r.mimeType};base64,${r.base64}">`:`<iframe class="w-full h-[75vh]" src="data:${r.mimeType};base64,${r.base64}"></iframe>`}`}async function loadProfile(){if(!U?.employeeId)return;try{let r=await GET('GET_PROFILE',{employeeId:U.employeeId});$('prof').innerHTML=Object.entries(r.profile).map(x=>f(x[0],x[1])).join('')}catch(e){}}async function saveEE(){try{await POST('ADD_ENTRY_EXIT',{employeeId:U.employeeId,type:$('et').value,dateTime:$('ed').value,airport:$('ea').value,flightNo:$('ef').value,destination:$('ex').value,purpose:$('ep').value,status:$('es').value});loadEE()}catch(e){alert(e.message)}}async function loadEE(){if(!U?.employeeId)return;try{let r=await GET('GET_ENTRY_EXIT',{employeeId:U.employeeId});$('eel').innerHTML=r.records.reverse().map(x=>`<div class="border-b p-2">${x.type} • ${esc(x.dateTime)} • ${esc(x.airport)} • ${esc(x.status)}</div>`).join('')||'Chưa có'}catch(e){}}async function saveTravel(){try{await POST('ADD_DOMESTIC_TRAVEL',{employeeId:U.employeeId,fromDate:$('tf').value,toDate:$('tt').value,fromLocation:$('tfrom').value,toLocation:$('tto').value,purpose:$('tp').value,transport:$('tr').value,status:$('ts').value});loadTravel()}catch(e){alert(e.message)}}async function loadTravel(){if(!U?.employeeId)return;try{let r=await GET('GET_DOMESTIC_TRAVEL',{employeeId:U.employeeId});$('tl').innerHTML=r.records.reverse().map(x=>`<div class="border-b p-2">${esc(x.fromDate)} → ${esc(x.toDate)} • ${esc(x.fromLocation)} → ${esc(x.toLocation)} • ${esc(x.status)}</div>`).join('')||'Chưa có'}catch(e){}}async function logout(){try{await POST('LOGOUT')}catch(e){}sessionStorage.clear();location.reload()}if(U&&T)enter();</script></body></html>
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Foreign Employee Management System</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    body { background: #f1f5f9; }
+    .input { width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; margin-bottom: 10px; outline: none; }
+    .input:focus { border-color: #2563eb; }
+    .btn { background: #2563eb; color: #fff; font-weight: 700; padding: 10px 14px; border-radius: 8px; transition: all 0.2s; }
+    .btn:hover { background: #1d4ed8; }
+    .secondary { background: #fff; border: 1px solid #cbd5e1; padding: 10px 14px; border-radius: 8px; font-weight: 600; }
+    .secondary:hover { background: #f8fafc; }
+    .modal { background: rgba(0, 0, 0, 0.5); }
+    .badge { padding: 3px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; }
+  </style>
+</head>
+<body class="text-slate-800">
+
+  <!-- Navbar -->
+  <nav class="bg-slate-900 text-white p-4 flex justify-between items-center shadow-md">
+    <b class="text-lg">🌐 FOREIGN EMPLOYEE MANAGEMENT</b>
+    <div id="userNav" class="hidden gap-3 items-center">
+      <span id="userName" class="font-medium"></span>
+      <span id="roleBadge" class="bg-blue-600 px-2.5 py-0.5 rounded-full text-xs font-semibold"></span>
+      <button onclick="logout()" class="bg-slate-800 hover:bg-slate-700 p-2 rounded-lg text-sm" title="Đăng xuất">↪ Logout</button>
+    </div>
+  </nav>
+
+  <!-- Login Form -->
+  <section id="login" class="max-w-md mx-auto mt-16 bg-white p-8 rounded-2xl shadow-lg">
+    <h1 class="text-2xl font-bold mb-6 text-center text-slate-900">ĐĂNG NHẬP HỆ THỐNG</h1>
+    <input id="u" class="input" placeholder="Email / Mã nhân viên">
+    <input id="p" type="password" class="input" placeholder="Mật khẩu">
+    <button id="lb" onclick="login()" class="btn w-full mt-2">Đăng nhập</button>
+  </section>
+
+  <!-- Main App Container -->
+  <main id="app" class="hidden max-w-7xl mx-auto p-4">
+    <!-- Navigation Tabs -->
+    <div class="flex flex-wrap gap-2 mb-5">
+      <button id="dm" class="secondary" onclick="page('dash')">📊 Dashboard</button>
+      <button class="secondary" onclick="page('profile')">👤 Profile của tôi</button>
+      <button class="secondary" onclick="page('imm')">✈️ Lịch trình Xuất Nhập Cảnh</button>
+      <button class="secondary" onclick="page('travel')">🚗 Lịch trình Tác nghiệp Nội địa</button>
+      <button id="em" class="secondary" onclick="page('employees')">👥 Quản lý Nhân sự Nước ngoài</button>
+    </div>
+
+    <!-- Dashboard Page -->
+    <section id="dash" class="pg hidden">
+      <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100">TỔNG NHÂN SỰ<div id="k1" class="text-3xl font-bold text-slate-900 mt-1">0</div></div>
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100">🟢 Ở VIỆT NAM<div id="k2" class="text-3xl font-bold text-emerald-600 mt-1">0</div></div>
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100">✈️ ĐI TÁC NGHIỆP<div id="k3" class="text-3xl font-bold text-blue-600 mt-1">0</div></div>
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100">🔴 ĐÃ XUẤT CẢNH<div id="k4" class="text-3xl font-bold text-rose-600 mt-1">0</div></div>
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100">⚠ CẢNH BÁO HS<div id="k5" class="text-3xl font-bold text-amber-600 mt-1">0</div></div>
+      </div>
+      <div class="bg-white p-5 rounded-xl shadow-sm mt-5 border border-slate-100">
+        <h2 class="font-bold mb-3 text-lg text-amber-600">⚠ Cảnh báo Giấy tờ sắp/đã hết hạn</h2>
+        <div class="overflow-auto">
+          <table class="w-full text-sm text-left">
+            <thead class="bg-slate-50 border-b">
+              <tr>
+                <th class="p-2">Nhân viên</th>
+                <th class="p-2">Loại giấy tờ</th>
+                <th class="p-2">Ngày hết hạn</th>
+                <th class="p-2">Trạng thái</th>
+              </tr>
+            </thead>
+            <tbody id="warnings"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Profile Page -->
+    <section id="profile" class="pg hidden bg-white p-5 rounded-xl shadow-sm border border-slate-100">
+      <h2 class="font-bold text-xl mb-4">👤 Hồ sơ cá nhân</h2>
+      <div id="prof" class="grid md:grid-cols-3 gap-3"></div>
+    </section>
+
+    <!-- Immigration Page -->
+    <section id="imm" class="pg hidden">
+      <div class="grid md:grid-cols-2 gap-4">
+        <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-100">
+          <h2 class="font-bold mb-4 text-lg">✈️ Khai báo Xuất / Nhập cảnh</h2>
+          <select id="et" class="input"><option value="ENTRY">ENTRY (Nhập cảnh)</option><option value="EXIT">EXIT (Xuất cảnh)</option></select>
+          <input id="ed" type="datetime-local" class="input">
+          <input id="ea" class="input" placeholder="Sân bay / Cửa khẩu">
+          <input id="ef" class="input" placeholder="Mã chuyến bay (Flight No.)">
+          <input id="ex" class="input" placeholder="Điểm đến (Destination)">
+          <input id="ep" class="input" placeholder="Mục đích (Purpose)">
+          <select id="es" class="input"><option value="Planned">Planned (Kế hoạch)</option><option value="Completed">Completed (Đã hoàn thành)</option></select>
+          <button class="btn w-full mt-2" onclick="saveEE()">Lưu khai báo</button>
+        </div>
+        <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-100">
+          <h2 class="font-bold mb-4 text-lg">Lịch sử Xuất / Nhập cảnh</h2>
+          <div id="eel" class="space-y-2"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Travel Page -->
+    <section id="travel" class="pg hidden">
+      <div class="grid md:grid-cols-2 gap-4">
+        <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-100">
+          <h2 class="font-bold mb-4 text-lg">🚗 Khai báo Tác nghiệp Nội địa</h2>
+          <label class="block text-xs font-semibold text-slate-500 mb-1">Từ ngày:</label>
+          <input id="tf" type="date" class="input">
+          <label class="block text-xs font-semibold text-slate-500 mb-1">Đến ngày:</label>
+          <input id="tt" type="date" class="input">
+          <input id="tfrom" class="input" placeholder="Nơi đi (From)">
+          <input id="tto" class="input" placeholder="Nơi đến (To)">
+          <input id="tp" class="input" placeholder="Mục đích công tác">
+          <select id="tr" class="input">
+            <option>Flight</option>
+            <option>Car</option>
+            <option>Train</option>
+            <option>Bus</option>
+          </select>
+          <select id="ts" class="input">
+            <option value="Planned">Planned (Kế hoạch)</option>
+            <option value="In Progress">In Progress (Đang di chuyển)</option>
+          </select>
+          <button class="btn w-full mt-2" onclick="saveTravel()">Lưu khai báo</button>
+        </div>
+        <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-100">
+          <h2 class="font-bold mb-4 text-lg">Lịch sử Đi lại Nội địa</h2>
+          <div id="tl" class="space-y-2"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Employees Directory Page -->
+    <section id="employees" class="pg hidden bg-white p-5 rounded-xl shadow-sm border border-slate-100">
+      <div class="flex justify-between items-center">
+        <h2 class="font-bold text-xl">👥 Danh sách Nhân sự Nước ngoài</h2>
+        <button class="btn" onclick="openEmp()">＋ Thêm Nhân viên</button>
+      </div>
+      <input id="search" oninput="renderEmp()" class="input mt-4" placeholder="Tìm kiếm theo tên, mã NV, quốc tịch...">
+      <div class="overflow-auto mt-2">
+        <table class="w-full text-sm text-left">
+          <thead>
+            <tr class="bg-slate-50 border-b">
+              <th class="p-3">Nhân viên</th>
+              <th class="p-3 text-center">Quốc tịch</th>
+              <th class="p-3 text-center">Trạng thái</th>
+              <th class="p-3 text-center">Giấy tờ</th>
+              <th class="p-3 text-center">Thao tác</th>
+            </tr>
+          </thead>
+          <tbody id="etb"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <!-- Modal Component -->
+  <div id="modal" class="hidden fixed inset-0 modal p-4 overflow-auto flex items-center justify-center z-50">
+    <div class="max-w-4xl w-full bg-white rounded-xl p-6 shadow-2xl relative" id="mb"></div>
+  </div>
+
+  <script>
+    // CẤU HÌNH WEB APP EXEC URL TỪ GOOGLE APPS SCRIPT
+    const API = 'https://script.google.com/macros/s/AKfycbz9Lnh8qjzprQdj-RASrb7DQ3gVsWE27KUpEcwm-aXgq3EqvrZVY4X-jFMMXYzO5V2R9g/exec';
+
+    let T = sessionStorage.getItem('T') || '';
+    let U = JSON.parse(sessionStorage.getItem('U') || 'null');
+    let ES = [];
+
+    const $ = x => document.getElementById(x);
+    const esc = x => String(x ?? '').replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+
+    async function GET(a, q = {}) {
+      let url = new URL(API);
+      url.searchParams.append('action', a);
+      url.searchParams.append('token', T);
+      Object.keys(q).forEach(k => url.searchParams.append(k, q[k]));
+
+      let r = await fetch(url.toString(), { method: 'GET' });
+      let x = await r.json();
+      if (x.status !== 'SUCCESS') throw Error(x.message);
+      return x;
+    }
+
+    async function POST(a, data = {}) {
+      let r = await fetch(API, {
+        method: 'POST',
+        body: JSON.stringify({ action: a, token: T, data: data })
+      });
+      let x = await r.json();
+      if (x.status !== 'SUCCESS') throw Error(x.message);
+      return x;
+    }
+
+    function hr() {
+      return U && ['HR', 'HR ADMIN', 'DIRECTOR', 'ADMIN'].includes(String(U.role).toUpperCase());
+    }
+
+    function page(x) {
+      document.querySelectorAll('.pg').forEach(e => e.classList.add('hidden'));
+      $(x).classList.remove('hidden');
+      if (x === 'employees') loadDash();
+    }
+
+    async function login() {
+      try {
+        let r = await fetch(API, {
+          method: 'POST',
+          body: JSON.stringify({ action: 'LOGIN', username: $('u').value, password: $('p').value })
+        });
+        let x = await r.json();
+        if (x.status !== 'SUCCESS') throw Error(x.message);
+        
+        T = x.sessionToken;
+        U = x.user;
+        sessionStorage.setItem('T', T);
+        sessionStorage.setItem('U', JSON.stringify(U));
+        enter();
+      } catch (e) {
+        alert(e.message);
+      }
+    }
+
+    function enter() {
+      $('login').classList.add('hidden');
+      $('app').classList.remove('hidden');
+      $('userNav').classList.remove('hidden');
+      $('userNav').classList.add('flex');
+      $('userName').textContent = U.name;
+      $('roleBadge').textContent = U.role;
+      $('dm').classList.toggle('hidden', !hr());
+      $('em').classList.toggle('hidden', !hr());
+      
+      page(hr() ? 'dash' : 'profile');
+      loadProfile();
+      loadEE();
+      loadTravel();
+      if (hr()) loadDash();
+    }
+
+    async function loadDash() {
+      if (!hr()) return;
+      try {
+        let r = await GET('GET_DASHBOARD_DATA');
+        $('k1').textContent = r.kpi.total;
+        $('k2').textContent = r.kpi.inVN;
+        $('k3').textContent = r.kpi.business;
+        $('k4').textContent = r.kpi.exited;
+        $('k5').textContent = r.kpi.warning;
+        ES = r.employees;
+        
+        $('warnings').innerHTML = r.warnings.map(x => `
+          <tr class="border-b">
+            <td class="p-2 font-medium">${esc(x.fullName)} (${esc(x.employeeId)})</td>
+            <td class="p-2"><span class="badge bg-slate-100 text-slate-800">${esc(x.type)}</span></td>
+            <td class="p-2">${esc(x.expiry)}</td>
+            <td class="p-2"><span class="badge ${x.status === 'EXPIRED' ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700'}">${esc(x.status)}</span></td>
+          </tr>
+        `).join('') || '<tr><td colspan="4" class="p-3 text-center text-slate-400">Không có cảnh báo giấy tờ nào</td></tr>';
+        
+        renderEmp();
+      } catch (e) {
+        alert(e.message);
+      }
+    }
+
+    function renderEmp() {
+      let q = ($('search')?.value || '').toLowerCase();
+      $('etb').innerHTML = ES.filter(e => (e.fullName + ' ' + e.employeeId + ' ' + e.nationality).toLowerCase().includes(q)).map(e => `
+        <tr class="border-b hover:bg-slate-50">
+          <td class="p-3"><b>${esc(e.fullName)}</b><div class="text-xs text-slate-500">${esc(e.employeeId)}</div></td>
+          <td class="p-3 text-center">${esc(e.nationality)}</td>
+          <td class="p-3 text-center"><span class="badge bg-blue-50 text-blue-600 border border-blue-200">${esc(e.currentStatus)}</span></td>
+          <td class="p-3 text-center">${e.warningCount ? `<span class="badge bg-amber-100 text-amber-800">⚠ ${e.warningCount}</span>` : '🟢 OK'}</td>
+          <td class="p-3 text-center space-x-1">
+            <button class="px-2 py-1 bg-slate-100 rounded hover:bg-slate-200" onclick="detail('${encodeURIComponent(e.employeeId)}')">👁 Chi tiết</button>
+            <button class="px-2 py-1 bg-blue-50 text-blue-600 rounded hover:bg-blue-100" onclick="openDoc('${esc(e.employeeId)}')">📄 Giấy tờ</button>
+            <button class="px-2 py-1 bg-indigo-50 text-indigo-600 rounded hover:bg-indigo-100" onclick="openContract('${esc(e.employeeId)}')">📑 Hợp đồng</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    async function detail(z) {
+      try {
+        let r = await GET('GET_EMPLOYEE_DETAIL', { employeeId: decodeURIComponent(z) }), e = r.detail.employee;
+        $('mb').innerHTML = `
+          <div class="flex justify-between items-center border-b pb-3">
+            <h2 class="text-xl font-bold">${esc(e.fullName)}</h2>
+            <button class="text-slate-400 hover:text-slate-600 font-bold text-lg" onclick="closeM()">✕</button>
+          </div>
+          <div class="grid md:grid-cols-3 gap-2 my-4">
+            ${f('Mã NV', e.employeeId)}
+            ${f('Quốc tịch', e.nationality)}
+            ${f('Vị trí', e.position)}
+            ${f('Hộ chiếu', e.passportNo)}
+            ${f('Visa', e.visaNo)}
+            ${f('Thẻ tạm trú (TRC)', e.trcNo)}
+            ${f('Giấy phép LĐ (WP)', e.wpNo)}
+            ${f('Trạng thái hiện tại', e.currentStatus)}
+            ${f('Vị trí hiện tại', e.currentLocation)}
+          </div>
+          <h3 class="font-bold text-md mt-4 mb-2 text-slate-700">📑 Giấy tờ pháp lý</h3>
+          <div class="overflow-auto max-h-40 border rounded-lg p-2 bg-slate-50 space-y-1">
+            ${r.detail.documents.map(d => `
+              <div class="border-b last:border-0 p-2 flex justify-between items-center bg-white rounded shadow-sm">
+                <span><b>${esc(d.documentType)}</b> - ${esc(d.documentNo)} (Hạn: ${esc(d.expiryDate)})</span>
+                ${d.fileId ? `<button class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded" onclick="viewDoc('${esc(d.documentId)}')">🖼 Xem file</button>` : ''}
+              </div>
+            `).join('') || '<div class="text-slate-400 text-sm">Chưa có giấy tờ nào</div>'}
+          </div>
+          <h3 class="font-bold text-md mt-4 mb-2 text-slate-700">📄 Hợp đồng lao động</h3>
+          <div class="space-y-2">
+            ${r.detail.contracts.map(c => `
+              <div class="border p-3 rounded-lg bg-white shadow-sm">
+                <b>HĐ Số: ${esc(c.contractNo)}</b> • ${esc(c.startDate)} → ${esc(c.endDate)}<br>
+                <span class="text-xs text-slate-600">Lương: ${esc(c.salary)} ${esc(c.salaryCurrency)} | Phụ cấp: ${esc(c.allowanceTotal)} ${esc(c.allowanceCurrency)}</span>
+                <div class="mt-2 flex gap-2">
+                  <button onclick="openApp('${esc(c.contractId)}','${esc(c.employeeId)}')" class="text-xs text-blue-600 hover:underline">＋ Phụ lục HĐ</button>
+                  ${c.fileId ? `<button onclick="viewContract('CONTRACT','${esc(c.contractId)}')" class="text-xs text-slate-600 hover:underline">📄 Xem File HĐ</button>` : ''}
+                </div>
+              </div>
+            `).join('') || '<div class="text-slate-400 text-sm">Chưa có hợp đồng</div>'}
+          </div>
+          <div class="mt-5 flex gap-2 justify-end border-t pt-3">
+            <button class="btn text-sm" onclick="openDoc('${esc(e.employeeId)}')">＋ Thêm Giấy tờ</button>
+            <button class="btn text-sm" onclick="openContract('${esc(e.employeeId)}')">＋ Thêm Hợp đồng</button>
+          </div>
+        `;
+        showM();
+      } catch (e) { alert(e.message); }
+    }
+
+    function f(a, b) {
+      return `<div class="bg-slate-50 p-2.5 rounded-lg border border-slate-100"><small class="text-slate-400 font-medium">${a}</small><br><b class="text-slate-800 text-sm">${esc(b || '-')}</b></div>`;
+    }
+
+    function showM() { $('modal').classList.remove('hidden'); }
+    function closeM() { $('modal').classList.add('hidden'); }
+
+    function openEmp() {
+      let fields = ['employeeId', 'fullName', 'nationality', 'passportNo', 'passportExpiry', 'visaNo', 'visaExpiry', 'trcNo', 'trcExpiry', 'wpNo', 'wpExpiry', 'position', 'department', 'phone', 'email', 'currentLocation'];
+      $('mb').innerHTML = '<h2 class="font-bold text-xl mb-4">Thêm Nhân viên mới</h2>' +
+        '<div class="grid md:grid-cols-2 gap-2">' +
+        fields.map(x => `<input id="E_${x}" class="input" placeholder="${x}">`).join('') +
+        '</div>' +
+        '<button class="btn w-full mt-4" onclick="saveEmp()">Lưu hồ sơ</button>';
+      showM();
+    }
+
+    async function saveEmp() {
+      let keys = ['employeeId', 'fullName', 'nationality', 'passportNo', 'passportExpiry', 'visaNo', 'visaExpiry', 'trcNo', 'trcExpiry', 'wpNo', 'wpExpiry', 'position', 'department', 'phone', 'email', 'currentLocation'];
+      let d = { currentStatus: 'In Vietnam' };
+      keys.forEach(k => d[k] = $('E_' + k).value);
+      try {
+        await POST('ADD_EMPLOYEE', d);
+        closeM();
+        loadDash();
+      } catch (e) { alert(e.message); }
+    }
+
+    function openDoc(id) {
+      $('mb').innerHTML = `
+        <h2 class="font-bold text-xl mb-4">Tải lên Giấy tờ Pháp lý</h2>
+        <input id="D_type" class="input" placeholder="Loại giấy tờ (Passport / Visa / TRC / Work Permit)">
+        <input id="D_no" class="input" placeholder="Số giấy tờ">
+        <label class="block text-xs font-semibold text-slate-500 mb-1">Ngày cấp:</label>
+        <input id="D_issue" type="date" class="input">
+        <label class="block text-xs font-semibold text-slate-500 mb-1">Ngày hết hạn *:</label>
+        <input id="D_exp" type="date" class="input">
+        <input id="D_note" class="input" placeholder="Ghi chú">
+        <input id="D_file" type="file" accept="image/*,application/pdf" class="input">
+        <button class="btn w-full mt-2" onclick="saveDoc('${esc(id)}')">Lưu Giấy tờ</button>
+      `;
+      showM();
+    }
+
+    async function saveDoc(id) {
+      try {
+        let d = {
+          employeeId: id,
+          documentType: $('D_type').value,
+          documentNo: $('D_no').value,
+          issueDate: $('D_issue').value,
+          expiryDate: $('D_exp').value,
+          note: $('D_note').value
+        };
+        let f = $('D_file').files[0];
+        if (f) Object.assign(d, await readFile(f));
+        await POST('SAVE_DOCUMENT', d);
+        closeM();
+        loadDash();
+      } catch (e) { alert(e.message); }
+    }
+
+    function openContract(id) {
+      $('mb').innerHTML = `
+        <h2 class="font-bold text-xl mb-4">Tạo Hợp đồng Lao động</h2>
+        <input id="C_no" class="input" placeholder="Số hợp đồng *">
+        <input id="C_type" class="input" placeholder="Loại hợp đồng">
+        <label class="block text-xs font-semibold text-slate-500 mb-1">Ngày hiệu lực *:</label>
+        <input id="C_start" type="date" class="input">
+        <label class="block text-xs font-semibold text-slate-500 mb-1">Ngày kết thúc:</label>
+        <input id="C_end" type="date" class="input">
+        <input id="C_salary" class="input" placeholder="Mức lương chính">
+        <input id="C_cur" class="input" value="VND">
+        <input id="C_allow" class="input" placeholder="Tổng phụ cấp">
+        <input id="C_acur" class="input" value="VND">
+        <input id="C_note" class="input" placeholder="Ghi chú phụ cấp">
+        <input id="C_file" type="file" accept="image/*,application/pdf" class="input">
+        <button class="btn w-full mt-2" onclick="saveContract('${esc(id)}')">Lưu Hợp đồng</button>
+      `;
+      showM();
+    }
+
+    async function saveContract(id) {
+      try {
+        let d = {
+          employeeId: id,
+          contractNo: $('C_no').value,
+          contractType: $('C_type').value,
+          startDate: $('C_start').value,
+          endDate: $('C_end').value,
+          salary: $('C_salary').value,
+          salaryCurrency: $('C_cur').value,
+          allowanceTotal: $('C_allow').value,
+          allowanceCurrency: $('C_acur').value,
+          allowanceNote: $('C_note').value
+        };
+        let f = $('C_file').files[0];
+        if (f) Object.assign(d, await readFile(f));
+        await POST('SAVE_CONTRACT', d);
+        closeM();
+        loadDash();
+      } catch (e) { alert(e.message); }
+    }
+
+    function openApp(cid, eid) {
+      $('mb').innerHTML = `
+        <h2 class="font-bold text-xl mb-4">Thêm Phụ lục Hợp đồng</h2>
+        <input id="A_no" class="input" placeholder="Số phụ lục *">
+        <label class="block text-xs font-semibold text-slate-500 mb-1">Ngày hiệu lực:</label>
+        <input id="A_eff" type="date" class="input">
+        <label class="block text-xs font-semibold text-slate-500 mb-1">Ngày hết hạn:</label>
+        <input id="A_end" type="date" class="input">
+        <input id="A_sal" class="input" placeholder="Mức lương mới">
+        <input id="A_cur" class="input" value="VND">
+        <input id="A_all" class="input" placeholder="Phụ cấp mới">
+        <input id="A_acur" class="input" value="VND">
+        <input id="A_note" class="input" placeholder="Chi tiết">
+        <input id="A_file" type="file" accept="image/*,application/pdf" class="input">
+        <button class="btn w-full mt-2" onclick="saveApp('${esc(cid)}','${esc(eid)}')">Lưu Phụ lục</button>
+      `;
+      showM();
+    }
+
+    async function saveApp(cid, eid) {
+      try {
+        let d = {
+          contractId: cid,
+          employeeId: eid,
+          appendixNo: $('A_no').value,
+          effectiveDate: $('A_eff').value,
+          endDate: $('A_end').value,
+          salary: $('A_sal').value,
+          salaryCurrency: $('A_cur').value,
+          allowanceTotal: $('A_all').value,
+          allowanceCurrency: $('A_acur').value,
+          allowanceNote: $('A_note').value
+        };
+        let f = $('A_file').files[0];
+        if (f) Object.assign(d, await readFile(f));
+        await POST('SAVE_APPENDIX', d);
+        closeM();
+        detail(encodeURIComponent(eid));
+      } catch (e) { alert(e.message); }
+    }
+
+    function readFile(f) {
+      return new Promise((ok, no) => {
+        if (f.size > 8 * 1024 * 1024) return no(Error('File vượt quá kích thước tối đa 8MB.'));
+        let r = new FileReader();
+        r.onload = () => ok({ fileBase64: r.result, fileName: f.name, mimeType: f.type });
+        r.onerror = no;
+        r.readAsDataURL(f);
+      });
+    }
+
+    async function viewDoc(id) {
+      try {
+        let r = await GET('GET_DOCUMENT_IMAGE', { documentId: id });
+        viewData(r);
+      } catch (e) { alert(e.message); }
+    }
+
+    async function viewContract(t, id) {
+      try {
+        let r = await GET('GET_CONTRACT_FILE', { type: t, id: id });
+        viewData(r);
+      } catch (e) { alert(e.message); }
+    }
+
+    function viewData(r) {
+      $('mb').innerHTML = `
+        <div class="flex justify-between items-center mb-3">
+          <h2 class="font-bold text-lg">${esc(r.fileName)}</h2>
+          <button class="secondary" onclick="closeM()">✕ Đóng</button>
+        </div>
+        ${r.mimeType.startsWith('image/') ? 
+          `<img class="max-h-[75vh] mx-auto rounded shadow" src="data:${r.mimeType};base64,${r.base64}">` : 
+          `<iframe class="w-full h-[75vh] rounded border" src="data:${r.mimeType};base64,${r.base64}"></iframe>`
+        }
+      `;
+    }
+
+    async function loadProfile() {
+      if (!U?.employeeId) return;
+      try {
+        let r = await GET('GET_PROFILE', { employeeId: U.employeeId });
+        $('prof').innerHTML = Object.entries(r.profile).map(x => f(x[0], x[1])).join('');
+      } catch (e) {}
+    }
+
+    async function saveEE() {
+      try {
+        await POST('ADD_ENTRY_EXIT', {
+          employeeId: U.employeeId,
+          type: $('et').value,
+          dateTime: $('ed').value,
+          airport: $('ea').value,
+          flightNo: $('ef').value,
+          destination: $('ex').value,
+          purpose: $('ep').value,
+          status: $('es').value
+        });
+        loadEE();
+        alert('Đã lưu khai báo xuất/nhập cảnh thành công');
+      } catch (e) { alert(e.message); }
+    }
+
+    async function loadEE() {
+      if (!U?.employeeId) return;
+      try {
+        let r = await GET('GET_ENTRY_EXIT', { employeeId: U.employeeId });
+        $('eel').innerHTML = r.records.reverse().map(x => `
+          <div class="border-b p-2 bg-slate-50 rounded">
+            <b>${x.type}</b> • ${esc(x.dateTime)} • ${esc(x.airport)} <span class="badge bg-slate-200 text-slate-700">${esc(x.status)}</span>
+          </div>
+        `).join('') || '<div class="text-slate-400 text-sm">Chưa có lịch sử</div>';
+      } catch (e) {}
+    }
+
+    async function saveTravel() {
+      try {
+        await POST('ADD_DOMESTIC_TRAVEL', {
+          employeeId: U.employeeId,
+          fromDate: $('tf').value,
+          toDate: $('tt').value,
+          fromLocation: $('tfrom').value,
+          toLocation: $('tto').value,
+          purpose: $('tp').value,
+          transport: $('tr').value,
+          status: $('ts').value
+        });
+        loadTravel();
+        alert('Đã lưu lịch trình tác nghiệp');
+      } catch (e) { alert(e.message); }
+    }
+
+    async function loadTravel() {
+      if (!U?.employeeId) return;
+      try {
+        let r = await GET('GET_DOMESTIC_TRAVEL', { employeeId: U.employeeId });
+        $('tl').innerHTML = r.records.reverse().map(x => `
+          <div class="border-b p-2 bg-slate-50 rounded">
+            <b>${esc(x.fromLocation)} → ${esc(x.toLocation)}</b><br>
+            <span class="text-xs text-slate-500">${esc(x.fromDate)} tới ${esc(x.toDate)} • Trạng thái: ${esc(x.status)}</span>
+          </div>
+        `).join('') || '<div class="text-slate-400 text-sm">Chưa có lịch sử</div>';
+      } catch (e) {}
+    }
+
+    async function logout() {
+      try { await POST('LOGOUT'); } catch (e) {}
+      sessionStorage.clear();
+      location.reload();
+    }
+
+    // Tự động kích hoạt khi có Session
+    if (U && T) enter();
+  </script>
+</body>
+</html>
