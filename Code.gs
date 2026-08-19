@@ -45,55 +45,47 @@ function getSheet(tableName) {
 }
 
 // ==========================================
-// B. ROUTER API (doGet & doPost)
+// B. ROUTER API (doGet & doPost & apiCall)
 // ==========================================
 function doGet(e) {
-  // Web App luôn trả về giao diện index.html khi mở trực tiếp.
-  // API nội bộ được gọi bằng google.script.run từ index.html.
   return HtmlService.createHtmlOutputFromFile("index")
     .setTitle("Foreign Employee Management V2")
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
+
 function doPost(e) {
+  let result = { status: "ERROR", message: "Yêu cầu không hợp lệ!" };
   try {
     let requestData = {};
     if (e && e.postData && e.postData.contents) {
       requestData = JSON.parse(e.postData.contents);
+    } else if (e && e.parameter) {
+      requestData = e.parameter;
     }
     
-    const action = requestData.action || "";
+    const action = String(requestData.action || "").trim().toUpperCase();
     const token = requestData.token || "";
-    const data = requestData.data || {};
-    const params = requestData.params || {};
+    const data = requestData.data || requestData;
+    const params = requestData.params || e.parameter || {};
 
-    let result;
-    if (String(action).toUpperCase() === "LOGIN") {
-      result = handleLogin(requestData.username, requestData.password);
+    if (action === "LOGIN") {
+      const username = requestData.username || data.username;
+      const password = requestData.password || data.password;
+      result = handleLogin(username, password);
     } else {
       const requester = validateSession(token);
       result = requester
-        ? dispatchApiAction(String(action).toUpperCase(), token, requester, data, params)
+        ? dispatchApiAction(action, token, requester, data, params)
         : { status: "ERROR", message: "Phiên đăng nhập hết hạn hoặc không hợp lệ!" };
     }
-
-    return ContentService.createTextOutput(JSON.stringify(result))
-      .setMimeType(ContentService.MimeType.JSON);
   } catch (error) {
-    return ContentService.createTextOutput(JSON.stringify({
-      status: "ERROR",
-      message: error.message || String(error)
-    })).setMimeType(ContentService.MimeType.JSON);
+    result = { status: "ERROR", message: error.message || String(error) };
   }
-}
-function doPost(e) {
-  // Giữ REST endpoint để tương thích/kiểm thử bên ngoài.
-  return handleRequest(e, "POST");
+
+  return ContentService.createTextOutput(JSON.stringify(result))
+    .setMimeType(ContentService.MimeType.JSON);
 }
 
-/**
- * API nội bộ dùng bởi index.html qua google.script.run.
- * Không phụ thuộc fetch/CORS/redirect của Google Apps Script Web App.
- */
 function apiCall(action, token, data, params) {
   try {
     action = String(action || "").trim().toUpperCase();
@@ -118,7 +110,7 @@ function apiCall(action, token, data, params) {
 
 function dispatchApiAction(action, token, requester, data, params) {
   let result = { status: "ERROR", message: "Hành động không hợp lệ!" };
-  const employeeId = params.employeeId || data.employeeId || data?.data?.employeeId;
+  const employeeId = params.employeeId || data.employeeId || (data.data && data.data.employeeId);
 
   switch (action) {
     case "LOGOUT":
@@ -169,42 +161,6 @@ function dispatchApiAction(action, token, requester, data, params) {
   return result;
 }
 
-function handleRequest(e, method) {
-  const response = ContentService.createTextOutput();
-  response.setMimeType(ContentService.MimeType.JSON);
-
-  try {
-    let requestData = {};
-    if (method === "POST" && e && e.postData && e.postData.contents) {
-      requestData = JSON.parse(e.postData.contents);
-    } else if (e && e.parameter) {
-      requestData = e.parameter;
-    }
-
-    const action = requestData.action || (e && e.parameter ? e.parameter.action : "");
-    const token = requestData.token || (e && e.parameter ? e.parameter.token : "");
-
-    let result;
-    if (String(action).toUpperCase() === "LOGIN") {
-      result = handleLogin(requestData.username, requestData.password);
-    } else {
-      const data = requestData.data || requestData;
-      const params = e && e.parameter ? e.parameter : {};
-      const requester = validateSession(token);
-      result = requester
-        ? dispatchApiAction(String(action).toUpperCase(), token, requester, data, params)
-        : { status: "ERROR", message: "Phiên đăng nhập hết hạn hoặc không hợp lệ!" };
-    }
-
-    return response.setContent(JSON.stringify(result));
-  } catch (error) {
-    return response.setContent(JSON.stringify({
-      status: "ERROR",
-      message: error && error.message ? error.message : String(error)
-    }));
-  }
-}
-
 // ==========================================
 // C. AUTH & AUTHORIZATION
 // ==========================================
@@ -229,7 +185,6 @@ function handleLogin(username, password) {
   for (let i = 1; i < rows.length; i++) {
     const [userId, email, passHash, role, employeeId, status] = rows[i];
     
-    // Kiểm tra match email/employeeId và password hash (hoặc plain cho tài khoản cũ chưa hash)
     if ((String(email).toLowerCase() === String(username).toLowerCase() || String(employeeId) === String(username)) && 
         (String(passHash) === inputHash || String(passHash) === String(password))) {
       
@@ -237,7 +192,6 @@ function handleLogin(username, password) {
         return { status: "ERROR", message: "Tài khoản của bạn đã bị vô hiệu hóa!" };
       }
 
-      // Kiểm tra xem trạng thái của Employee có ACTIVE không
       const empSheet = getSheet(TABLES.EMPLOYEES);
       const empRows = empSheet.getDataRange().getValues();
       const emp = empRows.find(r => String(r[0]) === String(employeeId));
@@ -275,7 +229,6 @@ function validateSession(token) {
   const session = JSON.parse(raw);
   const now = Date.now();
   
-  // Kiểm tra TTL 6 Giờ
   if ((now - session.createdAt) / 1000 > SESSION_TTL_SECONDS) {
     userProps.deleteProperty(token);
     return null;
@@ -327,11 +280,8 @@ function handleSaveProfile(data, requester) {
 
   const timestamp = new Date();
 
-  // 1. CẬP NHẬT HOẶC TẠO MỚI EMPLOYEE
   if (rowIndex > 0) {
     const currentRow = rows[rowIndex - 1];
-    
-    // Nếu là USER thường, hạn chế sửa một số trường nhạy cảm
     const updatedRow = [
       currentRow[0],
       isHRAdmin ? (data.fullName || currentRow[1]) : currentRow[1],
@@ -341,10 +291,10 @@ function handleSaveProfile(data, requester) {
       isHRAdmin ? (data.department || currentRow[5]) : currentRow[5],
       data.phone !== undefined ? data.phone : currentRow[6],
       data.email !== undefined ? data.email : currentRow[7],
-      currentRow[8], // CurrentStatus
-      currentRow[9], // CurrentLocation
+      currentRow[8], 
+      currentRow[9], 
       (isHRAdmin && data.activeStatus !== undefined) ? data.activeStatus : currentRow[10],
-      currentRow[11], // FolderId
+      currentRow[11], 
       currentRow[12],
       timestamp
     ];
@@ -387,19 +337,16 @@ function handleSaveProfile(data, requester) {
 
     sheet.appendRow(newRow);
 
-    // Tạo tài khoản mặc định (Password được HASH)
     const userSheet = getSheet(TABLES.USERS);
     userSheet.appendRow(["USR-" + Utilities.getUuid().substring(0, 6), data.email || data.employeeId, hashPassword("123456"), ROLES.USER, data.employeeId, "ACTIVE", timestamp]);
     writeAuditLog(requester.userId, "CREATE", "Employees", data.employeeId, null, JSON.stringify(newRow));
   }
 
-  // 2. LƯU CÁC GIẤY TỜ PHÁP LÝ (Passport, TRC, WP)
   if (isHRAdmin) {
     if (data.passportNo) saveDocument({ employeeId: data.employeeId, docType: "PASSPORT", docNo: data.passportNo, expiryDate: data.passportExpiry, fileUrl: data.passportImg }, requester);
     if (data.trcNo) saveDocument({ employeeId: data.employeeId, docType: "TRC", docNo: data.trcNo, expiryDate: data.trcExpiry, fileUrl: data.trcImg }, requester);
     if (data.wpNo) saveDocument({ employeeId: data.employeeId, docType: "WORK_PERMIT", docNo: data.wpNo, expiryDate: data.wpExpiry, fileUrl: data.wpImg }, requester);
 
-    // 3. LƯU HỢP ĐỒNG & PHỤ LỤC (Fix lỗi lớn nhất của V1)
     if (data.contractNo) {
       saveContractAndAppendix(data, requester);
     }
@@ -411,35 +358,31 @@ function handleSaveProfile(data, requester) {
 function saveContractAndAppendix(data, requester) {
   const contractSheet = getSheet(TABLES.CONTRACTS);
   const contractRows = contractSheet.getDataRange().getValues();
-  
   let currentContractId = "";
   
-  // Tìm contract hiện tại đang IsCurrent = true
   for (let i = 1; i < contractRows.length; i++) {
     if (String(contractRows[i][1]) === String(data.employeeId) && contractRows[i][9] === true) {
       if (contractRows[i][2] === data.contractNo) {
         currentContractId = contractRows[i][0];
       } else {
-        // Đổi sang hợp đồng mới -> Đánh dấu HĐ cũ IsCurrent = false
         contractSheet.getRange(i + 1, 10).setValue(false);
       }
     }
   }
 
-  // Tạo Contract mới nếu chưa có
   if (!currentContractId) {
     currentContractId = "CTR-" + Utilities.getUuid().substring(0, 8);
     const newContractRow = [
       currentContractId,
       data.employeeId,
       data.contractNo,
-      "DEFINITE", // Mặc định hoặc truyền thêm
+      "DEFINITE",
       formatDate(data.contractStartDate),
       formatDate(data.contractExpiry),
       Number(data.salary) || 0,
       JSON.stringify({ allowance: Number(data.allowance) || 0 }),
       "VALID",
-      true, // IsCurrent
+      true,
       "",
       data.contractImg || "",
       new Date(),
@@ -448,7 +391,6 @@ function saveContractAndAppendix(data, requester) {
     contractSheet.appendRow(newContractRow);
     writeAuditLog(requester.userId, "ADD_CONTRACT", "Contracts", currentContractId, null, JSON.stringify(newContractRow));
   } else {
-    // Cập nhật thông tin hợp đồng hiện tại
     for (let i = 1; i < contractRows.length; i++) {
       if (contractRows[i][0] === currentContractId) {
         contractSheet.getRange(i + 1, 5).setValue(formatDate(data.contractStartDate));
@@ -461,7 +403,6 @@ function saveContractAndAppendix(data, requester) {
     }
   }
 
-  // Thêm Phụ lục hợp đồng nếu có nhập appendixNo
   if (data.appendixNo) {
     const appSheet = getSheet(TABLES.APPENDICES);
     const appRows = appSheet.getDataRange().getValues();
@@ -501,7 +442,6 @@ function saveDocument(docData, requester) {
   const sheet = getSheet(TABLES.DOCUMENTS);
   const rows = sheet.getDataRange().getValues();
   
-  // Đánh dấu bản ghi cùng DocType trước đó thành IsCurrent = false
   for (let i = 1; i < rows.length; i++) {
     if (String(rows[i][1]) === String(docData.employeeId) && rows[i][2] === docData.docType && rows[i][9] === true) {
       sheet.getRange(i + 1, 10).setValue(false);
@@ -519,7 +459,7 @@ function saveDocument(docData, requester) {
     docData.issuer || "",
     docData.fileId || "",
     docData.fileUrl || "",
-    true, // IsCurrent
+    true,
     "VALID",
     new Date(),
     requester.userId
@@ -560,7 +500,7 @@ function uploadEmployeeFile(param, requester) {
     const subFolders = parentFolder.getFoldersByName(folderName);
     const targetFolder = subFolders.hasNext() ? subFolders.next() : parentFolder.createFolder(folderName);
 
-    const encoded = String(base64Data).split(",")[1] || "";
+    const encoded = String(base64Data).split(",")[1] || String(base64Data);
     const bytes = Utilities.base64Decode(encoded);
     if (bytes.length > MAX_UPLOAD_BYTES) {
       return { status: "ERROR", message: "File vượt quá giới hạn 10 MB." };
@@ -573,7 +513,6 @@ function uploadEmployeeFile(param, requester) {
     const blob = Utilities.newBlob(bytes, safeMime, safeName);
     const file = targetFolder.createFile(blob);
     
-    // AN TOÀN BẢO MẬT: Bỏ ANYONE_WITH_LINK. Để Private.
     file.setSharing(DriveApp.Access.PRIVATE, DriveApp.Permission.NONE);
 
     return {
@@ -691,7 +630,6 @@ function handleAddDomesticTravel(d, req) {
   const sheet = getSheet(TABLES.TRAVEL);
   const id = "TRV-" + Utilities.getUuid().substring(0, 8);
   
-  // Quy trình chuẩn: Đăng ký bởi USER phải là PENDING
   const isHR = [ROLES.ADMIN, ROLES.HR_ADMIN, ROLES.HR].includes(req.role);
   const initialStatus = isHR ? "APPROVED" : "PENDING";
 
@@ -717,8 +655,8 @@ function handleApproveDomesticTravel(d, req) {
   if (![ROLES.ADMIN, ROLES.HR_ADMIN, ROLES.HR, ROLES.DIRECTOR].includes(req.role)) {
     return { status: "ERROR", message: "Không có quyền duyệt yêu cầu!" };
   }
-  const status = String(d?.status || "").toUpperCase();
-  const travelId = String(d?.travelId || "").trim();
+  const status = String(d && d.status ? d.status : "").toUpperCase();
+  const travelId = String(d && d.travelId ? d.travelId : "").trim();
   if (!travelId || !["APPROVED", "REJECTED"].includes(status)) {
     return { status: "ERROR", message: "Trạng thái duyệt không hợp lệ." };
   }
@@ -727,7 +665,7 @@ function handleApproveDomesticTravel(d, req) {
   const rows = sheet.getDataRange().getValues();
   for (let i = 1; i < rows.length; i++) {
     if (rows[i][0] === d.travelId) {
-      sheet.getRange(i + 1, 7).setValue(status); // APPROVED / REJECTED
+      sheet.getRange(i + 1, 7).setValue(status);
       calculateEmployeeLocationStatus(rows[i][1]);
       return { status: "SUCCESS", message: `Đã cập nhật trạng thái yêu cầu thành: ${status}` };
     }
@@ -752,7 +690,7 @@ function handleGetDomesticTravel(empId, req) {
 }
 
 // ==========================================
-// G. DASHBOARD & PROFILE RESPONSE (V2 FIX)
+// G. DASHBOARD & PROFILE RESPONSE
 // ==========================================
 function getDashboardData(requester) {
   if (![ROLES.ADMIN, ROLES.HR_ADMIN, ROLES.HR, ROLES.DIRECTOR].includes(requester.role)) {
@@ -773,10 +711,9 @@ function getDashboardData(requester) {
   const expiryWarnings = [];
   const now = new Date();
 
-  // Indexing hợp đồng hiện hành
   const activeContractsMap = {};
   ctrRows.forEach(c => {
-    if (c[9] === true) { // IsCurrent === true
+    if (c[9] === true) {
       activeContractsMap[String(c[1])] = {
         contractNo: c[2],
         endDate: c[5]
@@ -807,9 +744,8 @@ function getDashboardData(requester) {
     }
   });
 
-  // 1. Kiểm tra Cảnh báo hết hạn Giấy tờ (Fix logic diffDays <= 45)
   docRows.forEach(doc => {
-    if (doc[9] === true && doc[5]) { // IsCurrent === true
+    if (doc[9] === true && doc[5]) {
       const expDate = new Date(doc[5]);
       const diffTime = expDate - now;
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -829,7 +765,6 @@ function getDashboardData(requester) {
     }
   });
 
-  // 2. Kiểm tra Cảnh báo Hợp đồng lao động (Fix KPI expContract luôn bằng 0)
   ctrRows.forEach(ctr => {
     if (ctr[9] === true && ctr[5]) {
       const expDate = new Date(ctr[5]);
@@ -872,7 +807,6 @@ function getProfileData(employeeId, requester) {
 
   if (!emp) return { status: "ERROR", message: "Không tìm thấy hồ sơ nhân viên." };
 
-  // Lấy Giấy tờ
   const docSheet = getSheet(TABLES.DOCUMENTS);
   const docRows = docSheet.getDataRange().getValues().slice(1);
   const docs = docRows.filter(d => String(d[1]) === String(employeeId) && d[9] === true);
@@ -881,12 +815,10 @@ function getProfileData(employeeId, requester) {
   const trc = docs.find(d => d[2] === "TRC") || [];
   const wp = docs.find(d => d[2] === "WORK_PERMIT") || [];
 
-  // Lấy Hợp đồng hiện tại (Fix lỗi Backend không trả về Contract)
   const ctrSheet = getSheet(TABLES.CONTRACTS);
   const ctrRows = ctrSheet.getDataRange().getValues().slice(1);
   const currentContract = ctrRows.find(c => String(c[1]) === String(employeeId) && c[9] === true) || [];
 
-  // Lấy Phụ lục mới nhất
   const appSheet = getSheet(TABLES.APPENDICES);
   const appRows = appSheet.getDataRange().getValues().slice(1);
   const appendices = appRows
@@ -934,14 +866,13 @@ function getProfileData(employeeId, requester) {
 }
 
 // ==========================================
-// H. THỦ TỤC NGHỈ VIỆC & KHÓA TÀI KHOẢN (V2 FIX)
+// H. THỦ TỤC NGHỈ VIỆC & KHÓA TÀI KHOẢN
 // ==========================================
 function handleDeleteEmployee(empId, req) {
   if (![ROLES.ADMIN, ROLES.HR_ADMIN].includes(req.role)) {
     return { status: "ERROR", message: "Không có quyền thực hiện thao tác này!" };
   }
 
-  // 1. Vô hiệu hóa trong Employees
   const empSheet = getSheet(TABLES.EMPLOYEES);
   const empRows = empSheet.getDataRange().getValues();
   let found = false;
@@ -956,7 +887,6 @@ function handleDeleteEmployee(empId, req) {
 
   if (!found) return { status: "ERROR", message: "Không tìm thấy nhân viên." };
 
-  // 2. Vô hiệu hóa tài khoản User tương ứng (Fix lỗi nghỉ việc vẫn đăng nhập được)
   const userSheet = getSheet(TABLES.USERS);
   const userRows = userSheet.getDataRange().getValues();
   for (let i = 1; i < userRows.length; i++) {
@@ -993,8 +923,6 @@ function setupSystem() {
     if (!sheet) {
       sheet = ss.insertSheet(sheetName);
     }
-    
-    // TỰ ĐỘNG CẬP NHẬT HOẶC ĐỔI TÊN TIÊU ĐỀ (HÀNG 1)
     const headers = schema[sheetName];
     sheet.getRange(1, 1, 1, headers.length)
          .setValues([headers])
@@ -1002,7 +930,6 @@ function setupSystem() {
          .setBackground("#f3f3f3");
   });
 
-  // Tạo tài khoản Admin mặc định có Mật khẩu đã Hash
   const userSheet = ss.getSheetByName(TABLES.USERS);
   if (userSheet.getLastRow() === 1) {
     userSheet.appendRow(["USR-ADMIN", "admin@company.com", hashPassword("admin123"), ROLES.ADMIN, "EMP-ADMIN", "ACTIVE", new Date()]);
