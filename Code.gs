@@ -54,7 +54,37 @@ function doGet(e) {
     .setTitle("Foreign Employee Management V2")
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
+function doPost(e) {
+  try {
+    let requestData = {};
+    if (e && e.postData && e.postData.contents) {
+      requestData = JSON.parse(e.postData.contents);
+    }
+    
+    const action = requestData.action || "";
+    const token = requestData.token || "";
+    const data = requestData.data || {};
+    const params = requestData.params || {};
 
+    let result;
+    if (String(action).toUpperCase() === "LOGIN") {
+      result = handleLogin(requestData.username, requestData.password);
+    } else {
+      const requester = validateSession(token);
+      result = requester
+        ? dispatchApiAction(String(action).toUpperCase(), token, requester, data, params)
+        : { status: "ERROR", message: "Phiên đăng nhập hết hạn hoặc không hợp lệ!" };
+    }
+
+    return ContentService.createTextOutput(JSON.stringify(result))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch (error) {
+    return ContentService.createTextOutput(JSON.stringify({
+      status: "ERROR",
+      message: error.message || String(error)
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
 function doPost(e) {
   // Giữ REST endpoint để tương thích/kiểm thử bên ngoài.
   return handleRequest(e, "POST");
