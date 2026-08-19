@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Foreign Employee Travel Management</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+.menuBtn{padding:.5rem 1rem;border-radius:.5rem;background:#fff;border:1px solid #e2e8f0;font-weight:600;font-size:.875rem;display:inline-flex;align-items:center;gap:.5rem;transition:.2s}
+.menuBtn:hover{background:#f8fafc;border-color:#cbd5e1}.input{width:100%;border:1px solid #cbd5e1;border-radius:.5rem;padding:.625rem;margin-bottom:.75rem;font-size:.875rem}.input:focus{outline:2px solid #3b82f6}.btn{width:100%;background:#2563eb;color:#fff;font-weight:700;padding:.75rem;border-radius:.5rem}.btn:hover{background:#1d4ed8}.btn:disabled{opacity:.6;cursor:not-allowed}.kpi{background:#fff;padding:1rem;border-radius:.75rem;border:1px solid #e2e8f0}
+.modal{background:rgba(15,23,42,.55)}.toast{position:fixed;right:20px;bottom:20px;z-index:100}.badge{display:inline-flex;padding:.25rem .625rem;border-radius:999px;font-size:.75rem;font-weight:700}
+</style>
+</head>
+<body class="bg-slate-100 text-slate-800">
+<nav class="bg-slate-900 text-white px-6 py-4 flex justify-between items-center shadow-lg">
+<div class="flex items-center gap-3"><i class="fa-solid fa-globe text-blue-400 text-2xl"></i><div><div class="font-bold text-lg">FOREIGN TRAVEL MANAGEMENT</div><div class="text-xs text-slate-400">Immigration & Domestic Travel</div></div></div>
+<div id="userNav" class="hidden items-center gap-4"><span id="userName" class="font-semibold"></span><span id="roleBadge" class="bg-blue-600 px-3 py-1 rounded-full text-xs font-bold"></span><button onclick="logout()" class="text-slate-300 hover:text-white"><i class="fa-solid fa-right-from-bracket text-lg"></i></button></div>
+</nav>
+
+<section id="loginSection" class="max-w-md mx-auto mt-16 px-4">
+<div class="bg-white rounded-2xl shadow-xl border p-8">
+<div class="text-center mb-8"><div class="w-16 h-16 mx-auto bg-blue-100 rounded-full flex items-center justify-center"><i class="fa-solid fa-user-shield text-blue-600 text-2xl"></i></div><h2 class="text-2xl font-bold mt-4">ĐĂNG NHẬP</h2><p class="text-sm text-slate-500">Foreign Employee Management</p></div>
+<label class="text-sm font-semibold">Mã NV / Email</label><input id="loginUser" class="input mt-1" autocomplete="username">
+<label class="text-sm font-semibold">Mật khẩu / PIN</label><input id="loginPass" type="password" class="input mt-1 mb-6" autocomplete="current-password">
+<button id="loginBtn" onclick="doLogin()" class="btn"><i class="fa-solid fa-right-to-bracket mr-2"></i> Đăng nhập</button>
+</div></section>
+
+<div id="app" class="hidden max-w-7xl mx-auto p-6">
+<div class="flex flex-wrap gap-2 mb-6">
+<button id="dashboardMenu" onclick="showPage('dashboard')" class="menuBtn hidden"><i class="fa-solid fa-chart-line text-blue-600"></i>Dashboard</button>
+<button onclick="showPage('profile')" class="menuBtn"><i class="fa-solid fa-user text-blue-600"></i>My Profile</button>
+<button onclick="showPage('immigration')" class="menuBtn"><i class="fa-solid fa-plane text-blue-600"></i>Immigration</button>
+<button onclick="showPage('travel')" class="menuBtn"><i class="fa-solid fa-car text-blue-600"></i>Domestic Travel</button>
+<button id="employeeMenu" onclick="showPage('employees')" class="menuBtn hidden"><i class="fa-solid fa-users text-blue-600"></i>Foreign Employees</button>
+</div>
+
+<section id="page-dashboard" class="page hidden space-y-6">
+<div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+<div class="kpi"><div class="text-xs text-slate-400 font-bold">TOTAL FOREIGNERS</div><div id="kpiTotal" class="text-3xl font-bold mt-1">0</div></div>
+<div class="kpi bg-emerald-50 border-emerald-200"><div class="text-xs text-emerald-600 font-bold">🟢 IN VIETNAM</div><div id="kpiInVN" class="text-3xl font-bold text-emerald-700 mt-1">0</div></div>
+<div class="kpi bg-blue-50 border-blue-200"><div class="text-xs text-blue-600 font-bold">✈️ TRAVELING</div><div id="kpiBusiness" class="text-3xl font-bold text-blue-700 mt-1">0</div></div>
+<div class="kpi"><div class="text-xs text-slate-400 font-bold">🔴 EXITED</div><div id="kpiExited" class="text-3xl font-bold mt-1">0</div></div>
+<div class="kpi bg-amber-50 border-amber-200"><div class="text-xs text-amber-600 font-bold">⚠ DOCUMENT WARNING</div><div id="kpiWarning" class="text-3xl font-bold text-amber-700 mt-1">0</div></div>
+</div>
+<div class="bg-white rounded-xl shadow-sm border p-6"><h2 class="font-bold text-lg mb-4">⚠ Document Expiry</h2><div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr class="border-b bg-slate-50"><th class="p-3 text-left">Employee</th><th class="p-3">Document</th><th class="p-3">Expiry</th><th class="p-3">Status</th></tr></thead><tbody id="warningTable"></tbody></table></div></div>
+</section>
+
+<section id="page-profile" class="page hidden"><div class="bg-white rounded-xl shadow-sm border p-6"><h2 class="font-bold text-xl mb-6">👤 My Profile</h2><div id="profileContent">Đang tải...</div></div></section>
+
+<section id="page-immigration" class="page hidden"><div class="grid md:grid-cols-2 gap-6">
+<div class="bg-white rounded-xl shadow-sm border p-6"><h2 class="font-bold text-lg mb-5">✈️ Khai báo nhập / xuất cảnh</h2>
+<select id="eeType" class="input"><option value="ENTRY">Nhập cảnh Việt Nam</option><option value="EXIT">Xuất cảnh Việt Nam</option></select>
+<input id="eeDate" type="datetime-local" class="input"><input id="eeAirport" class="input" placeholder="Sân bay / cửa khẩu">
+<input id="eeFlight" class="input" placeholder="Số chuyến bay"><input id="eeDestination" class="input" placeholder="Điểm đến">
+<input id="eePurpose" class="input" placeholder="Mục đích"><button id="eeBtn" onclick="saveEntryExit()" class="btn">Lưu thông tin</button></div>
+<div class="bg-white rounded-xl shadow-sm border p-6"><h2 class="font-bold text-lg mb-5">📋 Lịch sử nhập / xuất cảnh</h2><div id="entryExitList">Đang tải...</div></div>
+</div></section>
+
+<section id="page-travel" class="page hidden"><div class="grid md:grid-cols-2 gap-6">
+<div class="bg-white rounded-xl shadow-sm border p-6"><h2 class="font-bold text-lg mb-5">🚗 Đăng ký đi lại trong Việt Nam</h2>
+<label class="text-xs font-semibold">Từ ngày</label><input id="travelFromDate" type="date" class="input"><label class="text-xs font-semibold">Đến ngày</label><input id="travelToDate" type="date" class="input">
+<input id="travelFrom" class="input" placeholder="Từ đâu"><input id="travelTo" class="input" placeholder="Đến đâu"><input id="travelPurpose" class="input" placeholder="Mục đích">
+<select id="travelTransport" class="input"><option>Flight</option><option>Car</option><option>Train</option><option>Bus</option></select>
+<input id="travelFlight" class="input" placeholder="Số chuyến bay (nếu có)"><input id="travelHotel" class="input" placeholder="Khách sạn"><input id="travelHotelAddress" class="input" placeholder="Địa chỉ khách sạn">
+<button id="travelBtn" onclick="saveDomesticTravel()" class="btn">Lưu lịch trình</button></div>
+<div class="bg-white rounded-xl shadow-sm border p-6"><h2 class="font-bold text-lg mb-5">📋 Lịch sử đi lại</h2><div id="travelList">Đang tải...</div></div>
+</div></section>
+
+<section id="page-employees" class="page hidden"><div class="bg-white rounded-xl shadow-sm border p-6"><h2 class="font-bold text-xl mb-5">👥 Foreign Employees</h2><input id="employeeSearch" oninput="filterEmployees()" class="input" placeholder="Tìm tên / mã NV / quốc tịch..."><div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr class="border-b bg-slate-50"><th class="p-3 text-left">Employee</th><th class="p-3">Nationality</th><th class="p-3">Status</th><th class="p-3">Location</th><th class="p-3">Passport Exp</th><th class="p-3">Chi tiết</th></tr></thead><tbody id="employeeTable"></tbody></table></div></div></section>
+</div>
+
+<div id="employeeModal" class="hidden fixed inset-0 modal z-50 p-4 overflow-y-auto"><div class="max-w-3xl mx-auto mt-8 bg-white rounded-2xl shadow-2xl"><div class="p-5 border-b flex justify-between"><h2 id="modalTitle" class="font-bold text-xl">Employee</h2><button onclick="closeModal()">✕</button></div><div id="modalBody" class="p-6"></div></div></div>
+<div id="toast" class="toast hidden"><div id="toastText" class="bg-slate-900 text-white px-4 py-3 rounded-lg shadow-lg"></div></div>
+
+<script>
+const API_URL="https://script.google.com/macros/s/AKfycbz9Lnh8qjzprQdj-RASrb7DQ3gVsWE27KUpEcwm-aXgq3EqvrZVY4X-jFMMXYzO5V2R9g/exec";
+let currentUser=null, sessionToken=null, employees=[];
+
+function isHR(){return currentUser&&["HR","HR ADMIN","DIRECTOR","ADMIN"].includes(String(currentUser.role||"").toUpperCase())}
+function escapeHTML(v){return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
+function toast(msg){const t=document.getElementById("toast");document.getElementById("toastText").textContent=msg;t.classList.remove("hidden");setTimeout(()=>t.classList.add("hidden"),2500)}
+function showPage(page){document.querySelectorAll(".page").forEach(x=>x.classList.add("hidden"));document.getElementById("page-"+page)?.classList.remove("hidden")}
+
+async function apiGet(action,params={}){
+ const q=new URLSearchParams({action,token:sessionToken,...params}); const r=await fetch(API_URL+"?"+q); const res=await r.json();
+ if(res.status==="ERROR"&&/phiên|đăng nhập/i.test(res.message||"")){logout(false);throw new Error(res.message)}
+ return res;
+}
+async function apiPost(action,data={}){
+ const r=await fetch(API_URL,{method:"POST",body:JSON.stringify({action,token:sessionToken,data})}); const res=await r.json();
+ if(res.status==="ERROR"&&/phiên|đăng nhập/i.test(res.message||"")){logout(false);throw new Error(res.message)}
+ return res;
+}
+
+async function doLogin(){
+ const u=document.getElementById("loginUser").value.trim(), p=document.getElementById("loginPass").value;
+ if(!u||!p){toast("Vui lòng nhập tài khoản và mật khẩu!");return}
+ const b=document.getElementById("loginBtn");b.disabled=true;b.textContent="Đang đăng nhập...";
+ try{
+  const r=await fetch(API_URL,{method:"POST",body:JSON.stringify({action:"LOGIN",username:u,password:p})}); const res=await r.json();
+  if(res.status!=="SUCCESS"){toast(res.message||"Đăng nhập thất bại");return}
+  currentUser=res.user;sessionToken=res.token;
+  sessionStorage.setItem("sessionToken",sessionToken);sessionStorage.setItem("currentUser",JSON.stringify(currentUser));
+  document.getElementById("loginSection").classList.add("hidden");document.getElementById("app").classList.remove("hidden");
+  document.getElementById("userNav").classList.remove("hidden");document.getElementById("userNav").classList.add("flex");
+  document.getElementById("userName").textContent=currentUser.name||currentUser.email;document.getElementById("roleBadge").textContent=currentUser.role||"USER";
+  if(isHR()){document.getElementById("dashboardMenu").classList.remove("hidden");document.getElementById("employeeMenu").classList.remove("hidden");showPage("dashboard");loadDashboard()}else{showPage("profile")}
+  loadProfile();loadEntryExit();loadTravel();
+ }catch(e){console.error(e);toast("Không thể kết nối máy chủ.")}finally{b.disabled=false;b.innerHTML='<i class="fa-solid fa-right-to-bracket mr-2"></i> Đăng nhập'}
+}
+async function restoreSession(){
+ sessionToken=sessionStorage.getItem("sessionToken");const raw=sessionStorage.getItem("currentUser");if(!sessionToken||!raw)return;
+ try{currentUser=JSON.parse(raw);const r=await apiGet("GET_PROFILE",{employeeId:currentUser.employeeId});if(r.status!=="SUCCESS")throw Error();
+  document.getElementById("loginSection").classList.add("hidden");document.getElementById("app").classList.remove("hidden");document.getElementById("userNav").classList.remove("hidden");document.getElementById("userNav").classList.add("flex");
+  document.getElementById("userName").textContent=currentUser.name||currentUser.email;document.getElementById("roleBadge").textContent=currentUser.role||"USER";
+  if(isHR()){document.getElementById("dashboardMenu").classList.remove("hidden");document.getElementById("employeeMenu").classList.remove("hidden");showPage("dashboard");loadDashboard()}else showPage("profile");
+  loadProfile();loadEntryExit();loadTravel();
+ }catch(e){logout(false)}
+}
+async function logout(notify=true){
+ try{if(sessionToken)await fetch(API_URL,{method:"POST",body:JSON.stringify({action:"LOGOUT",token:sessionToken})})}catch(e){}
+ currentUser=null;sessionToken=null;sessionStorage.clear();document.getElementById("app").classList.add("hidden");document.getElementById("userNav").classList.add("hidden");document.getElementById("loginSection").classList.remove("hidden");document.getElementById("loginUser").value="";document.getElementById("loginPass").value="";if(notify)toast("Đã đăng xuất.")
+}
+
+async function loadDashboard(){
+ if(!isHR())return;try{const r=await apiGet("GET_DASHBOARD_DATA");if(r.status!=="SUCCESS")return;
+ ["Total","InVN","Business","Exited","Warning"].forEach((x,i)=>document.getElementById("kpi"+x).textContent=[r.kpi.total,r.kpi.inVN,r.kpi.business,r.kpi.exited,r.kpi.warning][i]);
+ employees=r.employees||[];renderEmployees();renderWarnings(r.expiryWarnings||[]);
+ }catch(e){console.error(e)}
+}
+function renderWarnings(list){
+ const tb=document.getElementById("warningTable");tb.innerHTML="";
+ if(!list.length){tb.innerHTML='<tr><td colspan="4" class="p-4 text-center text-emerald-600">✓ Không có giấy tờ hết hạn / sắp hết hạn.</td></tr>';return}
+ list.sort((a,b)=>(a.daysRemaining)-(b.daysRemaining)).forEach(x=>tb.innerHTML+=`<tr class="border-b"><td class="p-3 font-semibold">${escapeHTML(x.fullName)}<div class="text-xs text-slate-400">${escapeHTML(x.employeeId)}</div></td><td class="p-3 text-center">${escapeHTML(x.document)}</td><td class="p-3 text-center">${escapeHTML(x.expiryDate)}</td><td class="p-3 text-center">${x.severity==="EXPIRED"?'<span class="badge bg-red-100 text-red-700">EXPIRED</span>':'<span class="badge bg-amber-100 text-amber-700">'+x.daysRemaining+" days"+'</span>'}</td></tr>`);
+}
+async function loadProfile(){
+ if(!currentUser?.employeeId)return;try{const r=await apiGet("GET_PROFILE",{employeeId:currentUser.employeeId});if(r.status!=="SUCCESS")return;const p=r.profile;
+ document.getElementById("profileContent").innerHTML=`<div class="grid md:grid-cols-2 gap-4">${field("Họ tên",p.fullName)}${field("Quốc tịch",p.nationality)}${field("Ngày sinh",p.dob)}${field("Số hộ chiếu",p.passportNo)}${field("Hộ chiếu hết hạn",p.passportExpiry)}${field("Visa",p.visaNo)}${field("Visa hết hạn",p.visaExpiry)}${field("TRC",p.trcNo)}${field("TRC hết hạn",p.trcExpiry)}${field("Work Permit",p.wpNo)}${field("WP hết hạn",p.wpExpiry)}${field("Chức vụ",p.position)}${field("Phòng ban",p.department)}${field("Điện thoại",p.phone)}${field("Email",p.email)}${field("Trạng thái",p.currentStatus)}${field("Địa điểm",p.currentLocation)}</div>`}catch(e){console.error(e)}
+}
+function field(l,v){return `<div class="border rounded-lg p-3 bg-slate-50"><div class="text-xs text-slate-400 font-semibold">${escapeHTML(l)}</div><div class="font-semibold mt-1">${escapeHTML(v||"-")}</div></div>`}
+
+async function saveEntryExit(){
+ if(!currentUser?.employeeId)return toast("Tài khoản chưa có Mã nhân viên.");
+ const d={employeeId:currentUser.employeeId,type:eeType.value,dateTime:eeDate.value,airport:eeAirport.value.trim(),flightNo:eeFlight.value.trim(),ticketFile:"",destination:eeDestination.value.trim(),purpose:eePurpose.value.trim()};
+ if(!d.dateTime||!d.airport||!d.destination)return toast("Vui lòng nhập ngày giờ, sân bay/cửa khẩu và điểm đến.");
+ await submitButton("eeBtn",()=>apiPost("ADD_ENTRY_EXIT",d))
+}
+async function loadEntryExit(){if(!currentUser?.employeeId)return;try{const r=await apiGet("GET_ENTRY_EXIT",{employeeId:currentUser.employeeId});const b=document.getElementById("entryExitList");b.innerHTML="";(r.records||[]).slice().reverse().forEach(x=>b.innerHTML+=`<div class="border-b pb-3 mb-3"><div class="font-bold">${x.type==="ENTRY"?"✈️ Nhập cảnh":"🛫 Xuất cảnh"}</div><div class="text-sm">${escapeHTML(x.dateTime)}</div><div class="text-sm text-slate-400">${escapeHTML(x.airport||"")} ${x.flightNo?"• "+escapeHTML(x.flightNo):""}</div><div class="text-xs text-slate-400">${escapeHTML(x.destination||"")}</div></div>`);if(!r.records?.length)b.innerHTML='<div class="text-slate-400">Chưa có lịch sử.</div>'}catch(e){console.error(e)}}
+
+async function saveDomesticTravel(){
+ if(!currentUser?.employeeId)return toast("Tài khoản chưa có Mã nhân viên.");
+ const d={employeeId:currentUser.employeeId,fromDate:travelFromDate.value,toDate:travelToDate.value,fromLocation:travelFrom.value.trim(),toLocation:travelTo.value.trim(),purpose:travelPurpose.value.trim(),transport:travelTransport.value,flightNo:travelFlight.value.trim(),hotel:travelHotel.value.trim(),hotelAddress:travelHotelAddress.value.trim(),ticketFile:""};
+ if(!d.fromDate||!d.toDate||new Date(d.toDate)<new Date(d.fromDate)||!d.fromLocation||!d.toLocation||!d.purpose)return toast("Vui lòng kiểm tra ngày, nơi đi/đến và mục đích.");
+ await submitButton("travelBtn",()=>apiPost("ADD_DOMESTIC_TRAVEL",d))
+}
+async function loadTravel(){if(!currentUser?.employeeId)return;try{const r=await apiGet("GET_DOMESTIC_TRAVEL",{employeeId:currentUser.employeeId});const b=document.getElementById("travelList");b.innerHTML="";(r.records||[]).slice().reverse().forEach(x=>b.innerHTML+=`<div class="border-b pb-3 mb-3"><div class="font-bold">${escapeHTML(x.fromLocation)} → ${escapeHTML(x.toLocation)}</div><div class="text-sm">${escapeHTML(x.fromDate)} → ${escapeHTML(x.toDate)}</div><div class="text-sm text-slate-400">${escapeHTML(x.transport)} ${x.flightNo?"• "+escapeHTML(x.flightNo):""}</div><div class="text-xs">${escapeHTML(x.status)}</div></div>`);if(!r.records?.length)b.innerHTML='<div class="text-slate-400">Chưa có lịch sử.</div>'}catch(e){console.error(e)}}
+async function submitButton(id,fn){const b=document.getElementById(id);b.disabled=true;const old=b.innerHTML;b.textContent="Đang lưu...";try{const r=await fn();if(r.status==="SUCCESS"){toast("Lưu thành công!");loadEntryExit();loadTravel();if(isHR())loadDashboard()}else toast(r.message||"Không thể lưu.")}catch(e){toast(e.message||"Lỗi kết nối API.")}finally{b.disabled=false;b.innerHTML=old}}
+
+function renderEmployees(list=employees){
+ const tb=document.getElementById("employeeTable");tb.innerHTML="";
+ list.forEach(e=>tb.innerHTML+=`<tr class="border-b hover:bg-slate-50"><td class="p-3"><div class="font-semibold">${escapeHTML(e.fullName)}</div><div class="text-xs text-slate-400">${escapeHTML(e.employeeId)}</div></td><td class="p-3 text-center">${escapeHTML(e.nationality)}</td><td class="p-3 text-center">${statusBadge(e.currentStatus)}</td><td class="p-3">${escapeHTML(e.currentLocation||"-")}</td><td class="p-3 text-center">${escapeHTML(e.passportExpiry||"-")}</td><td class="p-3 text-center"><button onclick="viewEmployee('${encodeURIComponent(e.employeeId)}')" class="text-blue-600"><i class="fa-solid fa-eye"></i></button></td></tr>`)
+}
+function filterEmployees(){const q=document.getElementById("employeeSearch").value.toLowerCase();renderEmployees(employees.filter(e=>[e.fullName,e.employeeId,e.nationality].some(v=>String(v||"").toLowerCase().includes(q))))}
+function statusBadge(s){let c="bg-slate-100 text-slate-600";if(s==="In Vietnam")c="bg-emerald-100 text-emerald-700";if(s==="Traveling")c="bg-blue-100 text-blue-700";if(s==="Exited")c="bg-slate-200 text-slate-700";return `<span class="badge ${c}">${escapeHTML(s||"-")}</span>`}
+
+async function viewEmployee(encoded){const id=decodeURIComponent(encoded);try{const [p,t]=await Promise.all([apiGet("GET_PROFILE",{employeeId:id}),apiGet("GET_TIMELINE",{employeeId:id})]);if(p.status!=="SUCCESS")return toast(p.message);document.getElementById("modalTitle").textContent=p.profile.fullName||id;document.getElementById("modalBody").innerHTML=`<div class="grid md:grid-cols-2 gap-3">${field("Employee ID",p.profile.employeeId)}${field("Nationality",p.profile.nationality)}${field("Position",p.profile.position)}${field("Department",p.profile.department)}${field("Status",p.profile.currentStatus)}${field("Location",p.profile.currentLocation)}${field("Passport",p.profile.passportNo)}${field("Passport Expiry",p.profile.passportExpiry)}${field("Visa",p.profile.visaNo)}${field("Visa Expiry",p.profile.visaExpiry)}${field("TRC",p.profile.trcNo)}${field("TRC Expiry",p.profile.trcExpiry)}${field("Work Permit",p.profile.wpNo)}${field("WP Expiry",p.profile.wpExpiry)}</div><hr class="my-6"><h3 class="font-bold mb-3">🕒 Travel Timeline</h3><div>${(t.timeline||[]).map(x=>`<div class="border-l-4 border-blue-300 pl-4 mb-4"><div class="font-bold">${escapeHTML(x.title)}</div><div class="text-sm">${escapeHTML(x.date)} ${x.endDate?"→ "+escapeHTML(x.endDate):""}</div><div class="text-sm text-slate-500">${escapeHTML(x.location||"")}</div><div class="text-xs text-slate-400">${escapeHTML(x.purpose||"")}</div></div>`).join("")||"Không có lịch sử."}</div>`;document.getElementById("employeeModal").classList.remove("hidden")}catch(e){toast(e.message)}}
+function closeModal(){document.getElementById("employeeModal").classList.add("hidden")}
+document.getElementById("employeeModal").addEventListener("click",e=>{if(e.target.id==="employeeModal")closeModal()});
+document.addEventListener("DOMContentLoaded",restoreSession);
+</script>
+</body>
+</html>
