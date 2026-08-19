@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Foreign Employee Travel Management</title>
+<title>Foreign Employee Management V2</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <style>
@@ -18,8 +18,8 @@
   <div class="flex items-center gap-3">
     <i class="fa-solid fa-globe text-blue-400 text-2xl"></i>
     <div>
-      <div class="font-bold text-lg">FOREIGN TRAVEL MANAGEMENT</div>
-      <div class="text-xs text-slate-400">Immigration & Domestic Travel System</div>
+      <div class="font-bold text-lg">FOREIGN EMPLOYEE SYSTEM V2</div>
+      <div class="text-xs text-slate-400">Immigration & Contract Management</div>
     </div>
   </div>
   <div id="userNav" class="hidden items-center gap-4">
@@ -36,12 +36,12 @@
       <div class="w-16 h-16 mx-auto bg-blue-100 rounded-full flex items-center justify-center">
         <i class="fa-solid fa-user-shield text-blue-600 text-2xl"></i>
       </div>
-      <h2 class="text-2xl font-bold mt-4">ĐĂNG NHẬP</h2>
+      <h2 class="text-2xl font-bold mt-4">ĐĂNG NHẬP V2</h2>
       <p class="text-sm text-slate-500">Foreign Employee Management</p>
     </div>
     <label class="text-sm font-semibold">Mã NV / Email</label>
     <input id="loginUser" class="input mt-1" autocomplete="username">
-    <label class="text-sm font-semibold">Mật khẩu / PIN</label>
+    <label class="text-sm font-semibold">Mật khẩu</label>
     <input id="loginPass" type="password" class="input mt-1 mb-6" autocomplete="current-password">
     <button id="loginBtn" onclick="doLogin()" class="btn"><i class="fa-solid fa-right-to-bracket mr-2"></i> Đăng nhập</button>
   </div>
@@ -74,7 +74,7 @@
           <thead>
             <tr class="border-b bg-slate-50">
               <th class="p-3 text-left">Employee</th>
-              <th class="p-3">Loại giấy tờ</th>
+              <th class="p-3">Loại giấy tờ / Hợp đồng</th>
               <th class="p-3">Ngày hết hạn</th>
               <th class="p-3">Trạng thái</th>
             </tr>
@@ -127,7 +127,7 @@
         <input id="travelFlight" class="input" placeholder="Số chuyến bay (nếu có)">
         <input id="travelHotel" class="input" placeholder="Khách sạn">
         <input id="travelHotelAddress" class="input" placeholder="Địa chỉ khách sạn">
-        <button id="travelBtn" onclick="saveDomesticTravel()" class="btn">Lưu lịch trình</button>
+        <button id="travelBtn" onclick="saveDomesticTravel()" class="btn">Gửi yêu cầu đi lại</button>
       </div>
       <div class="bg-white rounded-xl shadow-sm border p-6">
         <h2 class="font-bold text-lg mb-5">📋 Lịch sử đi lại</h2>
@@ -177,23 +177,13 @@
   </div>
 </div>
 
-<!-- Modal Image / Document Previewer -->
-<div id="imgPreviewModal" class="hidden fixed inset-0 modal z-[60] p-4 flex items-center justify-center">
-  <div class="max-w-3xl w-full bg-white rounded-2xl shadow-2xl p-4 relative">
-    <button onclick="closeImgPreview()" class="absolute top-3 right-3 bg-slate-800 text-white rounded-full w-8 h-8 font-bold hover:bg-slate-700">✕</button>
-    <h3 id="imgModalTitle" class="font-bold text-lg mb-3">Hình ảnh Giấy Tờ</h3>
-    <div class="flex justify-center bg-slate-100 rounded-lg p-2 max-h-[75vh] overflow-auto">
-      <img id="previewImage" src="" class="max-w-full h-auto object-contain rounded" alt="Document Preview">
-    </div>
-  </div>
-</div>
-
 <div id="toast" class="toast hidden">
   <div id="toastText" class="bg-slate-900 text-white px-4 py-3 rounded-lg shadow-lg"></div>
 </div>
 
 <script>
-  const API_URL = "https://script.google.com/macros/s/AKfycbz9Lnh8qjzprQdj-RASrb7DQ3gVsWE27KUpEcwm-aXgq3EqvrZVY4X-jFMMXYzO5V2R9g/exec";
+  // TỰ ĐỘNG LẤY API URL KHI TRIỂN KHAI TRÊN GOOGLE APPS SCRIPT
+  const API_URL = window.location.href.split('?')[0];
   let currentUser = null, sessionToken = null, employees = [];
 
   function isHR() {
@@ -266,7 +256,7 @@
     }
   }
 
-  async function restoreSession() {
+  function restoreSession() {
     sessionToken = sessionStorage.getItem("sessionToken");
     const raw = sessionStorage.getItem("currentUser");
     if (!sessionToken || !raw) return;
@@ -327,9 +317,7 @@
       employees = r.employees || [];
       renderEmployees();
       renderWarnings(r.expiryWarnings || []);
-    } catch (e) {
-      console.error(e);
-    }
+    } catch (e) { console.error(e); }
   }
 
   function renderWarnings(list) {
@@ -370,6 +358,7 @@
           ${field("Hạn WP", p.wpExpiry)}
           ${docField("Ảnh WP", p.wpImg)}
           ${field("Số Hợp Đồng", p.contractNo)}
+          ${field("Số Phụ Lục", p.appendixNo)}
           ${field("Hạn Hợp Đồng", p.contractExpiry)}
           ${docField("File Hợp Đồng", p.contractImg)}
           ${field("Mức Lương Cơ Bản", Number(p.salary || 0).toLocaleString() + " VNĐ")}
@@ -388,25 +377,41 @@
     if (!url) return field(l, "Chưa có file");
     return `<div class="border rounded-lg p-3 bg-slate-50">
       <div class="text-xs text-slate-400 font-semibold">${escapeHTML(l)}</div>
-      <button onclick="previewDoc('${escapeHTML(url)}', '${escapeHTML(l)}')" class="mt-1 text-xs bg-blue-100 text-blue-700 font-bold px-3 py-1 rounded hover:bg-blue-200">
-        <i class="fa-solid fa-image mr-1"></i>Xem Giấy Tờ
-      </button>
+      <a href="${escapeHTML(url)}" target="_blank" class="inline-block mt-1 text-xs bg-blue-100 text-blue-700 font-bold px-3 py-1 rounded hover:bg-blue-200">
+        <i class="fa-solid fa-file mr-1"></i> Mở File Drive
+      </a>
     </div>`;
   }
 
-  function previewDoc(url, title) {
-    if (!url) return toast("Không có liên kết hình ảnh.");
-    if (url.match(/\.(jpeg|jpg|gif|png|webp)/i) || url.includes("drive.google.com") || url.includes("thumbnail")) {
-      document.getElementById("previewImage").src = url;
-      document.getElementById("imgModalTitle").textContent = title;
-      document.getElementById("imgPreviewModal").classList.remove("hidden");
-    } else {
-      window.open(url, "_blank");
-    }
-  }
+  async function handleFileUpload(inputElem, targetInputId, subFolder) {
+    const file = inputElem.files[0];
+    if (!file) return;
 
-  function closeImgPreview() {
-    document.getElementById("imgPreviewModal").classList.add("hidden");
+    const reader = new FileReader();
+    reader.onload = async function (e) {
+      const base64Data = e.target.result;
+      toast("Đang tải file lên Drive...");
+
+      try {
+        const res = await apiPost("UPLOAD_FILE", {
+          base64Data: base64Data,
+          fileName: file.name,
+          mimeType: file.type,
+          employeeId: document.getElementById("f_empId").value,
+          subFolderType: subFolder
+        });
+
+        if (res.status === "SUCCESS") {
+          document.getElementById(targetInputId).value = res.fileUrl;
+          toast("Tải file thành công!");
+        } else {
+          toast(res.message);
+        }
+      } catch (err) {
+        toast("Upload thất bại!");
+      }
+    };
+    reader.readAsDataURL(file);
   }
 
   async function saveEntryExit() {
@@ -420,7 +425,7 @@
       destination: document.getElementById("eeDestination").value.trim(),
       purpose: document.getElementById("eePurpose").value.trim()
     };
-    if (!d.dateTime || !d.airport || !d.destination) return toast("Vui lòng nhập ngày giờ, sân bay/cửa khẩu và điểm đến.");
+    if (!d.dateTime || !d.airport) return toast("Vui lòng nhập ngày giờ và sân bay/cửa khẩu.");
     await submitButton("eeBtn", () => apiPost("ADD_ENTRY_EXIT", d));
   }
 
@@ -433,9 +438,9 @@
       (r.records || []).slice().reverse().forEach(x => {
         b.innerHTML += `<div class="border-b pb-3 mb-3">
           <div class="font-bold">${x.type === "ENTRY" ? "✈️ Nhập cảnh" : "🛫 Xuất cảnh"}</div>
-          <div class="text-sm">${escapeHTML(x.dateTime)}</div>
-          <div class="text-sm text-slate-400">${escapeHTML(x.airport || "")} ${x.flightNo ? "• " + escapeHTML(x.flightNo) : ""}</div>
-          <div class="text-xs text-slate-400">${escapeHTML(x.destination || "")}</div>
+          <div class="text-sm">${escapeHTML(x.dateTime)} - ${escapeHTML(x.airport || "")}</div>
+          <div class="text-xs text-slate-400">Bay: ${escapeHTML(x.flightNo || "-")} | Điểm đến: ${escapeHTML(x.destination || "-")}</div>
+          <div class="text-xs italic text-slate-500">Mục đích: ${escapeHTML(x.purpose || "-")}</div>
         </div>`;
       });
       if (!r.records?.length) b.innerHTML = '<div class="text-slate-400">Chưa có lịch sử.</div>';
@@ -451,14 +456,9 @@
       fromLocation: document.getElementById("travelFrom").value.trim(),
       toLocation: document.getElementById("travelTo").value.trim(),
       purpose: document.getElementById("travelPurpose").value.trim(),
-      transport: document.getElementById("travelTransport").value,
-      flightNo: document.getElementById("travelFlight").value.trim(),
-      hotel: document.getElementById("travelHotel").value.trim(),
-      hotelAddress: document.getElementById("travelHotelAddress").value.trim()
+      transport: document.getElementById("travelTransport").value
     };
-    if (!d.fromDate || !d.toDate || new Date(d.toDate) < new Date(d.fromDate) || !d.fromLocation || !d.toLocation || !d.purpose) {
-      return toast("Vui lòng kiểm tra ngày, nơi đi/đến và mục đích.");
-    }
+    if (!d.fromDate || !d.toDate || !d.fromLocation || !d.toLocation) return toast("Vui lòng kiểm tra đầy đủ thông tin!");
     await submitButton("travelBtn", () => apiPost("ADD_DOMESTIC_TRAVEL", d));
   }
 
@@ -472,8 +472,7 @@
         b.innerHTML += `<div class="border-b pb-3 mb-3">
           <div class="font-bold">${escapeHTML(x.fromLocation)} → ${escapeHTML(x.toLocation)}</div>
           <div class="text-sm">${escapeHTML(x.fromDate)} → ${escapeHTML(x.toDate)}</div>
-          <div class="text-sm text-slate-400">${escapeHTML(x.transport)} ${x.flightNo ? "• " + escapeHTML(x.flightNo) : ""}</div>
-          <div class="text-xs font-semibold text-blue-600">${escapeHTML(x.status || "Chờ duyệt")}</div>
+          <div class="text-xs font-semibold ${x.status === 'APPROVED' ? 'text-emerald-600' : 'text-amber-600'}">${escapeHTML(x.status)}</div>
         </div>`;
       });
       if (!r.records?.length) b.innerHTML = '<div class="text-slate-400">Chưa có lịch sử.</div>';
@@ -484,15 +483,15 @@
     const b = document.getElementById(id);
     b.disabled = true;
     const old = b.innerHTML;
-    b.textContent = "Đang lưu...";
+    b.textContent = "Đang xử lý...";
     try {
       const r = await fn();
       if (r.status === "SUCCESS") {
-        toast("Lưu thành công!");
+        toast(r.message || "Thành công!");
         loadEntryExit();
         loadTravel();
         if (isHR()) loadDashboard();
-      } else toast(r.message || "Không thể lưu.");
+      } else toast(r.message || "Lỗi!");
     } catch (e) {
       toast(e.message || "Lỗi kết nối API.");
     } finally {
@@ -579,8 +578,13 @@
     } catch (e) { toast(e.message); }
   }
 
-  function openEmployeeForm(encoded = "") {
-    const emp = encoded ? employees.find(x => x.employeeId === decodeURIComponent(encoded)) || {} : {};
+  async function openEmployeeForm(encoded = "") {
+    let emp = {};
+    if (encoded) {
+      const r = await apiGet("GET_PROFILE", { employeeId: decodeURIComponent(encoded) });
+      if (r.status === "SUCCESS") emp = r.profile;
+    }
+
     document.getElementById("modalTitle").textContent = encoded ? "Sửa/Cập Nhật Hồ Sơ Nhân Viên" : "Thêm Nhân Viên Mới";
     document.getElementById("modalBody").innerHTML = `
       <form id="empForm" class="grid md:grid-cols-2 gap-4" onsubmit="handleSaveEmployee(event)">
@@ -592,15 +596,27 @@
         <div class="md:col-span-2 font-bold border-b pb-1 text-blue-600 mt-2">Giấy Tờ Pháp Lý (Passport, TRC, WP)</div>
         <div><label class="text-xs font-semibold">Số Passport</label><input id="f_passportNo" class="input mt-1" value="${escapeHTML(emp.passportNo || "")}"></div>
         <div><label class="text-xs font-semibold">Ngày hết hạn Passport</label><input id="f_passportExpiry" type="date" class="input mt-1" value="${emp.passportExpiry || ""}"></div>
-        <div class="md:col-span-2"><label class="text-xs font-semibold">Link Ảnh Passport (URL Drive)</label><input id="f_passportImg" class="input mt-1" value="${escapeHTML(emp.passportImg || "")}"></div>
+        <div class="md:col-span-2">
+          <label class="text-xs font-semibold">File Ảnh Passport</label>
+          <input type="file" onchange="handleFileUpload(this, 'f_passportImg', 'Passport')" class="input mt-1">
+          <input id="f_passportImg" type="hidden" value="${escapeHTML(emp.passportImg || "")}">
+        </div>
 
         <div><label class="text-xs font-semibold">Số TRC</label><input id="f_trcNo" class="input mt-1" value="${escapeHTML(emp.trcNo || "")}"></div>
         <div><label class="text-xs font-semibold">Ngày hết hạn TRC</label><input id="f_trcExpiry" type="date" class="input mt-1" value="${emp.trcExpiry || ""}"></div>
-        <div class="md:col-span-2"><label class="text-xs font-semibold">Link Ảnh TRC (URL Drive)</label><input id="f_trcImg" class="input mt-1" value="${escapeHTML(emp.trcImg || "")}"></div>
+        <div class="md:col-span-2">
+          <label class="text-xs font-semibold">File Ảnh TRC</label>
+          <input type="file" onchange="handleFileUpload(this, 'f_trcImg', 'TRC')" class="input mt-1">
+          <input id="f_trcImg" type="hidden" value="${escapeHTML(emp.trcImg || "")}">
+        </div>
 
         <div><label class="text-xs font-semibold">Số Giấy Phép Lao Động (WP)</label><input id="f_wpNo" class="input mt-1" value="${escapeHTML(emp.wpNo || "")}"></div>
         <div><label class="text-xs font-semibold">Ngày hết hạn WP</label><input id="f_wpExpiry" type="date" class="input mt-1" value="${emp.wpExpiry || ""}"></div>
-        <div class="md:col-span-2"><label class="text-xs font-semibold">Link Ảnh WP (URL Drive)</label><input id="f_wpImg" class="input mt-1" value="${escapeHTML(emp.wpImg || "")}"></div>
+        <div class="md:col-span-2">
+          <label class="text-xs font-semibold">File Ảnh WP</label>
+          <input type="file" onchange="handleFileUpload(this, 'f_wpImg', 'Work Permit')" class="input mt-1">
+          <input id="f_wpImg" type="hidden" value="${escapeHTML(emp.wpImg || "")}">
+        </div>
 
         <div class="md:col-span-2 font-bold border-b pb-1 text-blue-600 mt-2">Hợp Đồng Lao Động & Lương</div>
         <div><label class="text-xs font-semibold">Số Hợp Đồng</label><input id="f_contractNo" class="input mt-1" value="${escapeHTML(emp.contractNo || "")}"></div>
@@ -609,9 +625,13 @@
         <div><label class="text-xs font-semibold">Phụ Cấp (VNĐ)</label><input id="f_allowance" type="number" class="input mt-1" value="${emp.allowance || 0}"></div>
         <div><label class="text-xs font-semibold">Ngày bắt đầu HĐ</label><input id="f_contractStartDate" type="date" class="input mt-1" value="${emp.contractStartDate || ""}"></div>
         <div><label class="text-xs font-semibold">Ngày hết hạn HĐ</label><input id="f_contractExpiry" type="date" class="input mt-1" value="${emp.contractExpiry || ""}"></div>
-        <div class="md:col-span-2"><label class="text-xs font-semibold">Link File Hợp Đồng Scanned (URL)</label><input id="f_contractImg" class="input mt-1" value="${escapeHTML(emp.contractImg || "")}"></div>
+        <div class="md:col-span-2">
+          <label class="text-xs font-semibold">File Hợp Đồng (PDF/Image)</label>
+          <input type="file" onchange="handleFileUpload(this, 'f_contractImg', 'Contracts')" class="input mt-1">
+          <input id="f_contractImg" type="hidden" value="${escapeHTML(emp.contractImg || "")}">
+        </div>
 
-        <div class="md:col-span-2 mt-4"><button type="submit" class="btn"><i class="fa-solid fa-floppy-disk mr-2"></i> Lưu Thông Tin Nhân Viên</button></div>
+        <div class="md:col-span-2 mt-4"><button type="submit" class="btn"><i class="fa-solid fa-floppy-disk mr-2"></i> Lưu Hồ Sơ & Hợp Đồng</button></div>
       </form>
     `;
     document.getElementById("employeeModal").classList.remove("hidden");
@@ -626,26 +646,26 @@
       dob: document.getElementById("f_dob").value,
       passportNo: document.getElementById("f_passportNo").value.trim(),
       passportExpiry: document.getElementById("f_passportExpiry").value,
-      passportImg: document.getElementById("f_passportImg").value.trim(),
+      passportImg: document.getElementById("f_passportImg").value,
       trcNo: document.getElementById("f_trcNo").value.trim(),
       trcExpiry: document.getElementById("f_trcExpiry").value,
-      trcImg: document.getElementById("f_trcImg").value.trim(),
+      trcImg: document.getElementById("f_trcImg").value,
       wpNo: document.getElementById("f_wpNo").value.trim(),
       wpExpiry: document.getElementById("f_wpExpiry").value,
-      wpImg: document.getElementById("f_wpImg").value.trim(),
+      wpImg: document.getElementById("f_wpImg").value,
       contractNo: document.getElementById("f_contractNo").value.trim(),
       appendixNo: document.getElementById("f_appendixNo").value.trim(),
       salary: document.getElementById("f_salary").value,
       allowance: document.getElementById("f_allowance").value,
       contractStartDate: document.getElementById("f_contractStartDate").value,
       contractExpiry: document.getElementById("f_contractExpiry").value,
-      contractImg: document.getElementById("f_contractImg").value.trim()
+      contractImg: document.getElementById("f_contractImg").value
     };
 
     try {
       const res = await apiPost("SAVE_PROFILE", payload);
       if (res.status === "SUCCESS") {
-        toast("Lưu hồ sơ thành công!");
+        toast("Lưu thông tin thành công!");
         closeModal();
         loadDashboard();
       } else {
@@ -657,11 +677,11 @@
   }
 
   async function deleteEmployee(encoded) {
-    if (!confirm("Bạn có chắc chắn muốn ngưng hoạt động / xóa nhân viên này khỏi hệ thống?")) return;
+    if (!confirm("Bạn có chắc chắn muốn chuyển trạng thái nhân viên này sang INACTIVE và khóa tài khoản?")) return;
     try {
       const res = await apiPost("DELETE_EMPLOYEE", { employeeId: decodeURIComponent(encoded) });
       if (res.status === "SUCCESS") {
-        toast("Đã xóa nhân viên thành công.");
+        toast(res.message);
         loadDashboard();
       } else {
         toast(res.message);
