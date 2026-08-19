@@ -42,7 +42,7 @@
     <label class="text-sm font-semibold">Mã NV / Email</label>
     <input id="loginUser" class="input mt-1" autocomplete="username">
     <label class="text-sm font-semibold">Mật khẩu</label>
-    <input id="loginPass" type="password" class="input mt-1 mb-6" autocomplete="current-password">
+    <input id="loginPass" type="password" class="input mt-1 mb-6" autocomplete="current-password" onkeydown="if(event.key==='Enter') doLogin()">
     <button id="loginBtn" onclick="doLogin()" class="btn"><i class="fa-solid fa-right-to-bracket mr-2"></i> Đăng nhập</button>
   </div>
 </section>
@@ -123,10 +123,7 @@
         <input id="travelFrom" class="input" placeholder="Từ đâu">
         <input id="travelTo" class="input" placeholder="Đến đâu">
         <input id="travelPurpose" class="input" placeholder="Mục đích">
-        <select id="travelTransport" class="input"><option>Flight</option><option>Car</option><option>Train</option><option>Bus</option></select>
-        <input id="travelFlight" class="input" placeholder="Số chuyến bay (nếu có)">
-        <input id="travelHotel" class="input" placeholder="Khách sạn">
-        <input id="travelHotelAddress" class="input" placeholder="Địa chỉ khách sạn">
+        <p class="text-xs text-slate-500 mb-3">Phương tiện và khách sạn chưa có cột lưu trữ trong bảng DomesticTravel hiện tại.</p>
         <button id="travelBtn" onclick="saveDomesticTravel()" class="btn">Gửi yêu cầu đi lại</button>
       </div>
       <div class="bg-white rounded-xl shadow-sm border p-6">
@@ -206,22 +203,44 @@
     document.getElementById("page-" + page)?.classList.remove("hidden");
   }
 
+  const API_TIMEOUT_MS = 30000;
+
+  async function fetchJSON(url, options = {}) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
+    try {
+      const r = await fetch(url, { ...options, signal: controller.signal });
+      const text = await r.text();
+      let res;
+      try { res = JSON.parse(text); } catch { throw new Error("Máy chủ trả về dữ liệu không hợp lệ."); }
+      if (!r.ok) throw new Error(res.message || `HTTP ${r.status}`);
+      return res;
+    } catch (e) {
+      if (e.name === "AbortError") throw new Error("Yêu cầu quá thời gian. Vui lòng thử lại.");
+      throw e;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
   async function apiGet(action, params = {}) {
     const q = new URLSearchParams({ action, token: sessionToken, ...params });
-    const r = await fetch(API_URL + "?" + q);
-    const res = await r.json();
+    const res = await fetchJSON(API_URL + "?" + q.toString());
     if (res.status === "ERROR" && /phiên|đăng nhập/i.test(res.message || "")) {
-      logout(false);
+      await logout(false);
       throw new Error(res.message);
     }
     return res;
   }
 
   async function apiPost(action, data = {}) {
-    const r = await fetch(API_URL, { method: "POST", body: JSON.stringify({ action, token: sessionToken, data }) });
-    const res = await r.json();
+    const res = await fetchJSON(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ action, token: sessionToken, data })
+    });
     if (res.status === "ERROR" && /phiên|đăng nhập/i.test(res.message || "")) {
-      logout(false);
+      await logout(false);
       throw new Error(res.message);
     }
     return res;
@@ -237,8 +256,11 @@
     b.textContent = "Đang đăng nhập...";
 
     try {
-      const r = await fetch(API_URL, { method: "POST", body: JSON.stringify({ action: "LOGIN", username: u, password: p }) });
-      const res = await r.json();
+      const res = await fetchJSON(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({ action: "LOGIN", username: u, password: p })
+      });
       if (res.status !== "SUCCESS") return toast(res.message || "Đăng nhập thất bại");
       
       currentUser = res.user;
@@ -322,19 +344,19 @@
 
   function renderWarnings(list) {
     const tb = document.getElementById("warningTable");
-    tb.innerHTML = "";
     if (!list.length) {
       tb.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-emerald-600">✓ Không có giấy tờ / Hợp đồng hết hạn.</td></tr>';
       return;
     }
-    list.sort((a, b) => a.daysRemaining - b.daysRemaining).forEach(x => {
-      tb.innerHTML += `<tr class="border-b">
+    tb.innerHTML = list.slice().sort((a, b) => a.daysRemaining - b.daysRemaining).map(x => `
+      <tr class="border-b">
         <td class="p-3 font-semibold">${escapeHTML(x.fullName)}<div class="text-xs text-slate-400">${escapeHTML(x.employeeId)}</div></td>
         <td class="p-3 text-center">${escapeHTML(x.document)}</td>
         <td class="p-3 text-center">${escapeHTML(x.expiryDate)}</td>
-        <td class="p-3 text-center">${x.severity === 'EXPIRED' ? '<span class="badge bg-red-100 text-red-700">HẾT HẠN</span>' : '<span class="badge bg-amber-100 text-amber-700">Còn ' + x.daysRemaining + ' ngày</span>'}</td>
-      </tr>`;
-    });
+        <td class="p-3 text-center">${x.severity === 'EXPIRED'
+          ? '<span class="badge bg-red-100 text-red-700">HẾT HẠN</span>'
+          : '<span class="badge bg-amber-100 text-amber-700">Còn ' + escapeHTML(x.daysRemaining) + ' ngày</span>'}</td>
+      </tr>`).join("");
   }
 
   async function loadProfile() {
@@ -377,7 +399,7 @@
     if (!url) return field(l, "Chưa có file");
     return `<div class="border rounded-lg p-3 bg-slate-50">
       <div class="text-xs text-slate-400 font-semibold">${escapeHTML(l)}</div>
-      <a href="${escapeHTML(url)}" target="_blank" class="inline-block mt-1 text-xs bg-blue-100 text-blue-700 font-bold px-3 py-1 rounded hover:bg-blue-200">
+      <a href="${escapeHTML(url)}" target="_blank" rel="noopener noreferrer" class="inline-block mt-1 text-xs bg-blue-100 text-blue-700 font-bold px-3 py-1 rounded hover:bg-blue-200">
         <i class="fa-solid fa-file mr-1"></i> Mở File Drive
       </a>
     </div>`;
@@ -386,6 +408,15 @@
   async function handleFileUpload(inputElem, targetInputId, subFolder) {
     const file = inputElem.files[0];
     if (!file) return;
+    const allowed = ["application/pdf", "image/jpeg", "image/png", "image/webp"];
+    if (!allowed.includes(file.type)) {
+      inputElem.value = "";
+      return toast("Chỉ hỗ trợ PDF, JPG, PNG hoặc WEBP.");
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      inputElem.value = "";
+      return toast("File tối đa 10 MB.");
+    }
 
     const reader = new FileReader();
     reader.onload = async function (e) {
@@ -434,16 +465,15 @@
     try {
       const r = await apiGet("GET_ENTRY_EXIT", { employeeId: currentUser.employeeId });
       const b = document.getElementById("entryExitList");
-      b.innerHTML = "";
-      (r.records || []).slice().reverse().forEach(x => {
-        b.innerHTML += `<div class="border-b pb-3 mb-3">
+      const records = (r.records || []).slice().reverse();
+      b.innerHTML = records.map(x => `
+        <div class="border-b pb-3 mb-3">
           <div class="font-bold">${x.type === "ENTRY" ? "✈️ Nhập cảnh" : "🛫 Xuất cảnh"}</div>
           <div class="text-sm">${escapeHTML(x.dateTime)} - ${escapeHTML(x.airport || "")}</div>
           <div class="text-xs text-slate-400">Bay: ${escapeHTML(x.flightNo || "-")} | Điểm đến: ${escapeHTML(x.destination || "-")}</div>
           <div class="text-xs italic text-slate-500">Mục đích: ${escapeHTML(x.purpose || "-")}</div>
-        </div>`;
-      });
-      if (!r.records?.length) b.innerHTML = '<div class="text-slate-400">Chưa có lịch sử.</div>';
+        </div>`).join("");
+      if (!records.length) b.innerHTML = '<div class="text-slate-400">Chưa có lịch sử.</div>';
     } catch (e) { console.error(e); }
   }
 
@@ -455,10 +485,10 @@
       toDate: document.getElementById("travelToDate").value,
       fromLocation: document.getElementById("travelFrom").value.trim(),
       toLocation: document.getElementById("travelTo").value.trim(),
-      purpose: document.getElementById("travelPurpose").value.trim(),
-      transport: document.getElementById("travelTransport").value
+      purpose: document.getElementById("travelPurpose").value.trim()
     };
     if (!d.fromDate || !d.toDate || !d.fromLocation || !d.toLocation) return toast("Vui lòng kiểm tra đầy đủ thông tin!");
+    if (d.toDate < d.fromDate) return toast("Ngày đến phải sau hoặc bằng ngày đi.");
     await submitButton("travelBtn", () => apiPost("ADD_DOMESTIC_TRAVEL", d));
   }
 
@@ -467,15 +497,14 @@
     try {
       const r = await apiGet("GET_DOMESTIC_TRAVEL", { employeeId: currentUser.employeeId });
       const b = document.getElementById("travelList");
-      b.innerHTML = "";
-      (r.records || []).slice().reverse().forEach(x => {
-        b.innerHTML += `<div class="border-b pb-3 mb-3">
+      const records = (r.records || []).slice().reverse();
+      b.innerHTML = records.map(x => `
+        <div class="border-b pb-3 mb-3">
           <div class="font-bold">${escapeHTML(x.fromLocation)} → ${escapeHTML(x.toLocation)}</div>
           <div class="text-sm">${escapeHTML(x.fromDate)} → ${escapeHTML(x.toDate)}</div>
           <div class="text-xs font-semibold ${x.status === 'APPROVED' ? 'text-emerald-600' : 'text-amber-600'}">${escapeHTML(x.status)}</div>
-        </div>`;
-      });
-      if (!r.records?.length) b.innerHTML = '<div class="text-slate-400">Chưa có lịch sử.</div>';
+        </div>`).join("");
+      if (!records.length) b.innerHTML = '<div class="text-slate-400">Chưa có lịch sử.</div>';
     } catch (e) { console.error(e); }
   }
 
@@ -502,9 +531,8 @@
 
   function renderEmployees(list = employees) {
     const tb = document.getElementById("employeeTable");
-    tb.innerHTML = "";
-    list.forEach(e => {
-      tb.innerHTML += `<tr class="border-b hover:bg-slate-50">
+    tb.innerHTML = list.length ? list.map(e => `
+      <tr class="border-b hover:bg-slate-50">
         <td class="p-3"><div class="font-semibold">${escapeHTML(e.fullName)}</div><div class="text-xs text-slate-400">${escapeHTML(e.employeeId)}</div></td>
         <td class="p-3 text-center">${escapeHTML(e.nationality)}</td>
         <td class="p-3 text-center">${statusBadge(e.currentStatus)}</td>
@@ -513,17 +541,16 @@
         <td class="p-3 text-center">${escapeHTML(e.contractExpiry || "-")}</td>
         <td class="p-3 text-center">
           <div class="flex justify-center gap-3">
-            <button onclick="viewEmployee('${encodeURIComponent(e.employeeId)}')" class="text-blue-600 hover:text-blue-800"><i class="fa-solid fa-eye"></i></button>
-            <button onclick="openEmployeeForm('${encodeURIComponent(e.employeeId)}')" class="text-amber-600 hover:text-amber-800"><i class="fa-solid fa-pen-to-square"></i></button>
-            <button onclick="deleteEmployee('${encodeURIComponent(e.employeeId)}')" class="text-red-600 hover:text-red-800"><i class="fa-solid fa-trash"></i></button>
+            <button onclick="viewEmployee('${encodeURIComponent(e.employeeId)}')" class="text-blue-600 hover:text-blue-800" title="Xem"><i class="fa-solid fa-eye"></i></button>
+            <button onclick="openEmployeeForm('${encodeURIComponent(e.employeeId)}')" class="text-amber-600 hover:text-amber-800" title="Sửa"><i class="fa-solid fa-pen-to-square"></i></button>
+            <button onclick="deleteEmployee('${encodeURIComponent(e.employeeId)}')" class="text-red-600 hover:text-red-800" title="Vô hiệu hóa"><i class="fa-solid fa-trash"></i></button>
           </div>
         </td>
-      </tr>`;
-    });
+      </tr>`).join("") : '<tr><td colspan="7" class="p-6 text-center text-slate-400">Không tìm thấy nhân viên.</td></tr>';
   }
 
   function filterEmployees() {
-    const q = document.getElementById("employeeSearch").value.toLowerCase();
+    const q = document.getElementById("employeeSearch").value.trim().toLowerCase();
     renderEmployees(employees.filter(e => [e.fullName, e.employeeId, e.nationality, e.contractNo].some(v => String(v || "").toLowerCase().includes(q))));
   }
 
