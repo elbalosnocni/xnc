@@ -344,6 +344,10 @@
       sessionStorage.setItem("sessionToken", sessionToken);
       sessionStorage.setItem("currentUser", JSON.stringify(currentUser));
 
+      // Reset lại ô nhập thông tin đăng nhập
+      document.getElementById("loginUser").value = "";
+      document.getElementById("loginPass").value = "";
+      
       initSessionUI();
     } catch (e) {
       console.error(e);
@@ -392,13 +396,20 @@
     try {
       if (sessionToken) await callBackend("LOGOUT");
     } catch (e) {}
+  
+    // Xóa sạch bộ nhớ tạm thời
     currentUser = null;
     sessionToken = null;
+    employees = [];
+    accountUsers = [];
     sessionStorage.clear();
     document.getElementById("app").classList.add("hidden");
     document.getElementById("userNav").classList.add("hidden");
     document.getElementById("loginSection").classList.remove("hidden");
     if (notify) toast("Đã đăng xuất.");
+
+    // Reload lại toàn bộ trang web để xóa sạch thông tin cũ trên DOM
+  window.location.reload();
   }
 
   async function loadDashboard() {
@@ -527,6 +538,13 @@
   }
 
   async function saveEntryExit() {
+    const type = document.getElementById("eeType").value;
+    const dateTime = document.getElementById("eeDate").value;
+    const airport = document.getElementById("eeAirport").value;
+    const flightNo = document.getElementById("eeFlight").value;
+    const destination = document.getElementById("eeDestination").value;
+    const purpose = document.getElementById("eePurpose").value;
+    
     if (!currentUser?.employeeId) return toast("Tài khoản chưa có Mã nhân viên.");
     const d = {
       employeeId: currentUser.employeeId,
@@ -538,7 +556,35 @@
       purpose: document.getElementById("eePurpose").value.trim()
     };
     if (!d.dateTime || !d.airport) return toast("Vui lòng nhập ngày giờ và sân bay/cửa khẩu.");
-    await submitButton("eeBtn", () => apiPost("ADD_ENTRY_EXIT", d));
+    
+      const btn = document.getElementById("eeBtn");
+    btn.disabled = true;
+  
+    try {
+      const res = await apiPost("ADD_ENTRY_EXIT", {
+        employeeId: currentUser.employeeId,
+        type,
+        dateTime,
+        airport,
+        flightNo,
+        destination,
+        purpose
+      });
+  
+      if (res.status === "SUCCESS") {
+        toast("Đã lưu thông tin khai báo thành công!");
+        // Tải lại thông tin lịch sử và dữ liệu mới
+        loadEntryExit();
+        if (isHR()) loadDashboard();
+        loadProfile();
+      } else {
+        toast(res.message || "Có lỗi xảy ra!");
+      }
+    } catch (e) {
+      toast("Không thể gửi dữ liệu!");
+    } finally {
+      btn.disabled = false;
+    }
   }
 
   async function loadEntryExit() {
