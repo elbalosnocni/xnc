@@ -1834,70 +1834,21 @@ function createEmployeeDriveFolder(employeeId, fullName) {
  */
 function formatDate(d) {
   if (!d) return "";
-  const date = new Date(d);
-  if (isNaN(date.getTime())) return String(d);
-  return date.toISOString().slice(0, 10);
-}
-
-  // ----------------------------------------------------------
-  // 1. Nếu đã là Date object
-  // ----------------------------------------------------------
-  if (
-    Object.prototype.toString.call(d) === "[object Date]"
-  ) {
+  if (Object.prototype.toString.call(d) === "[object Date]") {
     if (!isNaN(d.getTime())) {
-      return Utilities.formatDate(
-        d,
-        Session.getScriptTimeZone(),
-        "yyyy-MM-dd"
-      );
+      return Utilities.formatDate(d, Session.getScriptTimeZone(), "yyyy-MM-dd");
     }
-
     return "";
   }
-
-  // ----------------------------------------------------------
-  // 2. Chuyển sang string
-  // ----------------------------------------------------------
   const s = String(d).trim();
+  if (!s) return "";
+  
+  let match = s.match(/^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})$/);
+  if (match) return `${match[1]}-${String(match[2]).padStart(2, "0")}-${String(match[3]).padStart(2, "0")}`;
 
-  if (!s) {
-    return "";
-  }
+  match = s.match(/^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{4})$/);
+  if (match) return `${match[3]}-${String(match[2]).padStart(2, "0")}-${String(match[1]).padStart(2, "0")}`;
 
-  // ----------------------------------------------------------
-  // 3. yyyy-mm-dd / yyyy/mm/dd / yyyy.mm.dd
-  // ----------------------------------------------------------
-  let match = s.match(
-    /^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})$/
-  );
-
-  if (match) {
-    return [
-      match[1],
-      String(match[2]).padStart(2, "0"),
-      String(match[3]).padStart(2, "0")
-    ].join("-");
-  }
-
-  // ----------------------------------------------------------
-  // 4. dd-mm-yyyy / dd/mm/yyyy / dd.mm.yyyy
-  // ----------------------------------------------------------
-  match = s.match(
-    /^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{4})$/
-  );
-
-  if (match) {
-    return [
-      match[3],
-      String(match[2]).padStart(2, "0"),
-      String(match[1]).padStart(2, "0")
-    ].join("-");
-  }
-
-  // ----------------------------------------------------------
-  // 5. Nếu không nhận dạng được
-  // ----------------------------------------------------------
   return s;
 }
 
