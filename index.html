@@ -702,9 +702,15 @@
         
         <!-- 3. Trạng thái -->
         <td class="p-3 text-center">${statusBadge(e.currentStatus)}</td>
-        
+        const statusBadge = e.currentStatus === 'In Vietnam' 
+      ? '<span class="badge bg-emerald-100 text-emerald-700">🟢 Trong nước</span>'
+      : (e.currentStatus === 'Traveling' 
+          ? '<span class="badge bg-blue-100 text-blue-700">✈️ Công tác</span>'
+          : '<span class="badge bg-slate-100 text-slate-600">🔴 Đã xuất cảnh</span>');
         <!-- 4. Vị trí/Chức vụ -->
-        <td class="p-3 text-sm text-slate-600">${escapeHTML(e.position || "-")}</td>
+        <td class="p-3 text-sm text-slate-600">${escapeHTML(e.position || "-")}</div>
+        <div class="text-xs text-slate-400">${escapeHTML(e.department || "")}</div>
+        </td>
 
         <!-- 5: Lịch sử / Dự định Xuất Nhập Cảnh -->
         <td class="p-3 text-center">
