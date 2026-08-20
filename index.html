@@ -471,8 +471,8 @@
           ${field("Số Phụ Lục", p.appendixNo)}
           ${field("Hạn Hợp Đồng", p.contractExpiry)}
           ${docField("File Hợp Đồng", p.contractImg)}
-          ${field("Mức Lương Cơ Bản", Number(p.salary || 0).toLocaleString() + " VNĐ")}
-          ${field("Phụ Cấp", Number(p.allowance || 0).toLocaleString() + " VNĐ")}
+          ${field("Mức Lương Cơ Bản", Number(p.salary || 0).toLocaleString() + " USD")}
+          ${field("Phụ Cấp", Number(p.allowance || 0).toLocaleString() + " USD")}
           ${field("Trạng thái", p.currentStatus)}
         </div>
       `;
@@ -715,8 +715,8 @@
           ${field("Số Phụ Lục", prof.appendixNo)}
           ${field("Hạn Hợp Đồng", prof.contractExpiry)}
           ${docField("File Hợp Đồng", prof.contractImg)}
-          ${field("Mức Lương Cơ Bản", Number(prof.salary || 0).toLocaleString() + " VNĐ")}
-          ${field("Phụ Cấp", Number(prof.allowance || 0).toLocaleString() + " VNĐ")}
+          ${field("Mức Lương Cơ Bản", Number(prof.salary || 0).toLocaleString() + " USD")}
+          ${field("Phụ Cấp", Number(prof.allowance || 0).toLocaleString() + " USD")}
         </div>
         <hr class="my-6">
         <h3 class="font-bold mb-3">🕒 Lịch trình di chuyển & Công tác</h3>
@@ -783,8 +783,8 @@
         <div class="md:col-span-2 font-bold border-b pb-1 text-blue-600 mt-2">Hợp Đồng Lao Động & Lương</div>
         <div><label class="text-xs font-semibold">Số Hợp Đồng</label><input id="f_contractNo" class="input mt-1" value="${escapeHTML(emp.contractNo || "")}"></div>
         <div><label class="text-xs font-semibold">Số Phụ Lục Hợp Đồng</label><input id="f_appendixNo" class="input mt-1" value="${escapeHTML(emp.appendixNo || "")}"></div>
-        <div><label class="text-xs font-semibold">Mức Lương Cơ Bản (VNĐ)</label><input id="f_salary" type="number" class="input mt-1" value="${emp.salary || 0}"></div>
-        <div><label class="text-xs font-semibold">Phụ Cấp (VNĐ)</label><input id="f_allowance" type="number" class="input mt-1" value="${emp.allowance || 0}"></div>
+        <div><label class="text-xs font-semibold">Mức Lương Cơ Bản (USD)</label><input id="f_salary" type="number" class="input mt-1" value="${emp.salary || 0}"></div>
+        <div><label class="text-xs font-semibold">Phụ Cấp (USD)</label><input id="f_allowance" type="number" class="input mt-1" value="${emp.allowance || 0}"></div>
         <div><label class="text-xs font-semibold">Ngày bắt đầu HĐ</label><input id="f_contractStartDate" type="date" class="input mt-1" value="${emp.contractStartDate || ""}"></div>
         <div><label class="text-xs font-semibold">Ngày hết hạn HĐ</label><input id="f_contractExpiry" type="date" class="input mt-1" value="${emp.contractExpiry || ""}"></div>
         <div class="md:col-span-2">
