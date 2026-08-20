@@ -1053,6 +1053,7 @@ function handleImportEmployeesExcel(data, requester) {
     if (newUsers.length) {
       userSheet.getRange(userSheet.getLastRow() + 1, 1, newUsers.length, 7).setValues(newUsers);
     }
+    writeAuditLog(requester.userId, "IMPORT_BATCH", "Employees", "BATCH", null, `Imported ${newRows.length} rows`);
   }
 
   return result;
@@ -1265,42 +1266,281 @@ function setupSystem() {
   }
 }
 
+/**
+ * ============================================================
+ * GOOGLE DRIVE - EMPLOYEE FOLDER
+ * ============================================================
+ *
+ * Cấu trúc:
+ *
+ * Foreign Employee Management System
+ * ├── EMP001 - John Smith
+ * │   ├── Passport
+ * │   ├── Visa
+ * │   ├── TRC
+ * │   ├── Work Permit
+ * │   └── Contracts
+ *
+ * DRIVE_FOLDER_ID:
+ * - Nếu đã cấu hình: dùng đúng folder đó.
+ * - Nếu chưa có: tự tìm folder theo tên.
+ * - Nếu không tìm thấy: tự tạo folder mới.
+ *
+ * Hàm này KHÔNG tạo folder nhân viên trùng.
+ */
 function createEmployeeDriveFolder(employeeId, fullName) {
-  const folderName = "Foreign Employee Management System";
-  const rootFolders = DriveApp.getFoldersByName(folderName);
-  let rootFolder = rootFolders.hasNext() ? rootFolders.next() : DriveApp.createFolder(folderName);
-  const targetName = `${employeeId} - ${fullName}`;
+  try {
+    if (!employeeId) {
+      throw new Error("Missing employeeId");
+    }
 
-  const existing = rootFolder.getFoldersByName(targetName);
-  const empFolder = existing.hasNext() ? existing.next() : rootFolder.createFolder(targetName);
+    // --------------------------------------------------------
+    // 1. Lấy folder gốc
+    // --------------------------------------------------------
+    const props = PropertiesService.getScriptProperties();
+    const configuredRootId = props.getProperty("DRIVE_FOLDER_ID");
 
-  ["Passport", "Visa", "TRC", "Work Permit", "Contracts"].forEach(name => {
-    if (!empFolder.getFoldersByName(name).hasNext()) empFolder.createFolder(name);
-  });
+    let rootFolder = null;
 
-  return empFolder.getId();
+    if (configuredRootId) {
+      try {
+        rootFolder = DriveApp.getFolderById(configuredRootId);
+      } catch (e) {
+        console.warn(
+          "DRIVE_FOLDER_ID không hợp lệ, chuyển sang tìm theo tên."
+        );
+      }
+    }
+
+    // Nếu chưa có ID hoặc ID không hợp lệ
+    if (!rootFolder) {
+      const ROOT_NAME = "Foreign Employee Management System";
+      const folders = DriveApp.getFoldersByName(ROOT_NAME);
+
+      if (folders.hasNext()) {
+        rootFolder = folders.next();
+
+        // Lưu lại ID để những lần sau dùng trực tiếp
+        props.setProperty(
+          "DRIVE_FOLDER_ID",
+          rootFolder.getId()
+        );
+      } else {
+        rootFolder = DriveApp.createFolder(ROOT_NAME);
+
+        props.setProperty(
+          "DRIVE_FOLDER_ID",
+          rootFolder.getId()
+        );
+      }
+    }
+
+    // --------------------------------------------------------
+    // 2. Chuẩn hóa tên nhân viên
+    // --------------------------------------------------------
+    const safeEmployeeId = String(employeeId).trim();
+
+    const safeFullName = String(fullName || "Unknown")
+      .trim()
+      .replace(/[\\/:*?"<>|]/g, "_");
+
+    const folderName =
+      `${safeEmployeeId} - ${safeFullName}`;
+
+    // --------------------------------------------------------
+    // 3. Tìm folder nhân viên đã tồn tại
+    // --------------------------------------------------------
+    const existingFolders =
+      rootFolder.getFoldersByName(folderName);
+
+    let employeeFolder;
+
+    if (existingFolders.hasNext()) {
+      employeeFolder = existingFolders.next();
+    } else {
+      employeeFolder =
+        rootFolder.createFolder(folderName);
+    }
+
+    // --------------------------------------------------------
+    // 4. Đảm bảo 5 folder con luôn tồn tại
+    // --------------------------------------------------------
+    const subFolders = [
+      "Passport",
+      "Visa",
+      "TRC",
+      "Work Permit",
+      "Contracts"
+    ];
+
+    subFolders.forEach(function (name) {
+      const folders =
+        employeeFolder.getFoldersByName(name);
+
+      if (!folders.hasNext()) {
+        employeeFolder.createFolder(name);
+      }
+    });
+
+    // --------------------------------------------------------
+    // 5. Trả về ID folder nhân viên
+    // --------------------------------------------------------
+    return employeeFolder.getId();
+
+  } catch (e) {
+    console.error(
+      "createEmployeeDriveFolder error:",
+      e
+    );
+
+    return "";
+  }
 }
 
-function writeAuditLog(userId, action, module, targetId, oldValue, newValue) {
-  const sheet = getSheet(TABLES.AUDIT);
-  sheet.appendRow([
-    "AUD-" + Utilities.getUuid().substring(0, 8),
-    userId || "SYSTEM",
-    action,
-    module,
-    targetId,
-    oldValue || "",
-    newValue || "",
-    new Date(),
-    ""
-  ]);
-}
 
+/**
+ * ============================================================
+ * FORMAT DATE
+ * ============================================================
+ *
+ * Chuẩn hóa ngày về:
+ * YYYY-MM-DD
+ *
+ * Hỗ trợ:
+ * - Date object
+ * - yyyy-mm-dd
+ * - yyyy/mm/dd
+ * - yyyy.mm.dd
+ * - dd/mm/yyyy
+ * - dd-mm-yyyy
+ * - dd.mm.yyyy
+ */
 function formatDate(d) {
-  if (!d) return "";
-  const date = new Date(d);
-  if (isNaN(date.getTime())) return String(d);
-  return Utilities.formatDate(date, Session.getScriptTimeZone(), "yyyy-MM-dd");
+  if (d === null || d === undefined || d === "") {
+    return "";
+  }
+
+  // ----------------------------------------------------------
+  // 1. Nếu đã là Date object
+  // ----------------------------------------------------------
+  if (
+    Object.prototype.toString.call(d) === "[object Date]"
+  ) {
+    if (!isNaN(d.getTime())) {
+      return Utilities.formatDate(
+        d,
+        Session.getScriptTimeZone(),
+        "yyyy-MM-dd"
+      );
+    }
+
+    return "";
+  }
+
+  // ----------------------------------------------------------
+  // 2. Chuyển sang string
+  // ----------------------------------------------------------
+  const s = String(d).trim();
+
+  if (!s) {
+    return "";
+  }
+
+  // ----------------------------------------------------------
+  // 3. yyyy-mm-dd / yyyy/mm/dd / yyyy.mm.dd
+  // ----------------------------------------------------------
+  let match = s.match(
+    /^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})$/
+  );
+
+  if (match) {
+    return [
+      match[1],
+      String(match[2]).padStart(2, "0"),
+      String(match[3]).padStart(2, "0")
+    ].join("-");
+  }
+
+  // ----------------------------------------------------------
+  // 4. dd-mm-yyyy / dd/mm/yyyy / dd.mm.yyyy
+  // ----------------------------------------------------------
+  match = s.match(
+    /^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{4})$/
+  );
+
+  if (match) {
+    return [
+      match[3],
+      String(match[2]).padStart(2, "0"),
+      String(match[1]).padStart(2, "0")
+    ].join("-");
+  }
+
+  // ----------------------------------------------------------
+  // 5. Nếu không nhận dạng được
+  // ----------------------------------------------------------
+  return s;
+}
+
+
+/**
+ * ============================================================
+ * AUDIT LOG
+ * ============================================================
+ *
+ * Ghi:
+ * LOG ID
+ * User ID
+ * Action
+ * Module
+ * Target ID
+ * Old Value
+ * New Value
+ * Timestamp
+ * Note
+ */
+function writeAuditLog(
+  userId,
+  action,
+  module,
+  targetId,
+  oldValue,
+  newValue
+) {
+  try {
+    const sheet = getSheet(TABLES.AUDIT);
+
+    if (!sheet) {
+      throw new Error("AuditLog sheet not found");
+    }
+
+    const logId =
+      "LOG-" +
+      Utilities.getUuid()
+        .replace(/-/g, "")
+        .substring(0, 8)
+        .toUpperCase();
+
+    sheet.appendRow([
+      logId,
+      userId || "SYSTEM",
+      action || "",
+      module || "",
+      targetId || "",
+      oldValue || "",
+      newValue || "",
+      new Date(),
+      ""
+    ]);
+
+  } catch (e) {
+
+    // Không làm hỏng chức năng chính chỉ vì AuditLog lỗi
+    console.error(
+      "writeAuditLog error:",
+      e
+    );
+  }
 }
 
 function handleGetTimeline(empId, req) {
