@@ -162,6 +162,8 @@
               <th class="p-3">Quốc tịch</th>
               <th class="p-3">Trạng thái</th>
               <th class="p-3">Vị trí</th>
+              <th class="p-3">Lịch sử Nhập/Xuất cảnh</th>
+              <th class="p-3">Lịch sử Đi lại</th>              
               <th class="p-3">Số Hợp Đồng</th>
               <th class="p-3">Hạn HĐ</th>
               <th class="p-3 text-center">Thao tác</th>
@@ -658,23 +660,68 @@
 
   function renderEmployees(list = employees) {
     const tb = document.getElementById("employeeTable");
-    tb.innerHTML = list.length ? list.map(e => `
-      <tr class="border-b hover:bg-slate-50">
-        <td class="p-3"><div class="font-semibold">${escapeHTML(e.fullName)}</div><div class="text-xs text-slate-400">${escapeHTML(e.employeeId)}</div></td>
-        <td class="p-3 text-center">${escapeHTML(e.nationality)}</td>
+
+    // Kiểm tra nếu danh sách trống, hiển thị thông báo tràn hết 9 cột (colspan="9")
+    if (!list || !list.length) {
+      tb.innerHTML = `<tr><td colspan="9" class="p-6 text-center text-slate-400">Không tìm thấy nhân viên.</td></tr>`;
+      return;
+    }  
+
+    // Render danh sách nhân viên hợp lệ
+  tb.innerHTML = list.map(e => {
+    // Tìm chuyến đi sắp tới (nếu có) từ map dữ liệu
+    const travelInfo = e.nextTravel ? `
+      <div class="text-xs font-semibold text-slate-700">
+        ${escapeHTML(e.nextTravel.fromLocation)} → ${escapeHTML(e.nextTravel.toLocation)}
+      </div>
+      <div class="text-slate-500" style="font-size: 10px;">
+        ${escapeHTML(e.nextTravel.fromDate)} ~ ${escapeHTML(e.nextTravel.toDate)}
+      </div>
+    ` : `<span class="text-slate-400 text-xs">Không có</span>`;
+
+    return `
+      <tr class="border-b hover:bg-slate-50 transition-colors">
+        <!-- 1. Thông tin nhân viên -->
+        <td class="p-3">
+          <div class="font-semibold text-slate-800">${escapeHTML(e.fullName)}</div>
+          <div class="text-xs text-slate-400">${escapeHTML(e.employeeId)}</div>
+        </td>
+        
+        <!-- 2. Quốc tịch -->
+        <td class="p-3 text-center text-sm">${escapeHTML(e.nationality)}</td>
+        
+        <!-- 3. Trạng thái -->
         <td class="p-3 text-center">${statusBadge(e.currentStatus)}</td>
-        <td class="p-3">${escapeHTML(e.position || "-")}</td>
-        <td class="p-3 font-semibold text-center">${escapeHTML(e.contractNo || "-")}</td>
-        <td class="p-3 text-center">${escapeHTML(e.contractExpiry || "-")}</td>
+        
+        <!-- 4. Vị trí/Chức vụ -->
+        <td class="p-3 text-sm text-slate-600">${escapeHTML(e.position || "-")}</td>
+        
+        <!-- 5. Lịch công tác sắp tới -->
+        <td class="p-3 text-center">${travelInfo}</td>        
+        
+        <!-- 6. Số hợp đồng -->
+        <td class="p-3 font-semibold text-center text-sm text-slate-700">${escapeHTML(e.contractNo || "-")}</td>
+        
+        <!-- 7. Ngày hết hạn HD -->
+        <td class="p-3 text-center text-sm text-slate-600">${escapeHTML(e.contractExpiry || "-")}</td>
+        
+        <!-- 8. Hành động/Thao tác -->
         <td class="p-3 text-center">
           <div class="flex justify-center gap-3">
-            <button onclick="viewEmployee('${encodeURIComponent(e.employeeId)}')" class="text-blue-600 hover:text-blue-800" title="Xem"><i class="fa-solid fa-eye"></i></button>
-            <button onclick="openEmployeeForm('${encodeURIComponent(e.employeeId)}')" class="text-amber-600 hover:text-amber-800" title="Sửa"><i class="fa-solid fa-pen-to-square"></i></button>
-            <button onclick="deleteEmployee('${encodeURIComponent(e.employeeId)}')" class="text-red-600 hover:text-red-800" title="Vô hiệu hóa"><i class="fa-solid fa-trash"></i></button>
+            <button onclick="viewEmployee('${encodeURIComponent(e.employeeId)}')" class="text-blue-600 hover:text-blue-800 p-1" title="Xem chi tiết">
+              <i class="fa-solid fa-eye"></i>
+            </button>
+            <button onclick="openEmployeeForm('${encodeURIComponent(e.employeeId)}')" class="text-amber-600 hover:text-amber-800 p-1" title="Sửa thông tin">
+              <i class="fa-solid fa-pen-to-square"></i>
+            </button>
+            <button onclick="deleteEmployee('${encodeURIComponent(e.employeeId)}')" class="text-red-600 hover:text-red-800 p-1" title="Vô hiệu hóa">
+              <i class="fa-solid fa-trash"></i>
+            </button>
           </div>
         </td>
-      </tr>`).join("") : '<tr><td colspan="7" class="p-6 text-center text-slate-400">Không tìm thấy nhân viên.</td></tr>';
-  }
+      </tr>`;
+  }).join("");
+}
 
   function filterEmployees() {
     const q = document.getElementById("employeeSearch").value.trim().toLowerCase();
