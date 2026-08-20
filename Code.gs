@@ -654,22 +654,37 @@ function calculateEmployeeLocationStatus(employeeId) {
   const eeSheet = getSheet(TABLES.ENTRY_EXIT);
   const eeData = eeSheet.getDataRange().getValues().slice(1);
   
+  // Lọc thông tin xuất nhập cảnh của nhân viên và sắp xếp theo ngày giờ sự kiện (mới nhất lên đầu)
   const userEE = eeData
     .filter(row => String(row[1]) === String(employeeId))
     .sort((a, b) => new Date(b[3]) - new Date(a[3]));
 
   let status = "Exited";
   let location = "Overseas";
+  const now = new Date();
 
   if (userEE.length > 0) {
     const latestEE = userEE[0];
-    if (latestEE[2] === "ENTRY") {
+    const eventTime = new Date(latestEE[3]);
+
+    // CHỈ CẬP NHẬT TRẠNG THÁI NẾU THỜI DIỂM SỰ KIỆN ĐÃ XẢY RA (eventTime <= now)
+    if (latestEE[2] === "ENTRY" && eventTime <= now) {
       status = "In Vietnam";
-      location = latestEE[4] || "Vietnam";
       
+      // Parse thông tin lưu trong cột Note để lấy điểm đến (destination)
+      let noteObj = {};
+      try {
+        noteObj = JSON.parse(latestEE[5] || "{}");
+      } catch (e) {
+        noteObj = {};
+      }
+
+      // Ưu tiên điểm đến (destination) -> nếu trống mới dùng cửa khẩu/sân bay (airport)
+      location = noteObj.destination || latestEE[4] || "Vietnam";
+      
+      // Kiểm tra lịch trình công tác nội địa đang diễn ra
       const travelSheet = getSheet(TABLES.TRAVEL);
       const travelData = travelSheet.getDataRange().getValues().slice(1);
-      const now = new Date();
       
       const activeTravel = travelData.find(row => {
         const startDate = new Date(row[4]);
@@ -681,7 +696,7 @@ function calculateEmployeeLocationStatus(employeeId) {
 
       if (activeTravel) {
         status = "Traveling";
-        location = activeTravel[3];
+        location = activeTravel[3]; // ToLocation
       }
     }
   }
@@ -1960,7 +1975,7 @@ function handleGetTimeline(empId, req) {
   const tr = handleGetDomesticTravel(empId, req).records || [];
   const timeline = [];
   
-  ee.forEach(x => timeline.push({ title: x.type === "ENTRY" ? "Nhập cảnh VN" : "Xuất cảnh VN", date: x.dateTime, location: x.airport }));
+  ee.forEach(x => timeline.push({ title: x.type === "ENTRY" ? "Nhập cảnh VN" : "Xuất cảnh VN", date: x.dateTime, location: x.destination }));
   tr.forEach(x => timeline.push({ title: "Công tác nội địa", date: x.fromDate, endDate: x.toDate, location: x.fromLocation + " → " + x.toLocation }));
   
   timeline.sort((a,b) => new Date(b.date) - new Date(a.date));
