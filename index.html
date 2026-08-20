@@ -660,7 +660,16 @@
 
   function renderEmployees(list = employees) {
     const tb = document.getElementById("employeeTable");
+    if (!tb) return;
 
+    const search = (document.getElementById("employeeSearch")?.value || "").toLowerCase();
+    
+    // Lọc danh sách nhân viên theo ô tìm kiếm
+  const filtered = employees.filter(e => 
+    (e.fullName || "").toLowerCase().includes(search) ||
+    (e.employeeId || "").toLowerCase().includes(search) ||
+    (e.nationality || "").toLowerCase().includes(search)
+  );
     // Kiểm tra nếu danh sách trống, hiển thị thông báo tràn hết 9 cột (colspan="9")
     if (!list || !list.length) {
       tb.innerHTML = `<tr><td colspan="9" class="p-6 text-center text-slate-400">Không tìm thấy nhân viên.</td></tr>`;
@@ -678,7 +687,8 @@
         ${escapeHTML(e.nextTravel.fromDate)} ~ ${escapeHTML(e.nextTravel.toDate)}
       </div>
     ` : `<span class="text-slate-400 text-xs">Không có</span>`;
-
+    
+    // Render chính xác 9 cột tương ứng 9 thẻ <th>
     return `
       <tr class="border-b hover:bg-slate-50 transition-colors">
         <!-- 1. Thông tin nhân viên -->
@@ -695,17 +705,24 @@
         
         <!-- 4. Vị trí/Chức vụ -->
         <td class="p-3 text-sm text-slate-600">${escapeHTML(e.position || "-")}</td>
+
+        <!-- 5: Lịch sử / Dự định Xuất Nhập Cảnh -->
+        <td class="p-3 text-center">
+          <button onclick="viewEmployeeTimeline('${escapeHTML(e.employeeId)}')" class="text-xs text-blue-600 hover:underline">
+            <i class="fa-solid fa-clock-rotate-left mr-1"></i>Xem lịch sử
+          </button>
+        </td>
         
-        <!-- 5. Lịch công tác sắp tới -->
+        <!-- 6. Lịch công tác sắp tới -->
         <td class="p-3 text-center">${travelInfo}</td>        
         
-        <!-- 6. Số hợp đồng -->
+        <!-- 7. Số hợp đồng -->
         <td class="p-3 font-semibold text-center text-sm text-slate-700">${escapeHTML(e.contractNo || "-")}</td>
         
-        <!-- 7. Ngày hết hạn HD -->
+        <!-- 8. Ngày hết hạn HD -->
         <td class="p-3 text-center text-sm text-slate-600">${escapeHTML(e.contractExpiry || "-")}</td>
         
-        <!-- 8. Hành động/Thao tác -->
+        <!-- 9. Hành động/Thao tác -->
         <td class="p-3 text-center">
           <div class="flex justify-center gap-3">
             <button onclick="viewEmployee('${encodeURIComponent(e.employeeId)}')" class="text-blue-600 hover:text-blue-800 p-1" title="Xem chi tiết">
