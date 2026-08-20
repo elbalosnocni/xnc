@@ -829,147 +829,92 @@ function handleGetDomesticTravel(empId, req) {
 // ==========================================
 // G. DASHBOARD & PROFILE RESPONSE
 // ==========================================
+// Thêm/Cập nhật API GET_TIMELINE trong switch-case dispatchApiAction:
+// case "GET_TIMELINE": result = handleGetTimeline(employeeId, requester); break;
+
 function getDashboardData(requester) {
-   // 1. Kiểm tra quyền truy cập (Authorization)
   if (![ROLES.ADMIN, ROLES.HR_ADMIN, ROLES.HR, ROLES.DIRECTOR].includes(requester.role)) {
     return { status: "ERROR", message: "Không có quyền truy cập dữ liệu quản trị." };
   }
-    // 2. Đọc dữ liệu từ các bảng (Sheets)
+
   const empSheet = getSheet(TABLES.EMPLOYEES);
   const empRows = empSheet.getDataRange().getValues().slice(1);
-  
   const docSheet = getSheet(TABLES.DOCUMENTS);
   const docRows = docSheet.getDataRange().getValues().slice(1);
-
   const ctrSheet = getSheet(TABLES.CONTRACTS);
   const ctrRows = ctrSheet.getDataRange().getValues().slice(1);
-  
   const travelSheet = getSheet(TABLES.TRAVEL);
   const travelRows = travelSheet.getDataRange().getValues().slice(1);
 
-   // 3. Khởi tạo các biến lưu trữ và KPIs
   const kpi = { total: 0, inVN: 0, business: 0, exited: 0, warning: 0, expContract: 0 };
   const employees = [];
   const expiryWarnings = [];
   const now = new Date();
   const nextTravelMap = {};
 
-  // 4. Xử lý dữ liệu Lịch công tác (Travel) để tìm chuyến đi sắp tới gần nhất của mỗi nhân viên 
+  // Xử lý dữ liệu Lịch công tác/đi lại gần nhất của từng nhân viên
   travelRows.forEach(r => {
-  const employeeId = String(r[1] || "").trim();
-  const startDate = new Date(r[4]);
-  const status = String(r[6] || "").toUpperCase();
+    const employeeId = String(r[1] || "").trim();
+    const startDate = new Date(r[4]);
+    const status = String(r[6] || "").toUpperCase();
 
-  if (
-    !employeeId ||
-    isNaN(startDate.getTime()) ||
-    status !== "APPROVED" ||
-    startDate < now
-  ) {
-    return;
-  }
+    if (!employeeId || isNaN(startDate.getTime()) || status !== "APPROVED") return;
 
-  if (
-    !nextTravelMap[employeeId] ||
-    startDate < nextTravelMap[employeeId].startDate
-  ) {
-    nextTravelMap[employeeId] = {
-      startDate: startDate,// Giữ dạng Date để so sánh
-      fromLocation: r[2] || "",
-      toLocation: r[3] || "",
-      fromDate: formatDate(r[4]),
-      toDate: formatDate(r[5]),
-      status: status
-    }; // ĐÃ SỬA: Đóng object đúng cách
-    }
-  }); // ĐÃ SỬA: Đóng vòng lặp forEach của travelRows
-
-  // 5. Xử lý dữ liệu Hợp đồng (Contracts) để tìm hợp đồng đang active
-  const activeContractsMap = {};
-  ctrRows.forEach(c => {
-    if (isCurrentValue(c[9])) {
-      activeContractsMap[String(c[1])] = {
-        contractNo: c[2],
-        endDate: c[5]
+    if (!nextTravelMap[employeeId] || startDate < nextTravelMap[employeeId].rawDate) {
+      nextTravelMap[employeeId] = {
+        rawDate: startDate,
+        fromLocation: r[2] || "",
+        toLocation: r[3] || "",
+        fromDate: formatDate(r[4]),
+        toDate: formatDate(r[5]),
+        status: status
       };
     }
   });
 
-  empRows.forEach(row => {
-    if (row[10] === "ACTIVE") {
-      kpi.total++;
-      if (row[8] === "In Vietnam") kpi.inVN++;
-      if (row[8] === "Traveling") kpi.business++;
-      if (row[8] === "Exited") kpi.exited++;
-
-      const ctr = activeContractsMap[String(row[0])] || {};
-      const nextTravel = nextTravelMap[String(row[0])] || null;
-
-      employees.push({
-        employeeId: row[0],
-        fullName: row[1],
-        nationality: row[2],
-        position: row[4],
-        department: row[5],
-        currentStatus: row[8],
-        currentLocation: row[9],
-        nextEntryExit: null,
-        nextTravel: nextTravel,
-        contractNo: ctr.contractNo || "-",
-        contractExpiry: ctr.endDate ? formatDate(ctr.endDate) : "-"
-      });
+  // Map thông tin hợp đồng đang active
+  const activeContractsMap = {};
+  ctrRows.forEach(c => {
+    if (isCurrentValue(c[9])) {
+      activeContractsMap[String(c[1]).trim()] = {
+        contractNo: c[2],
+        contractExpiry: formatDate(c[5])
+      };
     }
   });
 
-  docRows.forEach(doc => {
-    if (isCurrentValue(doc[9]) && doc[5]) {
-      const expDate = new Date(doc[5]);
-      const diffTime = expDate - now;
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  // Tổng hợp dữ liệu hiển thị danh sách Nhân viên
+  empRows.forEach(r => {
+    if (r[10] !== "ACTIVE") return;
 
-      if (diffDays <= 45) {
-        kpi.warning++;
-        const emp = employees.find(e => e.employeeId === String(doc[1])) || {};
-        expiryWarnings.push({
-          employeeId: doc[1],
-          fullName: emp.fullName || "N/A",
-          document: doc[2],
-          expiryDate: formatDate(doc[5]),
-          daysRemaining: diffDays,
-          severity: diffDays <= 0 ? "EXPIRED" : "WARNING"
-        });
-      }
-    }
-  });
+    const empId = String(r[0]).trim();
+    kpi.total++;
 
-  ctrRows.forEach(ctr => {
-    if (isCurrentValue(ctr[9]) && ctr[5]) {
-      const expDate = new Date(ctr[5]);
-      const diffTime = expDate - now;
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const status = r[8] || "Exited";
+    if (status === "In Vietnam") kpi.inVN++;
+    else if (status === "Traveling") kpi.business++;
+    else kpi.exited++;
 
-      if (diffDays <= 45) {
-        kpi.expContract++;
-        const emp = employees.find(e => e.employeeId === String(ctr[1])) || {};
-        expiryWarnings.push({
-          employeeId: ctr[1],
-          fullName: emp.fullName || "N/A",
-          document: "CONTRACT (" + ctr[2] + ")",
-          expiryDate: formatDate(ctr[5]),
-          daysRemaining: diffDays,
-          severity: diffDays <= 0 ? "EXPIRED" : "WARNING"
-        });
-      }
-    }
+    const ctr = activeContractsMap[empId] || {};
+
+    employees.push({
+      employeeId: empId,
+      fullName: r[1],
+      nationality: r[2],
+      position: r[4],
+      department: r[5],
+      currentStatus: status,
+      contractNo: ctr.contractNo || "-",
+      contractExpiry: ctr.contractExpiry || "-",
+      nextTravel: nextTravelMap[empId] || null
+    });
   });
 
   return {
     status: "SUCCESS",
     kpi: kpi,
     employees: employees,
-    expiryWarnings: expiryWarnings,
-    nextTravelMap: nextTravelMap,
-    activeContractsMap: activeContractsMap
+    expiryWarnings: expiryWarnings
   };
 }
 
@@ -1888,9 +1833,11 @@ function createEmployeeDriveFolder(employeeId, fullName) {
  * - dd.mm.yyyy
  */
 function formatDate(d) {
-  if (d === null || d === undefined || d === "") {
-    return "";
-  }
+  if (!d) return "";
+  const date = new Date(d);
+  if (isNaN(date.getTime())) return String(d);
+  return date.toISOString().slice(0, 10);
+}
 
   // ----------------------------------------------------------
   // 1. Nếu đã là Date object
@@ -2015,16 +1962,42 @@ function writeAuditLog(
   }
 }
 
+// Hàm hỗ trợ xuất Timeline Lịch sử Xuất/Nhập cảnh & Di chuyển
 function handleGetTimeline(empId, req) {
-  if (!canAccessEmployee(req, empId)) return { status: "ERROR", message: "Không có quyền xem timeline." };
+  if (!canAccessEmployee(req, empId)) return { status: "ERROR", message: "Không có quyền xem thông tin." };
 
-  const ee = handleGetEntryExit(empId, req).records || [];
-  const tr = handleGetDomesticTravel(empId, req).records || [];
+  const eeSheet = getSheet(TABLES.ENTRY_EXIT);
+  const eeRows = eeSheet.getDataRange().getValues().slice(1);
+  const travelSheet = getSheet(TABLES.TRAVEL);
+  const travelRows = travelSheet.getDataRange().getValues().slice(1);
+
   const timeline = [];
-  
-  ee.forEach(x => timeline.push({ title: x.type === "ENTRY" ? "Nhập cảnh VN" : "Xuất cảnh VN", date: x.dateTime, location: x.destination }));
-  tr.forEach(x => timeline.push({ title: "Công tác nội địa", date: x.fromDate, endDate: x.toDate, location: x.fromLocation + " → " + x.toLocation }));
-  
-  timeline.sort((a,b) => new Date(b.date) - new Date(a.date));
-  return { status: "SUCCESS", timeline };
+
+  // Gom lịch xuất nhập cảnh
+  eeRows.filter(r => String(r[1]) === String(empId)).forEach(r => {
+    let noteObj = {};
+    try { noteObj = JSON.parse(r[5] || "{}"); } catch(e) {}
+    timeline.push({
+      rawDate: new Date(r[3]),
+      date: formatDate(r[3]),
+      title: r[2] === "ENTRY" ? "✈️ Nhập cảnh Việt Nam" : "🛫 Xuất cảnh Việt Nam",
+      location: `Cửa khẩu: ${r[4] || "-"} | Chuyến bay: ${noteObj.flightNo || "-"} | Điểm đến: ${noteObj.destination || "-"}`
+    });
+  });
+
+  // Gom lịch đi lại trong nước
+  travelRows.filter(r => String(r[1]) === String(empId) && r[6] === "APPROVED").forEach(r => {
+    timeline.push({
+      rawDate: new Date(r[4]),
+      date: formatDate(r[4]),
+      endDate: formatDate(r[5]),
+      title: "🚗 Đi lại / Công tác nội địa",
+      location: `${r[2]} → ${r[3]}`
+    });
+  });
+
+  // Sắp xếp timeline giảm dần theo thời gian (Mới nhất lên đầu)
+  timeline.sort((a, b) => b.rawDate - a.rawDate);
+
+  return { status: "SUCCESS", timeline: timeline };
 }
