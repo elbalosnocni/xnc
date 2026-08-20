@@ -658,85 +658,91 @@
     }
   }
 
-  function renderEmployees(list = employees) {
-    const tb = document.getElementById("employeeTable");
-    if (!tb) return;
+  function renderEmployees() {
+  const tb = document.getElementById("employeeTable");
+  if (!tb) return;
 
-    const search = (document.getElementById("employeeSearch")?.value || "").toLowerCase();
-    
-    // Lọc danh sách nhân viên theo ô tìm kiếm
+  const search = (document.getElementById("employeeSearch")?.value || "").toLowerCase();
+  
+  // Lọc danh sách nhân viên theo ô tìm kiếm
   const filtered = employees.filter(e => 
     (e.fullName || "").toLowerCase().includes(search) ||
     (e.employeeId || "").toLowerCase().includes(search) ||
     (e.nationality || "").toLowerCase().includes(search)
   );
-    // Kiểm tra nếu danh sách trống, hiển thị thông báo tràn hết 9 cột (colspan="9")
-    if (!list || !list.length) {
-      tb.innerHTML = `<tr><td colspan="9" class="p-6 text-center text-slate-400">Không tìm thấy nhân viên.</td></tr>`;
-      return;
-    }  
 
-    // Render danh sách nhân viên hợp lệ
-  tb.innerHTML = list.map(e => {
-    // Tìm chuyến đi sắp tới (nếu có) từ map dữ liệu
-    const travelInfo = e.nextTravel ? `
-      <div class="text-xs font-semibold text-slate-700">
-        ${escapeHTML(e.nextTravel.fromLocation)} → ${escapeHTML(e.nextTravel.toLocation)}
-      </div>
-      <div class="text-slate-500" style="font-size: 10px;">
-        ${escapeHTML(e.nextTravel.fromDate)} ~ ${escapeHTML(e.nextTravel.toDate)}
-      </div>
-    ` : `<span class="text-slate-400 text-xs">Không có</span>`;
-    
+  if (!filtered.length) {
+    tb.innerHTML = '<tr><td colspan="9" class="p-4 text-center text-slate-400">Không tìm thấy nhân viên nào.</td></tr>';
+    return;
+  }
+
+  tb.innerHTML = filtered.map(e => {
+    // Xử lý hiển thị thông tin Công tác / Lịch trình kế tiếp
+    const travelInfo = e.nextTravel 
+      ? `<span class="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded border border-blue-200 block">
+           ${escapeHTML(e.nextTravel.fromLocation)} → ${escapeHTML(e.nextTravel.toLocation)}<br>
+           <small>(${escapeHTML(e.nextTravel.fromDate)})</small>
+         </span>`
+      : '<span class="text-slate-400 text-xs">-</span>';
+
+    const statusBadge = e.currentStatus === 'In Vietnam' 
+      ? '<span class="badge bg-emerald-100 text-emerald-700">🟢 Trong nước</span>'
+      : (e.currentStatus === 'Traveling' 
+          ? '<span class="badge bg-blue-100 text-blue-700">✈️ Công tác</span>'
+          : '<span class="badge bg-slate-100 text-slate-600">🔴 Đã xuất cảnh</span>');
+
     // Render chính xác 9 cột tương ứng 9 thẻ <th>
     return `
-      <tr class="border-b hover:bg-slate-50 transition-colors">
-        <!-- 1. Thông tin nhân viên -->
+      <tr class="border-b hover:bg-slate-50 transition">
+        <!-- Cột 1: Nhân viên -->
         <td class="p-3">
-          <div class="font-semibold text-slate-800">${escapeHTML(e.fullName)}</div>
-          <div class="text-xs text-slate-400">${escapeHTML(e.employeeId)}</div>
+          <div class="font-bold text-slate-800">${escapeHTML(e.fullName)}</div>
+          <div class="text-xs text-slate-400 font-mono">${escapeHTML(e.employeeId)}</div>
         </td>
-        
-        <!-- 2. Quốc tịch -->
-        <td class="p-3 text-center text-sm">${escapeHTML(e.nationality)}</td>
-        
-        <!-- 3. Trạng thái -->
-        <td class="p-3 text-center">${statusBadge(e.currentStatus)}</td>
-        
-        <!-- 4. Vị trí/Chức vụ -->
-        <td class="p-3 text-sm text-slate-600">${escapeHTML(e.position || "-")}</td>
 
-        <!-- 5: Lịch sử / Dự định Xuất Nhập Cảnh -->
+        <!-- Cột 2: Quốc tịch -->
+        <td class="p-3 text-center">${escapeHTML(e.nationality || "-")}</td>
+
+        <!-- Cột 3: Trạng thái -->
+        <td class="p-3 text-center">${statusBadge}</td>
+
+        <!-- Cột 4: Vị trí & Phòng ban -->
+        <td class="p-3">
+          <div class="font-semibold text-xs">${escapeHTML(e.position || "-")}</div>
+          <div class="text-xs text-slate-400">${escapeHTML(e.department || "")}</div>
+        </td>
+
+        <!-- Cột 5: Lịch sử / Dự định Xuất Nhập Cảnh -->
         <td class="p-3 text-center">
           <button onclick="viewEmployeeTimeline('${escapeHTML(e.employeeId)}')" class="text-xs text-blue-600 hover:underline">
             <i class="fa-solid fa-clock-rotate-left mr-1"></i>Xem lịch sử
           </button>
         </td>
-        
-        <!-- 6. Lịch công tác sắp tới -->
-        <td class="p-3 text-center">${travelInfo}</td>        
-        
-        <!-- 7. Số hợp đồng -->
-        <td class="p-3 font-semibold text-center text-sm text-slate-700">${escapeHTML(e.contractNo || "-")}</td>
-        
-        <!-- 8. Ngày hết hạn HD -->
-        <td class="p-3 text-center text-sm text-slate-600">${escapeHTML(e.contractExpiry || "-")}</td>
-        
-        <!-- 9. Hành động/Thao tác -->
+
+        <!-- Cột 6: Lịch công tác nội địa -->
+        <td class="p-3 text-center">${travelInfo}</td>
+
+        <!-- Cột 7: Số Hợp Đồng -->
+        <td class="p-3 text-center font-mono font-semibold">${escapeHTML(e.contractNo || "-")}</td>
+
+        <!-- Cột 8: Hạn Hợp Đồng -->
+        <td class="p-3 text-center text-xs font-semibold">${escapeHTML(e.contractExpiry || "-")}</td>
+
+        <!-- Cột 9: Thao tác -->
         <td class="p-3 text-center">
-          <div class="flex justify-center gap-3">
-            <button onclick="viewEmployee('${encodeURIComponent(e.employeeId)}')" class="text-blue-600 hover:text-blue-800 p-1" title="Xem chi tiết">
-              <i class="fa-solid fa-eye"></i>
-            </button>
-            <button onclick="openEmployeeForm('${encodeURIComponent(e.employeeId)}')" class="text-amber-600 hover:text-amber-800 p-1" title="Sửa thông tin">
+          <div class="flex justify-center gap-2">
+            <button onclick="editEmployee('${escapeHTML(e.employeeId)}')" class="text-blue-600 hover:text-blue-800 p-1" title="Chỉnh sửa">
               <i class="fa-solid fa-pen-to-square"></i>
             </button>
-            <button onclick="deleteEmployee('${encodeURIComponent(e.employeeId)}')" class="text-red-600 hover:text-red-800 p-1" title="Vô hiệu hóa">
-              <i class="fa-solid fa-trash"></i>
-            </button>
+            ${isSuperAdmin() ? `
+              <button onclick="deactivateEmployee('${escapeHTML(e.employeeId)}')" class="text-rose-600 hover:text-rose-800 p-1" title="Vô hiệu hóa">
+                <i class="fa-solid fa-user-xmark"></i>
+              </button>
+            ` : ''}
           </div>
         </td>
-      </tr>`;
+      </tr>
+    `;
   }).join("");
 }
 
