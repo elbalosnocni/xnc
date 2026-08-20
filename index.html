@@ -6,7 +6,7 @@
 <title>Foreign Employee Management</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
   .menuBtn{padding:.5rem 1rem;border-radius:.5rem;background:#fff;border:1px solid #e2e8f0;font-weight:600;font-size:.875rem;display:inline-flex;align-items:center;gap:.5rem;transition:.2s}
   .menuBtn:hover{background:#f8fafc;border-color:#cbd5e1}.input{width:100%;border:1px solid #cbd5e1;border-radius:.5rem;padding:.625rem;margin-bottom:.75rem;font-size:.875rem}.input:focus{outline:2px solid #3b82f6}.btn{width:100%;background:#2563eb;color:#fff;font-weight:700;padding:.75rem;border-radius:.5rem}.btn:hover{background:#1d4ed8}.btn:disabled{opacity:.6;cursor:not-allowed}.kpi{background:#fff;padding:1rem;border-radius:.75rem;border:1px solid #e2e8f0}
@@ -159,13 +159,13 @@
           <thead>
             <tr class="border-b bg-slate-50">
               <th class="p-3 text-left">Nhân viên</th>
-              <th class="p-3">Quốc tịch</th>
-              <th class="p-3">Trạng thái</th>
-              <th class="p-3">Vị trí</th>
-              <th class="p-3">Lịch sử Nhập/Xuất cảnh</th>
-              <th class="p-3">Lịch sử Đi lại</th>              
-              <th class="p-3">Số Hợp Đồng</th>
-              <th class="p-3">Hạn HĐ</th>
+              <th class="p-3 text-center">Quốc tịch</th>
+              <th class="p-3 text-center">Trạng thái</th>
+              <th class="p-3 text-left">Vị trí</th>
+              <th class="p-3 text-center">Lịch sử Nhập/Xuất cảnh</th>
+              <th class="p-3 text-center">Đi lại gần nhất</th>              
+              <th class="p-3 text-center">Số Hợp Đồng</th>
+              <th class="p-3 text-center">Hạn HĐ</th>
               <th class="p-3 text-center">Thao tác</th>
             </tr>
           </thead>
@@ -253,7 +253,6 @@
   let currentUser = null, sessionToken = null, employees = [];
   let accountUsers = [];
   const pendingUploads = {};
-  const API_TIMEOUT_MS = 30000;
   const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxe9MyaYTOMQQq82Tyzo1T6x2UAjm4TlML-tXtxICmQpGhuGqtgJK5Q8n3jE8Lgociwxg/exec";
 
   function isHR() {
@@ -346,7 +345,6 @@
       sessionStorage.setItem("sessionToken", sessionToken);
       sessionStorage.setItem("currentUser", JSON.stringify(currentUser));
 
-      // Reset lại ô nhập thông tin đăng nhập
       document.getElementById("loginUser").value = "";
       document.getElementById("loginPass").value = "";
       
@@ -399,19 +397,12 @@
       if (sessionToken) await callBackend("LOGOUT");
     } catch (e) {}
   
-    // Xóa sạch bộ nhớ tạm thời
     currentUser = null;
     sessionToken = null;
     employees = [];
     accountUsers = [];
     sessionStorage.clear();
-    document.getElementById("app").classList.add("hidden");
-    document.getElementById("userNav").classList.add("hidden");
-    document.getElementById("loginSection").classList.remove("hidden");
-    if (notify) toast("Đã đăng xuất.");
-
-    // Reload lại toàn bộ trang web để xóa sạch thông tin cũ trên DOM
-  window.location.reload();
+    window.location.reload();
   }
 
   async function loadDashboard() {
@@ -548,34 +539,19 @@
     const purpose = document.getElementById("eePurpose").value;
     
     if (!currentUser?.employeeId) return toast("Tài khoản chưa có Mã nhân viên.");
-    const d = {
-      employeeId: currentUser.employeeId,
-      type: document.getElementById("eeType").value,
-      dateTime: document.getElementById("eeDate").value,
-      airport: document.getElementById("eeAirport").value.trim(),
-      flightNo: document.getElementById("eeFlight").value.trim(),
-      destination: document.getElementById("eeDestination").value.trim(),
-      purpose: document.getElementById("eePurpose").value.trim()
-    };
-    if (!d.dateTime || !d.airport) return toast("Vui lòng nhập ngày giờ và sân bay/cửa khẩu.");
+    if (!dateTime || !airport) return toast("Vui lòng nhập ngày giờ và sân bay/cửa khẩu.");
     
-      const btn = document.getElementById("eeBtn");
+    const btn = document.getElementById("eeBtn");
     btn.disabled = true;
   
     try {
       const res = await apiPost("ADD_ENTRY_EXIT", {
         employeeId: currentUser.employeeId,
-        type,
-        dateTime,
-        airport,
-        flightNo,
-        destination,
-        purpose
+        type, dateTime, airport, flightNo, destination, purpose
       });
   
       if (res.status === "SUCCESS") {
         toast("Đã lưu thông tin khai báo thành công!");
-        // Tải lại thông tin lịch sử và dữ liệu mới
         loadEntryExit();
         if (isHR()) loadDashboard();
         loadProfile();
@@ -662,101 +638,93 @@
     const tb = document.getElementById("employeeTable");
     if (!tb) return;
 
-    const search = (document.getElementById("employeeSearch")?.value || "").toLowerCase();
-    
-    // Lọc danh sách nhân viên theo ô tìm kiếm
-  const filtered = employees.filter(e => 
-    (e.fullName || "").toLowerCase().includes(search) ||
-    (e.employeeId || "").toLowerCase().includes(search) ||
-    (e.nationality || "").toLowerCase().includes(search)
-  );
-    // Kiểm tra nếu danh sách trống, hiển thị thông báo tràn hết 9 cột (colspan="9")
     if (!list || !list.length) {
       tb.innerHTML = `<tr><td colspan="9" class="p-6 text-center text-slate-400">Không tìm thấy nhân viên.</td></tr>`;
       return;
-    }  
+    }
 
-    // Render danh sách nhân viên hợp lệ
-  tb.innerHTML = list.map(e => {
-    // Tìm chuyến đi sắp tới (nếu có) từ map dữ liệu
-    const travelInfo = e.nextTravel ? `
-      <div class="text-xs font-semibold text-slate-700">
-        ${escapeHTML(e.nextTravel.fromLocation)} → ${escapeHTML(e.nextTravel.toLocation)}
-      </div>
-      <div class="text-slate-500" style="font-size: 10px;">
-        ${escapeHTML(e.nextTravel.fromDate)} ~ ${escapeHTML(e.nextTravel.toDate)}
-      </div>
-    ` : `<span class="text-slate-400 text-xs">Không có</span>`;
-    
-    // Render chính xác 9 cột tương ứng 9 thẻ <th>
-    return `
-      <tr class="border-b hover:bg-slate-50 transition-colors">
-        <!-- 1. Thông tin nhân viên -->
-        <td class="p-3">
-          <div class="font-semibold text-slate-800">${escapeHTML(e.fullName)}</div>
-          <div class="text-xs text-slate-400">${escapeHTML(e.employeeId)}</div>
-        </td>
-        
-        <!-- 2. Quốc tịch -->
-        <td class="p-3 text-center text-sm">${escapeHTML(e.nationality)}</td>
-        
-        <!-- 3. Trạng thái -->
-        <td class="p-3 text-center">${statusBadge(e.currentStatus)}</td>
-        const statusBadge = e.currentStatus === 'In Vietnam' 
-      ? '<span class="badge bg-emerald-100 text-emerald-700">🟢 Trong nước</span>'
-      : (e.currentStatus === 'Traveling' 
-          ? '<span class="badge bg-blue-100 text-blue-700">✈️ Công tác</span>'
-          : '<span class="badge bg-slate-100 text-slate-600">🔴 Đã xuất cảnh</span>');
-        <!-- 4. Vị trí/Chức vụ -->
-        <td class="p-3 text-sm text-slate-600">${escapeHTML(e.position || "-")}</div>
-        <div class="text-xs text-slate-400">${escapeHTML(e.department || "")}</div>
-        </td>
+    tb.innerHTML = list.map(e => {
+      // Badge trạng thái di chuyển
+      let statusHtml = '<span class="badge bg-slate-100 text-slate-600">🔴 Đã xuất cảnh</span>';
+      if (e.currentStatus === 'In Vietnam') {
+        statusHtml = '<span class="badge bg-emerald-100 text-emerald-700">🟢 Trong nước</span>';
+      } else if (e.currentStatus === 'Traveling') {
+        statusHtml = '<span class="badge bg-blue-100 text-blue-700">✈️ Công tác</span>';
+      }
 
-        <!-- 5: Lịch sử / Dự định Xuất Nhập Cảnh -->
-        <td class="p-3 text-center">
-          <button onclick="viewEmployeeTimeline('${escapeHTML(e.employeeId)}')" class="text-xs text-blue-600 hover:underline">
-            <i class="fa-solid fa-clock-rotate-left mr-1"></i>Xem lịch sử
-          </button>
-        </td>
-        
-        <!-- 6. Lịch công tác sắp tới -->
-        <td class="p-3 text-center">${travelInfo}</td>        
-        
-        <!-- 7. Số hợp đồng -->
-        <td class="p-3 font-semibold text-center text-sm text-slate-700">${escapeHTML(e.contractNo || "-")}</td>
-        
-        <!-- 8. Ngày hết hạn HD -->
-        <td class="p-3 text-center text-sm text-slate-600">${escapeHTML(e.contractExpiry || "-")}</td>
-        
-        <!-- 9. Hành động/Thao tác -->
-        <td class="p-3 text-center">
-          <div class="flex justify-center gap-3">
-            <button onclick="viewEmployee('${encodeURIComponent(e.employeeId)}')" class="text-blue-600 hover:text-blue-800 p-1" title="Xem chi tiết">
-              <i class="fa-solid fa-eye"></i>
+      // Thông tin đi lại gần nhất / sắp tới
+      const travelInfo = e.nextTravel ? `
+        <div class="text-xs font-semibold text-slate-700">
+          ${escapeHTML(e.nextTravel.fromLocation)} → ${escapeHTML(e.nextTravel.toLocation)}
+        </div>
+        <div class="text-slate-500" style="font-size: 11px;">
+          ${escapeHTML(e.nextTravel.fromDate)} ~ ${escapeHTML(e.nextTravel.toDate)}
+        </div>
+      ` : `<span class="text-slate-400 text-xs">Không có</span>`;
+
+      return `
+        <tr class="border-b hover:bg-slate-50 transition-colors">
+          <td class="p-3">
+            <div class="font-semibold text-slate-800">${escapeHTML(e.fullName)}</div>
+            <div class="text-xs text-slate-400">${escapeHTML(e.employeeId)}</div>
+          </td>
+          <td class="p-3 text-center text-sm">${escapeHTML(e.nationality)}</td>
+          <td class="p-3 text-center">${statusHtml}</td>
+          <td class="p-3 text-sm text-slate-600">
+            <div>${escapeHTML(e.position || "-")}</div>
+            <div class="text-xs text-slate-400">${escapeHTML(e.department || "")}</div>
+          </td>
+          <td class="p-3 text-center">
+            <button onclick="viewEmployeeTimeline('${escapeHTML(e.employeeId)}')" class="text-xs text-blue-600 hover:text-blue-800 font-semibold hover:underline">
+              <i class="fa-solid fa-clock-rotate-left mr-1"></i>Xem lịch sử
             </button>
-            <button onclick="openEmployeeForm('${encodeURIComponent(e.employeeId)}')" class="text-amber-600 hover:text-amber-800 p-1" title="Sửa thông tin">
-              <i class="fa-solid fa-pen-to-square"></i>
-            </button>
-            <button onclick="deleteEmployee('${encodeURIComponent(e.employeeId)}')" class="text-red-600 hover:text-red-800 p-1" title="Vô hiệu hóa">
-              <i class="fa-solid fa-trash"></i>
-            </button>
-          </div>
-        </td>
-      </tr>`;
-  }).join("");
-}
+          </td>
+          <td class="p-3 text-center">${travelInfo}</td>
+          <td class="p-3 font-semibold text-center text-sm text-slate-700">${escapeHTML(e.contractNo || "-")}</td>
+          <td class="p-3 text-center text-sm text-slate-600">${escapeHTML(e.contractExpiry || "-")}</td>
+          <td class="p-3 text-center">
+            <div class="flex justify-center gap-3">
+              <button onclick="viewEmployee('${encodeURIComponent(e.employeeId)}')" class="text-blue-600 hover:text-blue-800 p-1" title="Xem chi tiết">
+                <i class="fa-solid fa-eye"></i>
+              </button>
+              <button onclick="openEmployeeForm('${encodeURIComponent(e.employeeId)}')" class="text-amber-600 hover:text-amber-800 p-1" title="Sửa thông tin">
+                <i class="fa-solid fa-pen-to-square"></i>
+              </button>
+              <button onclick="deleteEmployee('${encodeURIComponent(e.employeeId)}')" class="text-red-600 hover:text-red-800 p-1" title="Vô hiệu hóa">
+                <i class="fa-solid fa-trash"></i>
+              </button>
+            </div>
+          </td>
+        </tr>`;
+    }).join("");
+  }
 
   function filterEmployees() {
     const q = document.getElementById("employeeSearch").value.trim().toLowerCase();
     renderEmployees(employees.filter(e => [e.fullName, e.employeeId, e.nationality, e.contractNo].some(v => String(v || "").toLowerCase().includes(q))));
   }
 
-  function statusBadge(s) {
-    let c = "bg-slate-100 text-slate-600";
-    if (s === "In Vietnam") c = "bg-emerald-100 text-emerald-700";
-    if (s === "Traveling") c = "bg-blue-100 text-blue-700";
-    if (s === "Exited") c = "bg-slate-200 text-slate-700";
-    return `<span class="badge ${c}">${escapeHTML(s || "-")}</span>`;
+  async function viewEmployeeTimeline(empId) {
+    try {
+      const res = await apiGet("GET_TIMELINE", { employeeId: empId });
+      if (res.status !== "SUCCESS") return toast(res.message);
+      
+      document.getElementById("modalTitle").textContent = "Lịch sử Xuất Nhập Cảnh & Di Chuyển (" + empId + ")";
+      document.getElementById("modalBody").innerHTML = `
+        <div class="space-y-4">
+          ${(res.timeline || []).map(x => `
+            <div class="border-l-4 border-blue-500 pl-4 py-1">
+              <div class="font-bold text-slate-800">${escapeHTML(x.title)}</div>
+              <div class="text-xs text-blue-600 font-semibold">${escapeHTML(x.date)} ${x.endDate ? " → " + escapeHTML(x.endDate) : ""}</div>
+              <div class="text-xs text-slate-500 mt-1">${escapeHTML(x.location || "")}</div>
+            </div>
+          `).join("") || '<div class="text-slate-400 py-4 text-center">Chưa có lịch sử di chuyển.</div>'}
+        </div>
+      `;
+      document.getElementById("employeeModal").classList.remove("hidden");
+    } catch (e) {
+      toast("Không thể tải lịch sử!");
+    }
   }
 
   async function viewEmployee(encoded) {
@@ -870,11 +838,7 @@
     document.getElementById("employeeModal").classList.remove("hidden");
   }
 
-
   const EMPLOYEE_IMPORT_BATCH_SIZE = 100;
-
-  // Một file Excel có thể chứa cả thông tin Employees + Passport/TRC/WP + Hợp đồng/Phụ lục.
-  // Header được normalize nên hỗ trợ tiếng Việt có dấu, không dấu và tên tiếng Anh.
   const EMPLOYEE_EXCEL_HEADERS = {
     employeeid: "employeeId", "ma nhan vien": "employeeId", "ma nv": "employeeId", "employee id": "employeeId",
     fullname: "fullName", "ho va ten": "fullName", "ho ten": "fullName", "full name": "fullName",
@@ -884,54 +848,16 @@
     department: "department", "phong ban": "department",
     phone: "phone", "dien thoai": "phone", "so dien thoai": "phone", "phone number": "phone",
     email: "email", "email address": "email",
-    currentstatus: "currentStatus", "trang thai": "currentStatus", "status": "currentStatus",
-    currentlocation: "currentLocation", "vi tri hien tai": "currentLocation", "location": "currentLocation",
-    activestatus: "activeStatus", "trang thai hoat dong": "activeStatus", "active status": "activeStatus",
-
-    passportno: "passportNo", "passport number": "passportNo", "so passport": "passportNo", "so ho chieu": "passportNo", "ho chieu": "passportNo",
-    passportissuedate: "passportIssueDate", "passport issue date": "passportIssueDate", "ngay cap passport": "passportIssueDate", "ngay cap ho chieu": "passportIssueDate",
-    passportexpiry: "passportExpiry", "passport expiry": "passportExpiry", "passport expiry date": "passportExpiry", "han passport": "passportExpiry", "han ho chieu": "passportExpiry",
-    passportissuer: "passportIssuer", "passport issuer": "passportIssuer", "noi cap passport": "passportIssuer", "co quan cap passport": "passportIssuer",
-    passportfileid: "passportFileId", "passport file id": "passportFileId",
-    passportfileurl: "passportFileUrl", "passport file url": "passportFileUrl", "passport url": "passportFileUrl", "file passport": "passportFileUrl", "anh passport": "passportFileUrl",
-    passportstatus: "passportStatus", "passport status": "passportStatus",
-
-    trcno: "trcNo", "trc number": "trcNo", "so trc": "trcNo",
-    trcissuedate: "trcIssueDate", "trc issue date": "trcIssueDate", "ngay cap trc": "trcIssueDate",
-    trcexpiry: "trcExpiry", "trc expiry": "trcExpiry", "trc expiry date": "trcExpiry", "han trc": "trcExpiry",
-    trcissuer: "trcIssuer", "trc issuer": "trcIssuer", "noi cap trc": "trcIssuer",
-    trcfileid: "trcFileId", "trc file id": "trcFileId",
-    trcfileurl: "trcFileUrl", "trc file url": "trcFileUrl", "trc url": "trcFileUrl", "file trc": "trcFileUrl", "anh trc": "trcFileUrl",
-    trcstatus: "trcStatus", "trc status": "trcStatus",
-
-    wpno: "wpNo", "work permit no": "wpNo", "work permit number": "wpNo", "so work permit": "wpNo", "so wp": "wpNo", "giay phep lao dong": "wpNo",
-    wpissuedate: "wpIssueDate", "work permit issue date": "wpIssueDate", "ngay cap wp": "wpIssueDate", "ngay cap work permit": "wpIssueDate",
-    wpexpiry: "wpExpiry", "work permit expiry": "wpExpiry", "work permit expiry date": "wpExpiry", "han wp": "wpExpiry", "han work permit": "wpExpiry",
-    wpissuer: "wpIssuer", "work permit issuer": "wpIssuer", "noi cap wp": "wpIssuer",
-    wpfileid: "wpFileId", "work permit file id": "wpFileId",
-    wpfileurl: "wpFileUrl", "work permit file url": "wpFileUrl", "work permit url": "wpFileUrl", "file wp": "wpFileUrl", "file work permit": "wpFileUrl",
-    wpstatus: "wpStatus", "work permit status": "wpStatus", "wp status": "wpStatus",
-
-    contractno: "contractNo", "contract number": "contractNo", "so hop dong": "contractNo", "so hop dong lao dong": "contractNo",
-    contracttype: "contractType", "contract type": "contractType", "loai hop dong": "contractType",
-    contractstartdate: "contractStartDate", "contract start date": "contractStartDate", "start date": "contractStartDate", "ngay bat dau hd": "contractStartDate", "ngay bat dau hop dong": "contractStartDate",
-    contractexpiry: "contractExpiry", "contract end date": "contractExpiry", "end date": "contractExpiry", "ngay het han hd": "contractExpiry", "han hop dong": "contractExpiry",
-    salary: "salary", "basic salary": "salary", "luong": "salary", "luong co ban": "salary", "muc luong co ban": "salary",
-    allowance: "allowance", "allowances": "allowance", "phu cap": "allowance",
-    allowancesjson: "allowancesJson", "allowances json": "allowancesJson",
-    contractstatus: "contractStatus", "contract status": "contractStatus", "trang thai hop dong": "contractStatus",
-    contractfileid: "contractFileId", "contract file id": "contractFileId",
-    contractfileurl: "contractFileUrl", "contract file url": "contractFileUrl", "contract url": "contractFileUrl", "file hop dong": "contractFileUrl", "anh hop dong": "contractFileUrl",
-
-    appendixno: "appendixNo", "appendix number": "appendixNo", "so phu luc": "appendixNo", "so phu luc hop dong": "appendixNo",
-    appendixeffectivedate: "appendixEffectiveDate", "appendix effective date": "appendixEffectiveDate", "ngay hieu luc phu luc": "appendixEffectiveDate",
-    appendixenddate: "appendixEndDate", "appendix end date": "appendixEndDate", "ngay ket thuc phu luc": "appendixEndDate",
-    appendixedsalary: "appendixSalary", "appendix salary": "appendixSalary", "luong phu luc": "appendixSalary",
-    appendixallowance: "appendixAllowance", "appendix allowance": "appendixAllowance", "phu cap phu luc": "appendixAllowance",
-    appendixallowancesjson: "appendixAllowancesJson", "appendix allowances json": "appendixAllowancesJson",
-    appendixcontent: "appendixContent", "appendix content": "appendixContent", "noi dung phu luc": "appendixContent",
-    appendixfileid: "appendixFileId", "appendix file id": "appendixFileId",
-    appendixfileurl: "appendixFileUrl", "appendix file url": "appendixFileUrl", "appendix url": "appendixFileUrl", "file phu luc": "appendixFileUrl"
+    passportno: "passportNo", "so passport": "passportNo", "so ho chieu": "passportNo",
+    passportexpiry: "passportExpiry", "han passport": "passportExpiry",
+    trcno: "trcNo", "so trc": "trcNo",
+    trcexpiry: "trcExpiry", "han trc": "trcExpiry",
+    wpno: "wpNo", "so wp": "wpNo",
+    wpexpiry: "wpExpiry", "han wp": "wpExpiry",
+    contractno: "contractNo", "so hop dong": "contractNo",
+    contractexpiry: "contractExpiry", "han hop dong": "contractExpiry",
+    salary: "salary", "luong": "salary",
+    allowance: "allowance", "phu cap": "allowance"
   };
 
   function normalizeExcelHeader(v) {
@@ -955,11 +881,6 @@
     return s;
   }
 
-  function excelCellValue(key, raw) {
-    const dateKeys = ["dob", "passportIssueDate", "passportExpiry", "trcIssueDate", "trcExpiry", "wpIssueDate", "wpExpiry", "contractStartDate", "contractExpiry", "appendixEffectiveDate", "appendixEndDate"];
-    return dateKeys.includes(key) ? excelCellDate(raw) : String(raw ?? "").trim();
-  }
-
   function mapExcelEmployeeRows(rows) {
     if (!Array.isArray(rows) || rows.length < 2) throw new Error("File Excel không có dữ liệu.");
     const headers = rows[0].map(normalizeExcelHeader);
@@ -971,7 +892,7 @@
       const obj = {};
       mapped.forEach((key, i) => {
         if (!key) return;
-        obj[key] = excelCellValue(key, row[i]);
+        obj[key] = key.includes("Expiry") || key === "dob" ? excelCellDate(row[i]) : String(row[i] ?? "").trim();
       });
       obj._excelRow = index + 2;
       return obj;
@@ -983,41 +904,25 @@
     input.value = "";
     if (!file) return;
     if (!/\.(xlsx|xls|csv)$/i.test(file.name)) return toast("Chỉ hỗ trợ Excel .xlsx, .xls hoặc .csv.");
-    if (file.size > 5 * 1024 * 1024) return toast("File Excel tối đa 5 MB.");
     if (!isHR()) return toast("Chỉ HR/ADMIN mới được import danh sách.");
 
     try {
-      toast("Đang đọc và tự map Excel...");
+      toast("Đang đọc file Excel...");
       const buffer = await file.arrayBuffer();
       const wb = XLSX.read(buffer, { type: "array", cellDates: true, raw: true });
       const ws = wb.Sheets[wb.SheetNames[0]];
-      if (!ws) throw new Error("Không tìm thấy sheet dữ liệu trong file Excel.");
       const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "", raw: true });
       const list = mapExcelEmployeeRows(rows);
 
-      let total = 0, created = 0, updated = 0, skipped = 0;
-      let documentsCreated = 0, documentsUpdated = 0, contractsCreated = 0, contractsUpdated = 0, appendicesCreated = 0, appendicesUpdated = 0;
-      const errors = [];
       for (let i = 0; i < list.length; i += EMPLOYEE_IMPORT_BATCH_SIZE) {
         const batch = list.slice(i, i + EMPLOYEE_IMPORT_BATCH_SIZE);
         toast(`Đang import ${Math.min(i + batch.length, list.length)}/${list.length}...`);
         const res = await apiPost("IMPORT_EMPLOYEES_EXCEL", { fileName: file.name, rows: batch });
         if (res.status !== "SUCCESS") throw new Error(res.message || "Import thất bại.");
-        total += Number(res.total || 0); created += Number(res.created || 0); updated += Number(res.updated || 0); skipped += Number(res.skipped || 0);
-        documentsCreated += Number(res.documentsCreated || 0); documentsUpdated += Number(res.documentsUpdated || 0);
-        contractsCreated += Number(res.contractsCreated || 0); contractsUpdated += Number(res.contractsUpdated || 0);
-        appendicesCreated += Number(res.appendicesCreated || 0); appendicesUpdated += Number(res.appendicesUpdated || 0);
-        if (Array.isArray(res.errors)) errors.push(...res.errors);
       }
 
       await loadDashboard();
-      const msg = `Import xong: ${total} NV | thêm ${created} | cập nhật ${updated} | bỏ qua ${skipped}\n` +
-        `Documents: thêm ${documentsCreated}, cập nhật ${documentsUpdated}\n` +
-        `Contracts: thêm ${contractsCreated}, cập nhật ${contractsUpdated}\n` +
-        `Phụ lục: thêm ${appendicesCreated}, cập nhật ${appendicesUpdated}`;
-      toast(errors.length ? `Import xong nhưng có ${errors.length} dòng lỗi.` : `Đã import ${total} nhân viên + hồ sơ pháp lý/hợp đồng.`);
-      if (errors.length) alert(msg + "\n\n" + errors.slice(0, 30).map(e => `Dòng ${e.row}: ${e.message}`).join("\n"));
-      else alert(msg);
+      toast("Đã import thành công!");
     } catch (e) {
       console.error(e);
       toast(e.message || "Không thể import Excel.");
@@ -1025,27 +930,12 @@
   }
 
   function downloadEmployeeTemplate() {
-    const headers = [
-      "EmployeeID", "FullName", "Nationality", "DOB", "Position", "Department", "Phone", "Email", "CurrentStatus", "CurrentLocation", "ActiveStatus",
-      "PassportNo", "PassportIssueDate", "PassportExpiry", "PassportIssuer", "PassportFileId", "PassportFileUrl", "PassportStatus",
-      "TRCNo", "TRCIssueDate", "TRCExpiry", "TRCIssuer", "TRCFileId", "TRCFileUrl", "TRCStatus",
-      "WPNo", "WPIssueDate", "WPExpiry", "WPIssuer", "WPFileId", "WPFileUrl", "WPStatus",
-      "ContractNo", "ContractType", "ContractStartDate", "ContractExpiry", "Salary", "Allowance", "AllowancesJson", "ContractStatus", "ContractFileId", "ContractFileUrl",
-      "AppendixNo", "AppendixEffectiveDate", "AppendixEndDate", "AppendixSalary", "AppendixAllowance", "AppendixAllowancesJson", "AppendixContent", "AppendixFileId", "AppendixFileUrl"
-    ];
-    const example = [
-      "EMP-001", "Nguyen Example", "Korea", "1990-01-15", "Manager", "HR", "0900000000", "example@company.com", "Exited", "Overseas", "ACTIVE",
-      "M1234567", "2024-01-01", "2034-01-01", "Passport Authority", "", "https://drive.google.com/...", "VALID",
-      "TRC123", "2025-01-01", "2027-01-01", "Immigration", "", "https://drive.google.com/...", "VALID",
-      "WP123", "2025-01-01", "2027-01-01", "DOLISA", "", "https://drive.google.com/...", "VALID",
-      "HD-001", "DEFINITE", "2025-01-01", "2027-01-01", 30000000, 5000000, "", "VALID", "", "https://drive.google.com/...",
-      "PL-001", "2025-06-01", "2027-01-01", 35000000, 5000000, "", "Cập nhật lương", "", "https://drive.google.com/..."
-    ];
+    const headers = ["EmployeeID", "FullName", "Nationality", "DOB", "Position", "Department", "Phone", "Email", "PassportNo", "PassportExpiry", "TRCNo", "TRCExpiry", "WPNo", "WPExpiry", "ContractNo", "ContractExpiry", "Salary", "Allowance"];
+    const example = ["EMP-001", "Nguyen Example", "Korea", "1990-01-15", "Manager", "HR", "0900000000", "example@company.com", "M1234567", "2034-01-01", "TRC123", "2027-01-01", "WP123", "2027-01-01", "HD-001", "2027-01-01", 30000000, 5000000];
     const ws = XLSX.utils.aoa_to_sheet([headers, example]);
-    ws["A1"].s = { font: { bold: true } };
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "ForeignEmployees");
-    XLSX.writeFile(wb, "ForeignEmployees_Full_Import_Template.xlsx");
+    XLSX.writeFile(wb, "ForeignEmployees_Template.xlsx");
   }
 
   async function handleSaveEmployee(e) {
@@ -1086,37 +976,23 @@
       if (res.status !== "SUCCESS") return toast(res.message);
 
       const pending = Object.values(pendingUploads).filter(x => x && String(x.employeeId) === String(payload.employeeId));
-      const uploaded = {};
       for (const item of pending) {
         toast(`Đang upload ${item.fileName}...`);
         const up = await apiPost("UPLOAD_FILE", {
-          base64Data: item.base64Data,
-          fileName: item.fileName,
-          mimeType: item.mimeType,
-          employeeId: payload.employeeId,
-          subFolderType: item.subFolder
+          base64Data: item.base64Data, fileName: item.fileName, mimeType: item.mimeType,
+          employeeId: payload.employeeId, subFolderType: item.subFolder
         });
-        if (up.status !== "SUCCESS") throw new Error(up.message || `Upload ${item.fileName} thất bại.`);
-        uploaded[item.targetInputId] = up;
-        if (item.targetInputId === "f_passportImg") { payload.passportImg = up.fileUrl; payload.passportFileId = up.fileId || ""; }
-        if (item.targetInputId === "f_trcImg") { payload.trcImg = up.fileUrl; payload.trcFileId = up.fileId || ""; }
-        if (item.targetInputId === "f_wpImg") { payload.wpImg = up.fileUrl; payload.wpFileId = up.fileId || ""; }
-        if (item.targetInputId === "f_contractImg") { payload.contractImg = up.fileUrl; payload.contractFileId = up.fileId || ""; }
+        if (up.status !== "SUCCESS") throw new Error(up.message);
+        if (item.targetInputId === "f_passportImg") payload.passportImg = up.fileUrl;
+        if (item.targetInputId === "f_trcImg") payload.trcImg = up.fileUrl;
+        if (item.targetInputId === "f_wpImg") payload.wpImg = up.fileUrl;
+        if (item.targetInputId === "f_contractImg") payload.contractImg = up.fileUrl;
       }
 
-      if (pending.length) {
-        const second = await apiPost("SAVE_PROFILE", payload);
-        if (second.status !== "SUCCESS") throw new Error(second.message || "Đã upload file nhưng chưa cập nhật hồ sơ.");
-      }
-
+      if (pending.length) await apiPost("SAVE_PROFILE", payload);
       Object.keys(pendingUploads).forEach(k => delete pendingUploads[k]);
 
-      // Đọc lại từ server ngay sau khi lưu để tránh trường hợp UI báo thành công
-      // nhưng dữ liệu thực tế trên Google Sheets chưa được cập nhật.
-      const verify = await apiGet("GET_PROFILE", { employeeId: payload.employeeId });
-      if (verify.status !== "SUCCESS") throw new Error(verify.message || "Không xác minh được dữ liệu sau khi lưu.");
-
-      toast(pending.length ? "Đã lưu và xác minh dữ liệu thành công!" : "Đã cập nhật và xác minh dữ liệu thành công!");
+      toast("Đã lưu dữ liệu thành công!");
       closeModal();
       await loadDashboard();
     } catch (err) {
@@ -1125,18 +1001,12 @@
   }
 
   async function deleteEmployee(encoded) {
-    if (!confirm("Bạn có chắc chắn muốn chuyển trạng thái nhân viên này sang INACTIVE và khóa tài khoản?")) return;
+    if (!confirm("Bạn có chắc chắn muốn vô hiệu hóa nhân viên này?")) return;
     try {
       const res = await apiPost("DELETE_EMPLOYEE", { employeeId: decodeURIComponent(encoded) });
-      if (res.status === "SUCCESS") {
-        toast(res.message);
-        loadDashboard();
-      } else {
-        toast(res.message);
-      }
-    } catch (e) {
-      toast(e.message);
-    }
+      toast(res.message);
+      if (res.status === "SUCCESS") loadDashboard();
+    } catch (e) { toast(e.message); }
   }
 
   async function loadAccounts() {
@@ -1154,8 +1024,6 @@
     if (!tb) return;
     tb.innerHTML = accountUsers.length ? accountUsers.map(u => {
       const active = String(u.status).toUpperCase() === "ACTIVE";
-      const locked = !active;
-      const employeeInactive = String(u.employeeActiveStatus).toUpperCase() === "INACTIVE";
       let action = "";
       if (isSuperAdmin() && String(u.userId) !== String(currentUser.userId)) {
         action += `<button onclick="openAdminReset('${encodeURIComponent(u.userId)}','${encodeURIComponent(u.fullName || u.email)}')" class="text-indigo-600 hover:text-indigo-800 mr-3" title="Reset mật khẩu"><i class="fa-solid fa-key"></i></button>`;
@@ -1165,15 +1033,12 @@
           ? `<button onclick="changeAccountStatus('${encodeURIComponent(u.userId)}','INACTIVE')" class="text-red-600 hover:text-red-800" title="Khóa tài khoản"><i class="fa-solid fa-lock"></i></button>`
           : `<button onclick="changeAccountStatus('${encodeURIComponent(u.userId)}','ACTIVE')" class="text-emerald-600 hover:text-emerald-800" title="Mở tài khoản"><i class="fa-solid fa-lock-open"></i></button>`;
       }
-      const statusHtml = active
-        ? '<span class="badge bg-emerald-100 text-emerald-700">ACTIVE</span>'
-        : '<span class="badge bg-red-100 text-red-700">LOCKED</span>';
       return `<tr class="border-b hover:bg-slate-50">
-        <td class="p-3"><div class="font-semibold">${escapeHTML(u.fullName)}</div><div class="text-xs text-slate-400">${escapeHTML(u.employeeId || "")}</div>${employeeInactive ? '<div class="text-xs text-red-500">Hồ sơ nhân viên INACTIVE</div>' : ''}</td>
+        <td class="p-3"><div class="font-semibold">${escapeHTML(u.fullName)}</div><div class="text-xs text-slate-400">${escapeHTML(u.employeeId || "")}</div></td>
         <td class="p-3">${escapeHTML(u.email || "")}</td>
         <td class="p-3 text-center">${escapeHTML(u.role || "")}</td>
-        <td class="p-3 text-center">${statusHtml}</td>
-        <td class="p-3 text-center">${action || '<span class="text-slate-300">—</span>'}</td>
+        <td class="p-3 text-center">${active ? '<span class="badge bg-emerald-100 text-emerald-700">ACTIVE</span>' : '<span class="badge bg-red-100 text-red-700">LOCKED</span>'}</td>
+        <td class="p-3 text-center">${action || '—'}</td>
       </tr>`;
     }).join("") : '<tr><td colspan="5" class="p-6 text-center text-slate-400">Chưa có tài khoản.</td></tr>';
   }
@@ -1183,7 +1048,6 @@
     document.getElementById("passwordTargetInfo").textContent = currentUser ? `Tài khoản: ${currentUser.email || currentUser.employeeId}` : "";
     ["cpCurrent", "cpNew", "cpConfirm"].forEach(id => document.getElementById(id).value = "");
     document.getElementById("passwordModal").classList.remove("hidden");
-    setTimeout(() => document.getElementById("cpCurrent").focus(), 50);
   }
 
   function closePasswordModal() { document.getElementById("passwordModal").classList.add("hidden"); }
@@ -1194,14 +1058,11 @@
     const confirmPassword = document.getElementById("cpConfirm").value;
     if (!currentPassword || !newPassword || !confirmPassword) return toast("Vui lòng nhập đầy đủ mật khẩu.");
     if (newPassword !== confirmPassword) return toast("Mật khẩu mới không trùng nhau.");
-    const btn = document.getElementById("changePasswordBtn");
-    btn.disabled = true;
     try {
       const r = await apiPost("CHANGE_PASSWORD", { currentPassword, newPassword, confirmPassword });
-      if (r.status === "SUCCESS") { toast(r.message); closePasswordModal(); }
-      else toast(r.message || "Đổi mật khẩu thất bại.");
+      toast(r.message);
+      if (r.status === "SUCCESS") closePasswordModal();
     } catch (e) { toast(e.message); }
-    finally { btn.disabled = false; }
   }
 
   function openAdminReset(encodedUserId, encodedName) {
@@ -1211,7 +1072,6 @@
     document.getElementById("resetNewPassword").value = "";
     document.getElementById("resetConfirmPassword").value = "";
     document.getElementById("resetPasswordModal").classList.remove("hidden");
-    setTimeout(() => document.getElementById("resetNewPassword").focus(), 50);
   }
 
   function closeResetPasswordModal() { document.getElementById("resetPasswordModal").classList.add("hidden"); }
@@ -1220,32 +1080,23 @@
     const userId = document.getElementById("resetUserId").value;
     const newPassword = document.getElementById("resetNewPassword").value;
     const confirmPassword = document.getElementById("resetConfirmPassword").value;
-    if (!newPassword || !confirmPassword) return toast("Vui lòng nhập mật khẩu mới.");
-    if (newPassword !== confirmPassword) return toast("Mật khẩu mới không trùng nhau.");
-    const btn = document.getElementById("resetPasswordBtn");
-    btn.disabled = true;
+    if (!newPassword || newPassword !== confirmPassword) return toast("Mật khẩu mới không hợp lệ.");
     try {
       const r = await apiPost("ADMIN_RESET_PASSWORD", { userId, newPassword });
-      if (r.status === "SUCCESS") { toast(r.message); closeResetPasswordModal(); loadAccounts(); }
-      else toast(r.message || "Reset mật khẩu thất bại.");
+      toast(r.message);
+      if (r.status === "SUCCESS") { closeResetPasswordModal(); loadAccounts(); }
     } catch (e) { toast(e.message); }
-    finally { btn.disabled = false; }
   }
 
   async function changeAccountStatus(encodedUserId, status) {
-    const userId = decodeURIComponent(encodedUserId);
-    const text = status === "ACTIVE" ? "mở lại" : "khóa";
-    if (!confirm(`Bạn có chắc muốn ${text} tài khoản này?`)) return;
     try {
-      const r = await apiPost("SET_ACCOUNT_STATUS", { userId, status });
-      toast(r.message || (r.status === "SUCCESS" ? "Đã cập nhật." : "Có lỗi."));
+      const r = await apiPost("SET_ACCOUNT_STATUS", { userId: decodeURIComponent(encodedUserId), status });
+      toast(r.message);
       if (r.status === "SUCCESS") loadAccounts();
     } catch (e) { toast(e.message); }
   }
 
-  function closeModal() {
-    document.getElementById("employeeModal").classList.add("hidden");
-  }
+  function closeModal() { document.getElementById("employeeModal").classList.add("hidden"); }
 </script>
 </body>
 </html>
