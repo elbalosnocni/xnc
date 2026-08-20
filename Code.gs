@@ -830,10 +830,11 @@ function handleGetDomesticTravel(empId, req) {
 // G. DASHBOARD & PROFILE RESPONSE
 // ==========================================
 function getDashboardData(requester) {
+   // 1. Kiểm tra quyền truy cập (Authorization)
   if (![ROLES.ADMIN, ROLES.HR_ADMIN, ROLES.HR, ROLES.DIRECTOR].includes(requester.role)) {
     return { status: "ERROR", message: "Không có quyền truy cập dữ liệu quản trị." };
   }
-
+    // 2. Đọc dữ liệu từ các bảng (Sheets)
   const empSheet = getSheet(TABLES.EMPLOYEES);
   const empRows = empSheet.getDataRange().getValues().slice(1);
   
@@ -842,12 +843,48 @@ function getDashboardData(requester) {
 
   const ctrSheet = getSheet(TABLES.CONTRACTS);
   const ctrRows = ctrSheet.getDataRange().getValues().slice(1);
+  
+  const travelSheet = getSheet(TABLES.TRAVEL);
+  const travelRows = travelSheet.getDataRange().getValues().slice(1);
 
+   // 3. Khởi tạo các biến lưu trữ và KPIs
   const kpi = { total: 0, inVN: 0, business: 0, exited: 0, warning: 0, expContract: 0 };
   const employees = [];
   const expiryWarnings = [];
   const now = new Date();
+  const nextTravelMap = {};
 
+  // 4. Xử lý dữ liệu Lịch công tác (Travel) để tìm chuyến đi sắp tới gần nhất của mỗi nhân viên 
+  travelRows.forEach(r => {
+  const employeeId = String(r[1] || "").trim();
+  const startDate = new Date(r[4]);
+  const status = String(r[6] || "").toUpperCase();
+
+  if (
+    !employeeId ||
+    isNaN(startDate.getTime()) ||
+    status !== "APPROVED" ||
+    startDate < now
+  ) {
+    return;
+  }
+
+  if (
+    !nextTravelMap[employeeId] ||
+    startDate < nextTravelMap[employeeId].startDate
+  ) {
+    nextTravelMap[employeeId] = {
+      startDate: startDate,// Giữ dạng Date để so sánh
+      fromLocation: r[2] || "",
+      toLocation: r[3] || "",
+      fromDate: formatDate(r[4]),
+      toDate: formatDate(r[5]),
+      status: status
+    }; // ĐÃ SỬA: Đóng object đúng cách
+    }
+  }); // ĐÃ SỬA: Đóng vòng lặp forEach của travelRows
+
+  // 5. Xử lý dữ liệu Hợp đồng (Contracts) để tìm hợp đồng đang active
   const activeContractsMap = {};
   ctrRows.forEach(c => {
     if (isCurrentValue(c[9])) {
@@ -866,6 +903,7 @@ function getDashboardData(requester) {
       if (row[8] === "Exited") kpi.exited++;
 
       const ctr = activeContractsMap[String(row[0])] || {};
+      const nextTravel = nextTravelMap[String(row[0])] || null;
 
       employees.push({
         employeeId: row[0],
@@ -875,6 +913,8 @@ function getDashboardData(requester) {
         department: row[5],
         currentStatus: row[8],
         currentLocation: row[9],
+        nextEntryExit: null,
+        nextTravel: nextTravel,
         contractNo: ctr.contractNo || "-",
         contractExpiry: ctr.endDate ? formatDate(ctr.endDate) : "-"
       });
@@ -923,7 +963,14 @@ function getDashboardData(requester) {
     }
   });
 
-  return { status: "SUCCESS", kpi, employees, expiryWarnings };
+  return {
+    status: "SUCCESS",
+    kpi: kpi,
+    employees: employees,
+    expiryWarnings: expiryWarnings,
+    nextTravelMap: nextTravelMap,
+    activeContractsMap: activeContractsMap
+  };
 }
 
 function getProfileData(employeeId, requester) {
