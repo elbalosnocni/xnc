@@ -216,7 +216,6 @@ function handleLogin(username, password) {
         return { status: "ERROR", message: "Hồ sơ nhân viên đã dừng hoạt động!" };
       }
       
-      // Migrate any legacy plaintext password to PasswordHash after a successful login.
       if (legacyPlainMatches && !hashMatches) {
         sheet.getRange(i + 1, 3).setValue(inputHash);
       }
@@ -307,7 +306,6 @@ function handleSaveProfile(data, requester) {
     const currentRow = rows[rowIndex - 1].slice();
     const updatedRow = currentRow.slice(0, 14);
 
-    // Chỉ thay các trường mà form thực sự quản lý.
     if (isHRAdmin) {
       updatedRow[1] = data.fullName || currentRow[1] || "";
       updatedRow[2] = data.nationality !== undefined ? String(data.nationality).trim() : (currentRow[2] || "");
@@ -316,7 +314,23 @@ function handleSaveProfile(data, requester) {
       if (data.department !== undefined) updatedRow[5] = String(data.department || "").trim();
     }
     if (data.phone !== undefined) updatedRow[6] = String(data.phone || "").trim();
-    if (data.email !== undefined) updatedRow[7] = String(data.email || "").trim();
+    if (data.email !== undefined) {
+      const newEmail = String(data.email || "").trim();
+      updatedRow[7] = newEmail;
+      
+      // Đồng bộ email sang bảng Users nếu thay đổi email
+      if (newEmail && newEmail.toLowerCase() !== String(currentRow[7]).trim().toLowerCase()) {
+        const userSheet = getSheet(TABLES.USERS);
+        const uRows = userSheet.getDataRange().getValues();
+        for (let u = 1; u < uRows.length; u++) {
+          if (String(uRows[u][4]).trim() === data.employeeId) {
+            userSheet.getRange(u + 1, 2).setValue(newEmail);
+            break;
+          }
+        }
+      }
+    }
+    
     if (isHRAdmin && data.activeStatus !== undefined) updatedRow[10] = String(data.activeStatus || "").trim().toUpperCase();
     updatedRow[13] = timestamp;
 
@@ -372,8 +386,9 @@ function handleSaveProfile(data, requester) {
     writeAuditLog(requester.userId, "CREATE", "Employees", data.employeeId, null, JSON.stringify(newRow));
   }
 
-  // Đồng bộ hồ sơ pháp lý + hợp đồng. Không bỏ qua lỗi để tránh báo "thành công"
-  // trong khi dữ liệu con chưa được ghi.
+  // Đồng bộ trạng thái vị trí làm việc
+  calculateEmployeeLocationStatus(data.employeeId);
+
   const childResults = { documents: [], contract: null };
   if (isHRAdmin) {
     if (data.passportNo) childResults.documents.push(saveDocument({
@@ -410,7 +425,6 @@ function handleSaveProfile(data, requester) {
 
   SpreadsheetApp.flush();
 
-  // Đọc lại từ Sheet để chắc chắn dữ liệu đã được ghi thực tế.
   const verify = getProfileData(data.employeeId, requester);
   if (verify.status !== "SUCCESS") {
     return { status: "ERROR", message: "Đã ghi nhưng không đọc lại được hồ sơ: " + verify.message };
@@ -541,7 +555,6 @@ function saveDocument(docData, requester) {
   const rows = sheet.getDataRange().getValues();
   let currentRowIndex = -1;
 
-  // Upsert theo EmployeeID + DocType. Không tạo bản ghi mới mỗi lần người dùng bấm Lưu.
   for (let i = 1; i < rows.length; i++) {
     if (String(rows[i][1]).trim() === String(docData.employeeId).trim() && rows[i][2] === docData.docType) {
       if (currentRowIndex < 0 && isCurrentValue(rows[i][9])) currentRowIndex = i + 1;
@@ -650,14 +663,20 @@ function uploadEmployeeFile(param, requester) {
 // ==========================================
 // F. LỊCH TRÌNH & XUẤT NHẬP CẢNH & DỰ ĐỊNH
 // ==========================================
+function parseDateSafe(val) {
+  if (!val) return new Date(0);
+  if (Object.prototype.toString.call(val) === "[object Date]") return val;
+  const parsed = new Date(val);
+  return isNaN(parsed.getTime()) ? new Date(0) : parsed;
+}
+
 function calculateEmployeeLocationStatus(employeeId) {
   const eeSheet = getSheet(TABLES.ENTRY_EXIT);
   const eeData = eeSheet.getDataRange().getValues().slice(1);
   
-  // Lọc thông tin xuất nhập cảnh của nhân viên và sắp xếp theo ngày giờ sự kiện (mới nhất lên đầu)
   const userEE = eeData
     .filter(row => String(row[1]) === String(employeeId))
-    .sort((a, b) => new Date(b[3]) - new Date(a[3]));
+    .sort((a, b) => parseDateSafe(b[3]) - parseDateSafe(a[3]));
 
   let status = "Exited";
   let location = "Overseas";
@@ -665,13 +684,11 @@ function calculateEmployeeLocationStatus(employeeId) {
 
   if (userEE.length > 0) {
     const latestEE = userEE[0];
-    const eventTime = new Date(latestEE[3]);
+    const eventTime = parseDateSafe(latestEE[3]);
 
-    // CHỈ CẬP NHẬT TRẠNG THÁI NẾU THỜI DIỂM SỰ KIỆN ĐÃ XẢY RA (eventTime <= now)
     if (latestEE[2] === "ENTRY" && eventTime <= now) {
       status = "In Vietnam";
       
-      // Parse thông tin lưu trong cột Note để lấy điểm đến (destination)
       let noteObj = {};
       try {
         noteObj = JSON.parse(latestEE[5] || "{}");
@@ -679,16 +696,14 @@ function calculateEmployeeLocationStatus(employeeId) {
         noteObj = {};
       }
 
-      // Ưu tiên điểm đến (destination) -> nếu trống mới dùng cửa khẩu/sân bay (airport)
       location = noteObj.destination || latestEE[4] || "Vietnam";
       
-      // Kiểm tra lịch trình công tác nội địa đang diễn ra
       const travelSheet = getSheet(TABLES.TRAVEL);
       const travelData = travelSheet.getDataRange().getValues().slice(1);
       
       const activeTravel = travelData.find(row => {
-        const startDate = new Date(row[4]);
-        const endDate = new Date(row[5]);
+        const startDate = parseDateSafe(row[4]);
+        const endDate = parseDateSafe(row[5]);
         return String(row[1]) === String(employeeId) && 
                row[6] === "APPROVED" && 
                now >= startDate && now <= endDate;
@@ -696,7 +711,7 @@ function calculateEmployeeLocationStatus(employeeId) {
 
       if (activeTravel) {
         status = "Traveling";
-        location = activeTravel[3]; // ToLocation
+        location = activeTravel[3];
       }
     }
   }
@@ -757,8 +772,8 @@ function handleAddDomesticTravel(d, req) {
   if (!d.employeeId || !d.fromDate || !d.toDate || !d.fromLocation || !d.toLocation) {
     return { status: "ERROR", message: "Thiếu thông tin lịch trình." };
   }
-  const start = new Date(d.fromDate);
-  const end = new Date(d.toDate);
+  const start = parseDateSafe(d.fromDate);
+  const end = parseDateSafe(d.toDate);
   if (isNaN(start.getTime()) || isNaN(end.getTime()) || end < start) {
     return { status: "ERROR", message: "Khoảng ngày đi lại không hợp lệ." };
   }
@@ -829,9 +844,6 @@ function handleGetDomesticTravel(empId, req) {
 // ==========================================
 // G. DASHBOARD & PROFILE RESPONSE
 // ==========================================
-// Thêm/Cập nhật API GET_TIMELINE trong switch-case dispatchApiAction:
-// case "GET_TIMELINE": result = handleGetTimeline(employeeId, requester); break;
-
 function getDashboardData(requester) {
   if (![ROLES.ADMIN, ROLES.HR_ADMIN, ROLES.HR, ROLES.DIRECTOR].includes(requester.role)) {
     return { status: "ERROR", message: "Không có quyền truy cập dữ liệu quản trị." };
@@ -839,8 +851,6 @@ function getDashboardData(requester) {
 
   const empSheet = getSheet(TABLES.EMPLOYEES);
   const empRows = empSheet.getDataRange().getValues().slice(1);
-  const docSheet = getSheet(TABLES.DOCUMENTS);
-  const docRows = docSheet.getDataRange().getValues().slice(1);
   const ctrSheet = getSheet(TABLES.CONTRACTS);
   const ctrRows = ctrSheet.getDataRange().getValues().slice(1);
   const travelSheet = getSheet(TABLES.TRAVEL);
@@ -849,13 +859,11 @@ function getDashboardData(requester) {
   const kpi = { total: 0, inVN: 0, business: 0, exited: 0, warning: 0, expContract: 0 };
   const employees = [];
   const expiryWarnings = [];
-  const now = new Date();
   const nextTravelMap = {};
 
-  // Xử lý dữ liệu Lịch công tác/đi lại gần nhất của từng nhân viên
   travelRows.forEach(r => {
     const employeeId = String(r[1] || "").trim();
-    const startDate = new Date(r[4]);
+    const startDate = parseDateSafe(r[4]);
     const status = String(r[6] || "").toUpperCase();
 
     if (!employeeId || isNaN(startDate.getTime()) || status !== "APPROVED") return;
@@ -872,7 +880,6 @@ function getDashboardData(requester) {
     }
   });
 
-  // Map thông tin hợp đồng đang active
   const activeContractsMap = {};
   ctrRows.forEach(c => {
     if (isCurrentValue(c[9])) {
@@ -883,7 +890,6 @@ function getDashboardData(requester) {
     }
   });
 
-  // Tổng hợp dữ liệu hiển thị danh sách Nhân viên
   empRows.forEach(r => {
     if (r[10] !== "ACTIVE") return;
 
@@ -952,7 +958,7 @@ function getProfileData(employeeId, requester) {
   const appRows = appSheet.getDataRange().getValues().slice(1);
   const appendices = appRows
     .filter(a => String(a[2]) === String(employeeId))
-    .sort((a, b) => new Date(b[4] || 0) - new Date(a[4] || 0));
+    .sort((a, b) => parseDateSafe(b[4]) - parseDateSafe(a[4]));
   const latestApp = appendices.length > 0 ? appendices[0] : [];
 
   let allowance = 0;
@@ -998,11 +1004,9 @@ function getProfileData(employeeId, requester) {
   };
 }
 
-
 // ==========================================
 // H. IMPORT EXCEL -> EMPLOYEES
 // ==========================================
-
 function normalizeImportText(value) {
   return String(value == null ? "" : value).trim();
 }
@@ -1175,17 +1179,12 @@ function handleImportEmployeesExcel(data, requester) {
     writeAuditLog(requester.userId, "IMPORT_BATCH", "Employees", "BATCH", null, `Imported ${newRows.length} rows`);
   }
 
-  // ============================================================
-  // IMPORT PHẦN HỒ SƠ PHÁP LÝ + HỢP ĐỒNG + PHỤ LỤC
-  // Frontend đã map sẵn các cột này nhưng phiên bản cũ chỉ ghi Employees.
-  // ============================================================
   rows.forEach((item, idx) => {
     const excelRow = Number(item._excelRow || idx + 2);
     const employeeId = normalizeImportText(item.employeeId);
     if (!employeeId || !existingById[employeeId]) return;
 
     try {
-      // Passport
       if (item.passportNo || item.passportExpiry || item.passportIssueDate || item.passportIssuer || item.passportFileId || item.passportFileUrl) {
         const docResult = upsertImportedDocument({
           employeeId: employeeId,
@@ -1201,7 +1200,6 @@ function handleImportEmployeesExcel(data, requester) {
         result[docResult.created ? "documentsCreated" : "documentsUpdated"]++;
       }
 
-      // TRC
       if (item.trcNo || item.trcExpiry || item.trcIssueDate || item.trcIssuer || item.trcFileId || item.trcFileUrl) {
         const docResult = upsertImportedDocument({
           employeeId: employeeId,
@@ -1217,7 +1215,6 @@ function handleImportEmployeesExcel(data, requester) {
         result[docResult.created ? "documentsCreated" : "documentsUpdated"]++;
       }
 
-      // Work Permit
       if (item.wpNo || item.wpExpiry || item.wpIssueDate || item.wpIssuer || item.wpFileId || item.wpFileUrl) {
         const docResult = upsertImportedDocument({
           employeeId: employeeId,
@@ -1233,7 +1230,6 @@ function handleImportEmployeesExcel(data, requester) {
         result[docResult.created ? "documentsCreated" : "documentsUpdated"]++;
       }
 
-      // Contract + Appendix
       if (item.contractNo) {
         const contractResult = upsertImportedContract(item, requester);
         result[contractResult.created ? "contractsCreated" : "contractsUpdated"]++;
@@ -1253,11 +1249,6 @@ function handleImportEmployeesExcel(data, requester) {
   return result;
 }
 
-/**
- * Import/upsert một giấy tờ theo EmployeeID + DocType + DocNo.
- * Nếu cùng loại giấy tờ đã có bản ghi hiện tại nhưng số giấy tờ thay đổi,
- * bản ghi cũ sẽ được đánh dấu IsCurrent=false và bản ghi mới trở thành hiện tại.
- */
 function upsertImportedDocument(doc, requester) {
   const sheet = getSheet(TABLES.DOCUMENTS);
   const rows = sheet.getDataRange().getValues();
@@ -1276,7 +1267,6 @@ function upsertImportedDocument(doc, requester) {
 
   if (exactIndex > 0) {
     const oldRow = rows[exactIndex - 1];
-    // Bản ghi chính xác được cập nhật và trở thành bản ghi hiện tại.
     if (currentIndex > 0 && currentIndex !== exactIndex) {
       sheet.getRange(currentIndex, 10).setValue(false);
     }
@@ -1299,7 +1289,6 @@ function upsertImportedDocument(doc, requester) {
     return { created: false, docId: updated[0] };
   }
 
-  // Không có bản ghi trùng số: đóng bản ghi hiện tại của cùng loại.
   if (currentIndex > 0) sheet.getRange(currentIndex, 10).setValue(false);
 
   const docId = "DOC-" + Utilities.getUuid().substring(0, 8);
@@ -1323,9 +1312,6 @@ function upsertImportedDocument(doc, requester) {
   return { created: true, docId: docId };
 }
 
-/**
- * Import/upsert hợp đồng theo EmployeeID + ContractNo.
- */
 function upsertImportedContract(item, requester) {
   const sheet = getSheet(TABLES.CONTRACTS);
   const rows = sheet.getDataRange().getValues();
@@ -1392,9 +1378,6 @@ function upsertImportedContract(item, requester) {
   return { created: true, contractId: contractId };
 }
 
-/**
- * Import/upsert phụ lục theo EmployeeID + ContractID + AppendixNo.
- */
 function upsertImportedAppendix(item, contractId, requester) {
   const sheet = getSheet(TABLES.APPENDICES);
   const rows = sheet.getDataRange().getValues();
@@ -1477,7 +1460,7 @@ function buildAllowancesJson(value, jsonValue) {
 }
 
 // ==========================================
-// H. THỦ TỤC NGHỈ VIỆC & KHÓA TÀI KHOẢN
+// I. THỦ TỤC NGHỈ VIỆC & KHÓA TÀI KHOẢN
 // ==========================================
 function handleDeleteEmployee(empId, req) {
   if (![ROLES.ADMIN, ROLES.HR_ADMIN].includes(req.role)) {
@@ -1503,6 +1486,7 @@ function handleDeleteEmployee(empId, req) {
   for (let i = 1; i < userRows.length; i++) {
     if (String(userRows[i][4]) === String(empId)) {
       userSheet.getRange(i + 1, 6).setValue("INACTIVE");
+      invalidateUserSessions(userRows[i][0]);
       break;
     }
   }
@@ -1512,7 +1496,7 @@ function handleDeleteEmployee(empId, req) {
 }
 
 // ==========================================
-// I. ACCOUNT / PASSWORD MANAGEMENT
+// J. ACCOUNT / PASSWORD MANAGEMENT
 // ==========================================
 function validateNewPassword(password) {
   password = String(password || "");
@@ -1573,8 +1557,12 @@ function handleChangePassword(data, requester, token) {
   }
 
   found.sheet.getRange(found.rowIndex, 3).setValue(hashPassword(newPassword));
+  
+  // Hủy tất cả các phiên đăng nhập khác của tài khoản này
+  invalidateUserSessions(requester.userId);
+
   writeAuditLog(requester.userId, "CHANGE_PASSWORD", "Users", requester.userId, null, "Password changed");
-  return { status: "SUCCESS", message: "Đổi mật khẩu thành công." };
+  return { status: "SUCCESS", message: "Đổi mật khẩu thành công. Vui lòng đăng nhập lại!" };
 }
 
 function getAccountUsers(requester) {
@@ -1648,7 +1636,7 @@ function setAccountStatus(data, requester) {
 }
 
 // ==========================================
-// I. SETUP HỆ THỐNG & HELPER
+// K. SETUP HỆ THỐNG & HELPER
 // ==========================================
 function setupSystem() {
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
@@ -1683,37 +1671,12 @@ function setupSystem() {
   }
 }
 
-/**
- * ============================================================
- * GOOGLE DRIVE - EMPLOYEE FOLDER
- * ============================================================
- *
- * Cấu trúc:
- *
- * Foreign Employee Management System
- * ├── EMP001 - John Smith
- * │   ├── Passport
- * │   ├── Visa
- * │   ├── TRC
- * │   ├── Work Permit
- * │   └── Contracts
- *
- * DRIVE_FOLDER_ID:
- * - Nếu đã cấu hình: dùng đúng folder đó.
- * - Nếu chưa có: tự tìm folder theo tên.
- * - Nếu không tìm thấy: tự tạo folder mới.
- *
- * Hàm này KHÔNG tạo folder nhân viên trùng.
- */
 function createEmployeeDriveFolder(employeeId, fullName) {
   try {
     if (!employeeId) {
       throw new Error("Missing employeeId");
     }
 
-    // --------------------------------------------------------
-    // 1. Lấy folder gốc
-    // --------------------------------------------------------
     const props = PropertiesService.getScriptProperties();
     const configuredRootId = props.getProperty("DRIVE_FOLDER_ID");
 
@@ -1723,115 +1686,54 @@ function createEmployeeDriveFolder(employeeId, fullName) {
       try {
         rootFolder = DriveApp.getFolderById(configuredRootId);
       } catch (e) {
-        console.warn(
-          "DRIVE_FOLDER_ID không hợp lệ, chuyển sang tìm theo tên."
-        );
+        console.warn("DRIVE_FOLDER_ID không hợp lệ, chuyển sang tìm theo tên.");
       }
     }
 
-    // Nếu chưa có ID hoặc ID không hợp lệ
     if (!rootFolder) {
       const ROOT_NAME = "Foreign Employee Management System";
       const folders = DriveApp.getFoldersByName(ROOT_NAME);
 
       if (folders.hasNext()) {
         rootFolder = folders.next();
-
-        // Lưu lại ID để những lần sau dùng trực tiếp
-        props.setProperty(
-          "DRIVE_FOLDER_ID",
-          rootFolder.getId()
-        );
+        props.setProperty("DRIVE_FOLDER_ID", rootFolder.getId());
       } else {
         rootFolder = DriveApp.createFolder(ROOT_NAME);
-
-        props.setProperty(
-          "DRIVE_FOLDER_ID",
-          rootFolder.getId()
-        );
+        props.setProperty("DRIVE_FOLDER_ID", rootFolder.getId());
       }
     }
 
-    // --------------------------------------------------------
-    // 2. Chuẩn hóa tên nhân viên
-    // --------------------------------------------------------
     const safeEmployeeId = String(employeeId).trim();
-
     const safeFullName = String(fullName || "Unknown")
       .trim()
       .replace(/[\\/:*?"<>|]/g, "_");
 
-    const folderName =
-      `${safeEmployeeId} - ${safeFullName}`;
-
-    // --------------------------------------------------------
-    // 3. Tìm folder nhân viên đã tồn tại
-    // --------------------------------------------------------
-    const existingFolders =
-      rootFolder.getFoldersByName(folderName);
+    const folderName = `${safeEmployeeId} - ${safeFullName}`;
+    const existingFolders = rootFolder.getFoldersByName(folderName);
 
     let employeeFolder;
-
     if (existingFolders.hasNext()) {
       employeeFolder = existingFolders.next();
     } else {
-      employeeFolder =
-        rootFolder.createFolder(folderName);
+      employeeFolder = rootFolder.createFolder(folderName);
     }
 
-    // --------------------------------------------------------
-    // 4. Đảm bảo 5 folder con luôn tồn tại
-    // --------------------------------------------------------
-    const subFolders = [
-      "Passport",
-      "Visa",
-      "TRC",
-      "Work Permit",
-      "Contracts"
-    ];
-
+    const subFolders = ["Passport", "Visa", "TRC", "Work Permit", "Contracts"];
     subFolders.forEach(function (name) {
-      const folders =
-        employeeFolder.getFoldersByName(name);
-
+      const folders = employeeFolder.getFoldersByName(name);
       if (!folders.hasNext()) {
         employeeFolder.createFolder(name);
       }
     });
 
-    // --------------------------------------------------------
-    // 5. Trả về ID folder nhân viên
-    // --------------------------------------------------------
     return employeeFolder.getId();
 
   } catch (e) {
-    console.error(
-      "createEmployeeDriveFolder error:",
-      e
-    );
-
+    console.error("createEmployeeDriveFolder error:", e);
     return "";
   }
 }
 
-
-/**
- * ============================================================
- * FORMAT DATE
- * ============================================================
- *
- * Chuẩn hóa ngày về:
- * YYYY-MM-DD
- *
- * Hỗ trợ:
- * - Date object
- * - yyyy-mm-dd
- * - yyyy/mm/dd
- * - yyyy.mm.dd
- * - dd/mm/yyyy
- * - dd-mm-yyyy
- * - dd.mm.yyyy
- */
 function formatDate(d) {
   if (!d) return "";
   if (Object.prototype.toString.call(d) === "[object Date]") {
@@ -1852,44 +1754,12 @@ function formatDate(d) {
   return s;
 }
 
-
-/**
- * ============================================================
- * AUDIT LOG
- * ============================================================
- *
- * Ghi:
- * LOG ID
- * User ID
- * Action
- * Module
- * Target ID
- * Old Value
- * New Value
- * Timestamp
- * Note
- */
-function writeAuditLog(
-  userId,
-  action,
-  module,
-  targetId,
-  oldValue,
-  newValue
-) {
+function writeAuditLog(userId, action, module, targetId, oldValue, newValue) {
   try {
     const sheet = getSheet(TABLES.AUDIT);
+    if (!sheet) throw new Error("AuditLog sheet not found");
 
-    if (!sheet) {
-      throw new Error("AuditLog sheet not found");
-    }
-
-    const logId =
-      "LOG-" +
-      Utilities.getUuid()
-        .replace(/-/g, "")
-        .substring(0, 8)
-        .toUpperCase();
+    const logId = "LOG-" + Utilities.getUuid().replace(/-/g, "").substring(0, 8).toUpperCase();
 
     sheet.appendRow([
       logId,
@@ -1904,16 +1774,10 @@ function writeAuditLog(
     ]);
 
   } catch (e) {
-
-    // Không làm hỏng chức năng chính chỉ vì AuditLog lỗi
-    console.error(
-      "writeAuditLog error:",
-      e
-    );
+    console.error("writeAuditLog error:", e);
   }
 }
 
-// Hàm hỗ trợ xuất Timeline Lịch sử Xuất/Nhập cảnh & Di chuyển
 function handleGetTimeline(empId, req) {
   if (!canAccessEmployee(req, empId)) return { status: "ERROR", message: "Không có quyền xem thông tin." };
 
@@ -1924,22 +1788,20 @@ function handleGetTimeline(empId, req) {
 
   const timeline = [];
 
-  // Gom lịch xuất nhập cảnh
   eeRows.filter(r => String(r[1]) === String(empId)).forEach(r => {
     let noteObj = {};
     try { noteObj = JSON.parse(r[5] || "{}"); } catch(e) {}
     timeline.push({
-      rawDate: new Date(r[3]),
+      rawDate: parseDateSafe(r[3]),
       date: formatDate(r[3]),
       title: r[2] === "ENTRY" ? "✈️ Nhập cảnh Việt Nam" : "🛫 Xuất cảnh Việt Nam",
       location: `Cửa khẩu: ${r[4] || "-"} | Chuyến bay: ${noteObj.flightNo || "-"} | Điểm đến: ${noteObj.destination || "-"}`
     });
   });
 
-  // Gom lịch đi lại trong nước
   travelRows.filter(r => String(r[1]) === String(empId) && r[6] === "APPROVED").forEach(r => {
     timeline.push({
-      rawDate: new Date(r[4]),
+      rawDate: parseDateSafe(r[4]),
       date: formatDate(r[4]),
       endDate: formatDate(r[5]),
       title: "🚗 Đi lại / Công tác nội địa",
@@ -1947,7 +1809,6 @@ function handleGetTimeline(empId, req) {
     });
   });
 
-  // Sắp xếp timeline giảm dần theo thời gian (Mới nhất lên đầu)
   timeline.sort((a, b) => b.rawDate - a.rawDate);
 
   return { status: "SUCCESS", timeline: timeline };
