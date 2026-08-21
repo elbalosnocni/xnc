@@ -699,39 +699,65 @@
   }
 
   function renderEmployees(list = employees) {
-    const tb = document.getElementById("employeeTable");
-    if (!tb) return;
+  const tb = document.getElementById("employeeTable");
+  if (!tb) return;
 
-    const search = (document.getElementById("employeeSearch")?.value || "").toLowerCase();
-    
-    // Lọc danh sách nhân viên theo ô tìm kiếm
-  const filtered = employees.filter(e => 
+  const search = (document.getElementById("employeeSearch")?.value || "").toLowerCase();
+  
+  // Lọc danh sách nhân viên theo ô tìm kiếm
+  const filtered = list.filter(e => 
     (e.fullName || "").toLowerCase().includes(search) ||
     (e.employeeId || "").toLowerCase().includes(search) ||
     (e.nationality || "").toLowerCase().includes(search)
   );
-    // Kiểm tra nếu danh sách trống, hiển thị thông báo tràn hết 9 cột (colspan="9")
-    if (!list || !list.length) {
-      tb.innerHTML = `<tr><td colspan="9" class="p-6 text-center text-slate-400">Không tìm thấy nhân viên.</td></tr>`;
-      return;
-    }  
 
-    // Render danh sách nhân viên hợp lệ
-  tb.innerHTML = list.map(e => {
-    // Tìm chuyến đi sắp tới (nếu có) từ map dữ liệu
-    const travelInfo = e.nextTravel ? `
-      <div class="text-xs font-semibold text-slate-700">
-        ${escapeHTML(e.nextTravel.fromLocation)} → ${escapeHTML(e.nextTravel.toLocation)}
-      </div>
-      <div class="text-slate-500" style="font-size: 10px;">
-        ${escapeHTML(e.nextTravel.fromDate)} ~ ${escapeHTML(e.nextTravel.toDate)}
-      </div>
-    ` : `<span class="text-slate-400 text-xs">Không có</span>`;
-    
-    // Render chính xác 9 cột tương ứng 9 thẻ <th>
+  if (!filtered || !filtered.length) {
+    tb.innerHTML = `<tr><td colspan="9" class="p-6 text-center text-slate-400">Không tìm thấy nhân viên.</td></tr>`;
+    return;
+  }  
+
+  const todayStr = new Date().toISOString().slice(0, 10);
+
+  tb.innerHTML = filtered.map(e => {
+    // 1. Xử lý Lịch nhập/xuất cảnh gần nhất trong tương lai (>= hôm nay)
+    let nextEntryExitHtml = `<span class="text-slate-400 text-xs">Không có</span>`;
+    if (Array.isArray(e.entryExitHistory) && e.entryExitHistory.length > 0) {
+      const futureEE = e.entryExitHistory
+        .filter(x => x.dateTime && x.dateTime.slice(0, 10) >= todayStr)
+        .sort((a, b) => a.dateTime.localeCompare(b.dateTime))[0];
+
+      if (futureEE) {
+        const typeLabel = futureEE.type === 'ENTRY' ? '✈️ Nhập cảnh' : '🛫 Xuất cảnh';
+        nextEntryExitHtml = `
+          <div class="text-xs font-semibold text-blue-700">${typeLabel}</div>
+          <div class="text-slate-600 font-medium" style="font-size: 11px;">${escapeHTML(futureEE.dateTime)}</div>
+        `;
+      }
+    }
+
+    // 2. Xử lý Lịch đi lại/công tác gần nhất trong tương lai (fromDate >= hôm nay)
+    let nextTravelHtml = `<span class="text-slate-400 text-xs">Không có</span>`;
+    if (e.nextTravel && e.nextTravel.fromDate) {
+      nextTravelHtml = `
+        <div class="text-xs font-semibold text-slate-700">${escapeHTML(e.nextTravel.fromLocation)} → ${escapeHTML(e.nextTravel.toLocation)}</div>
+        <div class="text-slate-500" style="font-size: 10px;">${escapeHTML(e.nextTravel.fromDate)} ~ ${escapeHTML(e.nextTravel.toDate)}</div>
+      `;
+    } else if (Array.isArray(e.travelHistory) && e.travelHistory.length > 0) {
+      const futureTravel = e.travelHistory
+        .filter(x => x.fromDate && x.fromDate >= todayStr)
+        .sort((a, b) => a.fromDate.localeCompare(b.fromDate))[0];
+
+      if (futureTravel) {
+        nextTravelHtml = `
+          <div class="text-xs font-semibold text-slate-700">${escapeHTML(futureTravel.fromLocation)} → ${escapeHTML(futureTravel.toLocation)}</div>
+          <div class="text-slate-500" style="font-size: 10px;">${escapeHTML(futureTravel.fromDate)} ~ ${escapeHTML(futureTravel.toDate)}</div>
+        `;
+      }
+    }
+
     return `
       <tr class="border-b hover:bg-slate-50 transition-colors">
-        <!-- 1. Thông tin nhân viên -->
+        <!-- 1. Nhân viên -->
         <td class="p-3">
           <div class="font-semibold text-slate-800">${escapeHTML(e.fullName)}</div>
           <div class="text-xs text-slate-400">${escapeHTML(e.employeeId)}</div>
@@ -742,33 +768,33 @@
         
         <!-- 3. Trạng thái -->
         <td class="p-3 text-center">${statusBadge(e.currentStatus)}</td>
-        const statusBadge = e.currentStatus === 'In Vietnam' 
-      ? '<span class="badge bg-emerald-100 text-emerald-700">🟢 Trong nước</span>'
-      : (e.currentStatus === 'Traveling' 
-          ? '<span class="badge bg-blue-100 text-blue-700">✈️ Công tác</span>'
-          : '<span class="badge bg-slate-100 text-slate-600">🔴 Đã xuất cảnh</span>');
-        <!-- 4. Vị trí/Chức vụ -->
-        <td class="p-3 text-sm text-slate-600">${escapeHTML(e.position || "-")}</div>
-        <div class="text-xs text-slate-400">${escapeHTML(e.department || "")}</div>
+        
+        <!-- 4. Vị trí -->
+        <td class="p-3 text-sm text-slate-600">
+          <div>${escapeHTML(e.position || "-")}</div>
+          <div class="text-xs text-slate-400">${escapeHTML(e.department || "")}</div>
         </td>
 
-        <!-- 5: Lịch sử / Dự định Xuất Nhập Cảnh -->
+        <!-- 5. Ngày Nhập/Xuất cảnh sắp tới -->
         <td class="p-3 text-center">
-          <button onclick="viewEmployeeTimeline('${escapeHTML(e.employeeId)}')" class="text-xs text-blue-600 hover:underline">
-            <i class="fa-solid fa-clock-rotate-left mr-1"></i>Xem lịch sử
-          </button>
+          ${nextEntryExitHtml}
+          <div class="mt-1">
+            <button onclick="viewEmployeeTimeline('${escapeHTML(e.employeeId)}')" class="text-[10px] text-blue-600 hover:underline">
+              <i class="fa-solid fa-clock-rotate-left mr-1"></i>Xem lịch sử
+            </button>
+          </div>
         </td>
         
-        <!-- 6. Lịch công tác sắp tới -->
-        <td class="p-3 text-center">${travelInfo}</td>        
+        <!-- 6. Ngày Đi lại/Công tác sắp tới -->
+        <td class="p-3 text-center">${nextTravelHtml}</td>        
         
         <!-- 7. Số hợp đồng -->
         <td class="p-3 font-semibold text-center text-sm text-slate-700">${escapeHTML(e.contractNo || "-")}</td>
         
-        <!-- 8. Ngày hết hạn HD -->
+        <!-- 8. Hạn HĐ -->
         <td class="p-3 text-center text-sm text-slate-600">${escapeHTML(e.contractExpiry || "-")}</td>
         
-        <!-- 9. Hành động/Thao tác -->
+        <!-- 9. Thao tác -->
         <td class="p-3 text-center">
           <div class="flex justify-center gap-3">
             <button onclick="viewEmployee('${encodeURIComponent(e.employeeId)}')" class="text-blue-600 hover:text-blue-800 p-1" title="Xem chi tiết">
