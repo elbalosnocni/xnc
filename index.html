@@ -702,7 +702,7 @@
   const tb = document.getElementById("employeeTable");
   if (!tb) return;
 
-  const search = (document.getElementById("employeeSearch")?.value || "").toLowerCase();
+  const search = (document.getElementById("employeeSearch")?.value || "").toLowerCase().trim();
   
   // Lọc danh sách nhân viên theo ô tìm kiếm
   const filtered = list.filter(e => 
@@ -719,12 +719,14 @@
   const todayStr = new Date().toISOString().slice(0, 10);
 
   tb.innerHTML = filtered.map(e => {
+    const safeEmpId = encodeURIComponent(e.employeeId || "");
+
     // 1. Xử lý Lịch nhập/xuất cảnh gần nhất trong tương lai (>= hôm nay)
     let nextEntryExitHtml = `<span class="text-slate-400 text-xs">Không có</span>`;
     if (Array.isArray(e.entryExitHistory) && e.entryExitHistory.length > 0) {
       const futureEE = e.entryExitHistory
-        .filter(x => x.dateTime && x.dateTime.slice(0, 10) >= todayStr)
-        .sort((a, b) => a.dateTime.localeCompare(b.dateTime))[0];
+        .filter(x => x.dateTime && String(x.dateTime).slice(0, 10) >= todayStr)
+        .sort((a, b) => String(a.dateTime).localeCompare(String(b.dateTime)))[0];
 
       if (futureEE) {
         const typeLabel = futureEE.type === 'ENTRY' ? '✈️ Nhập cảnh' : '🛫 Xuất cảnh';
@@ -744,8 +746,8 @@
       `;
     } else if (Array.isArray(e.travelHistory) && e.travelHistory.length > 0) {
       const futureTravel = e.travelHistory
-        .filter(x => x.fromDate && x.fromDate >= todayStr)
-        .sort((a, b) => a.fromDate.localeCompare(b.fromDate))[0];
+        .filter(x => x.fromDate && String(x.fromDate) >= todayStr)
+        .sort((a, b) => String(a.fromDate).localeCompare(String(b.fromDate)))[0];
 
       if (futureTravel) {
         nextTravelHtml = `
@@ -764,10 +766,10 @@
         </td>
         
         <!-- 2. Quốc tịch -->
-        <td class="p-3 text-center text-sm">${escapeHTML(e.nationality)}</td>
+        <td class="p-3 text-center text-sm">${escapeHTML(e.nationality || "-")}</td>
         
         <!-- 3. Trạng thái -->
-        <td class="p-3 text-center">${statusBadge(e.currentStatus)}</td>
+        <td class="p-3 text-center">${typeof statusBadge === 'function' ? statusBadge(e.currentStatus || e.status) : escapeHTML(e.currentStatus || e.status || "-")}</td>
         
         <!-- 4. Vị trí -->
         <td class="p-3 text-sm text-slate-600">
@@ -779,7 +781,7 @@
         <td class="p-3 text-center">
           ${nextEntryExitHtml}
           <div class="mt-1">
-            <button onclick="viewEmployeeTimeline('${escapeHTML(e.employeeId)}')" class="text-[10px] text-blue-600 hover:underline">
+            <button onclick="viewEmployeeTimeline('${safeEmpId}')" class="text-[10px] text-blue-600 hover:underline">
               <i class="fa-solid fa-clock-rotate-left mr-1"></i>Xem lịch sử
             </button>
           </div>
@@ -797,13 +799,13 @@
         <!-- 9. Thao tác -->
         <td class="p-3 text-center">
           <div class="flex justify-center gap-3">
-            <button onclick="viewEmployee('${encodeURIComponent(e.employeeId)}')" class="text-blue-600 hover:text-blue-800 p-1" title="Xem chi tiết">
+            <button onclick="viewEmployee('${safeEmpId}')" class="text-blue-600 hover:text-blue-800 p-1" title="Xem chi tiết">
               <i class="fa-solid fa-eye"></i>
             </button>
-            <button onclick="openEmployeeForm('${encodeURIComponent(e.employeeId)}')" class="text-amber-600 hover:text-amber-800 p-1" title="Sửa thông tin">
+            <button onclick="openEmployeeForm('${safeEmpId}')" class="text-amber-600 hover:text-amber-800 p-1" title="Sửa thông tin">
               <i class="fa-solid fa-pen-to-square"></i>
             </button>
-            <button onclick="deleteEmployee('${encodeURIComponent(e.employeeId)}')" class="text-red-600 hover:text-red-800 p-1" title="Vô hiệu hóa">
+            <button onclick="deleteEmployee('${safeEmpId}')" class="text-red-600 hover:text-red-800 p-1" title="Vô hiệu hóa">
               <i class="fa-solid fa-trash"></i>
             </button>
           </div>
