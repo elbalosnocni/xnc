@@ -285,30 +285,70 @@
   }
 
   function callBackend(action, data = {}, params = {}) {
-    const token = sessionToken || sessionStorage.getItem("sessionToken") || "";
-    return new Promise((resolve, reject) => {
-      if (typeof google !== 'undefined' && google.script && google.script.run) {
-        google.script.run
-          .withSuccessHandler(resolve)
-          .withFailureHandler(reject)
-          .apiCall(action, token, data, params);
-      } else {
-        const payload = { action, token, data, params };
-        if (action === "LOGIN") {
-          payload.username = data.username;
-          payload.password = data.password;
+  const token = sessionToken || sessionStorage.getItem("sessionToken") || "";
+
+  return new Promise((resolve, reject) => {
+
+    // Google Apps Script container
+    if (
+      typeof google !== "undefined" &&
+      google.script &&
+      google.script.run
+    ) {
+      google.script.run
+        .withSuccessHandler(resolve)
+        .withFailureHandler(reject)
+        .apiCall(action, token, data, params);
+
+      return;
+    }
+
+    // Cloudflare Pages / Web App
+    const payload = {
+      action,
+      token,
+      data,
+      params
+    };
+
+    if (action === "LOGIN") {
+      payload.username = data.username;
+      payload.password = data.password;
+    }
+
+    const controller = new AbortController();
+
+    const timer = setTimeout(() => {
+      controller.abort();
+    }, API_TIMEOUT_MS);
+
+    fetch(WEB_APP_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "text/plain;charset=utf-8"
+      },
+      body: JSON.stringify(payload),
+      signal: controller.signal
+    })
+      .then(res => {
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
         }
-        fetch(WEB_APP_URL, {
-          method: "POST",
-          headers: { "Content-Type": "text/plain;charset=utf-8" }, 
-          body: JSON.stringify(payload)
-        })
-        .then(res => res.json())
-        .then(resolve)
-        .catch(reject);
-      }
-    });
-  }
+        return res.json();
+      })
+      .then(resolve)
+      .catch(err => {
+        if (err.name === "AbortError") {
+          reject(new Error("API timeout sau 30 giây. Vui lòng thử lại."));
+        } else {
+          reject(err);
+        }
+      })
+      .finally(() => {
+        clearTimeout(timer);
+      });
+  });
+}
 
   async function apiGet(action, params = {}) {
     const res = await callBackend(action, {}, params);
@@ -759,6 +799,29 @@
     return `<span class="badge ${c}">${escapeHTML(s || "-")}</span>`;
   }
 
+  async function viewEmployeeTimeline(empId) {
+    try {
+      const res = await apiGet("GET_TIMELINE", { employeeId: empId });
+      if (res.status !== "SUCCESS") return toast(res.message);
+      
+      document.getElementById("modalTitle").textContent = "Lịch sử Xuất Nhập Cảnh & Di Chuyển (" + empId + ")";
+      document.getElementById("modalBody").innerHTML = `
+        <div class="space-y-4">
+          ${(res.timeline || []).map(x => `
+            <div class="border-l-4 border-blue-500 pl-4 py-1">
+              <div class="font-bold text-slate-800">${escapeHTML(x.title)}</div>
+              <div class="text-xs text-blue-600 font-semibold">${escapeHTML(x.date)} ${x.endDate ? " → " + escapeHTML(x.endDate) : ""}</div>
+              <div class="text-xs text-slate-500 mt-1">${escapeHTML(x.location || "")}</div>
+            </div>
+          `).join("") || '<div class="text-slate-400 py-4 text-center">Chưa có lịch sử di chuyển.</div>'}
+        </div>
+      `;
+      document.getElementById("employeeModal").classList.remove("hidden");
+    } catch (e) {
+      toast("Không thể tải lịch sử!");
+    }
+  }
+  
   async function viewEmployee(encoded) {
     const id = decodeURIComponent(encoded);
     try {
