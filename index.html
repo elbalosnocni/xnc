@@ -261,7 +261,7 @@
   }
 
   function isAccountAdmin() {
-    return currentUser && ["ADMIN", "HR ADMIN", "HR"].includes(String(currentUser.role || "").toUpperCase());
+    return currentUser && ["ADMIN", "HR ADMIN"].includes(String(currentUser.role || "").toUpperCase());
   }
 
   function isSuperAdmin() {
