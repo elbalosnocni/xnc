@@ -732,16 +732,179 @@ function updateEmployeeStatusRecord(employeeId, status, location) {
   }
 }
 
-function handleAddEntryExit(d, req) {
-  if (!canAccessEmployee(req, d.employeeId)) return { status: "ERROR", message: "Không có quyền thực hiện." };
-  
-  const sheet = getSheet(TABLES.ENTRY_EXIT);
-  const logId = "EE-" + Utilities.getUuid().substring(0, 8);
-  const note = JSON.stringify({ flightNo: d.flightNo || "", destination: d.destination || "", purpose: d.purpose || "" });
-  
-  sheet.appendRow([logId, d.employeeId, d.type, d.dateTime, d.airport, note, new Date(), req.userId]);
-  calculateEmployeeLocationStatus(d.employeeId);
-  return { status: "SUCCESS", message: "Đã ghi nhận thông tin Nhập/Xuất cảnh!" };
+// --- 1. HÀM THÊM KHAI BÁO NHẬP XUẤT CẢNH (Đã fix nhận dateTime) ---
+function handleAddEntryExit(data) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    
+    // Ghi dữ liệu vào sheet EntryExit
+    const entryExitSheet = ss.getSheetByName('EntryExit');
+    if (!entryExitSheet) throw new Error("Không tìm thấy sheet 'EntryExit'");
+    
+    const newId = Utilities.getUuid();
+    const timestamp = new Date();
+    const entryExitDate = data.dateTime || data.date; // Nhận cả dateTime từ Frontend gửi lên
+
+    entryExitSheet.appendRow([
+      newId,
+      data.employeeId,
+      data.type,                     // 'ENTRY' hoặc 'EXIT'
+      entryExitDate,                 // Ngày giờ khai báo
+      data.airport || data.port || '',
+      data.flightNo || '',
+      data.destination || '',
+      data.purpose || '',
+      timestamp
+    ]);
+
+    // Cập nhật trạng thái trực tiếp trên sheet Employees
+    const empSheet = ss.getSheetByName('Employees');
+    if (!empSheet) throw new Error("Không tìm thấy sheet 'Employees'");
+    
+    const empData = empSheet.getDataRange().getValues();
+    const headers = empData[0];
+    
+    const idColIndex = headers.indexOf('id') !== -1 ? headers.indexOf('id') : headers.indexOf('employeeId');
+    const statusColIndex = headers.indexOf('status') !== -1 ? headers.indexOf('status') : headers.indexOf('currentStatus');
+    
+    if (idColIndex === -1 || statusColIndex === -1) {
+      throw new Error("Không tìm thấy cột ID hoặc Status trong sheet Employees");
+    }
+
+    let found = false;
+    for (let i = 1; i < empData.length; i++) {
+      if (String(empData[i][idColIndex]).trim() === String(data.employeeId).trim()) {
+        // Đổi trạng thái: ENTRY -> Entered, EXIT -> Exited
+        const newStatus = (String(data.type).toUpperCase() === 'ENTRY') ? 'Entered' : 'Exited';
+        
+        // Ghi lại vào Sheet Employees
+        empSheet.getRange(i + 1, statusColIndex + 1).setValue(newStatus);
+        found = true;
+        break;
+      }
+    }
+
+    if (!found) throw new Error("Không tìm thấy Mã nhân viên: " + data.employeeId);
+
+    // Gọi hàm tính toán lại vị trí tổng hợp (nếu có)
+    if (typeof calculateEmployeeLocationStatus === 'function') {
+      calculateEmployeeLocationStatus(data.employeeId);
+    }
+
+    return {
+      status: 'SUCCESS',
+      message: 'Đã cập nhật trạng thái và lưu lịch sử thành công!'
+    };
+
+  } catch (error) {
+    return { status: 'ERROR', message: error.toString() };
+  }
+}
+
+// --- 2. HÀM TRẢ DỮ LIỆU DASHBOARD (Đã ghép lịch sử & chuyến đi sắp tới) ---
+function handleGetDashboardData() {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    
+    // Đọc dữ liệu từ các sheet
+    const empSheet = ss.getSheetByName('Employees');
+    const eeSheet = ss.getSheetByName('EntryExit');
+    const travelSheet = ss.getSheetByName('DomesticTravel');
+    
+    const empRaw = empSheet ? empSheet.getDataRange().getValues() : [];
+    const eeRaw = eeSheet ? eeSheet.getDataRange().getValues() : [];
+    const travelRaw = travelSheet ? travelSheet.getDataRange().getValues() : [];
+    
+    if (empRaw.length < 2) return { status: 'SUCCESS', kpi: {}, employees: [] };
+
+    // Lấy headers
+    const empHeaders = empRaw[0];
+    const idIdx = empHeaders.indexOf('id') !== -1 ? empHeaders.indexOf('id') : empHeaders.indexOf('employeeId');
+    const nameIdx = empHeaders.indexOf('fullName');
+    const statusIdx = empHeaders.indexOf('status') !== -1 ? empHeaders.indexOf('status') : empHeaders.indexOf('currentStatus');
+    const natIdx = empHeaders.indexOf('nationality');
+    const contractNoIdx = empHeaders.indexOf('contractNo');
+    const contractExpIdx = empHeaders.indexOf('contractExpiry');
+
+    // Chuyển mảng EntryExit thành Object lọc theo employeeId
+    const eeMap = {};
+    for (let i = 1; i < eeRaw.length; i++) {
+      const empId = String(eeRaw[i][1]).trim();
+      if (!eeMap[empId]) eeMap[empId] = [];
+      eeMap[empId].push({
+        type: eeRaw[i][2],
+        dateTime: eeRaw[i][3],
+        airport: eeRaw[i][4],
+        flightNo: eeRaw[i][5]
+      });
+    }
+
+    // Chuyển mảng DomesticTravel thành Object lọc theo employeeId
+    const travelMap = {};
+    const now = new Date();
+    for (let i = 1; i < travelRaw.length; i++) {
+      const empId = String(travelRaw[i][1]).trim();
+      if (!travelMap[empId]) travelMap[empId] = { history: [], next: null };
+      
+      const fromDate = new Date(travelRaw[i][2]);
+      const item = {
+        fromDate: travelRaw[i][2],
+        toDate: travelRaw[i][3],
+        fromLocation: travelRaw[i][4],
+        toLocation: travelRaw[i][5],
+        purpose: travelRaw[i][6]
+      };
+
+      if (fromDate > now) {
+        // Chuyến đi trong tương lai -> nextTravel
+        travelMap[empId].next = item;
+      } else {
+        // Chuyến đi đã qua -> travelHistory
+        travelMap[empId].history.push(item);
+      }
+    }
+
+    // Ghép dữ liệu tổng hợp trả về cho Frontend
+    const employeesList = [];
+    let inVNCount = 0, exitedCount = 0, businessCount = 0;
+
+    for (let i = 1; i < empRaw.length; i++) {
+      const empId = String(empRaw[i][idIdx]).trim();
+      const st = String(empRaw[i][statusIdx] || 'Exited');
+      
+      if (st === 'Entered') inVNCount++;
+      else if (st === 'Exited') exitedCount++;
+      else if (st === 'Traveling' || st === 'Business') businessCount++;
+
+      employeesList.push({
+        employeeId: empId,
+        fullName: empRaw[i][nameIdx] || '',
+        nationality: empRaw[i][natIdx] || '',
+        status: st,
+        contractNo: empRaw[i][contractNoIdx] || '',
+        contractExpiry: empRaw[i][contractExpIdx] || '',
+        
+        // CÁC THUỘC TÍNH BẠN ĐANG TÌM:
+        entryExitHistory: eeMap[empId] || [],
+        travelHistory: travelMap[empId] ? travelMap[empId].history : [],
+        nextTravel: travelMap[empId] ? travelMap[empId].next : null
+      });
+    }
+
+    return {
+      status: 'SUCCESS',
+      kpi: {
+        total: employeesList.length,
+        inVN: inVNCount,
+        exited: exitedCount,
+        business: businessCount
+      },
+      employees: employeesList
+    };
+
+  } catch (err) {
+    return { status: 'ERROR', message: err.toString() };
+  }
 }
 
 function handleGetEntryExit(empId, req) {
