@@ -957,11 +957,20 @@
 
         <div><label class="text-xs font-semibold">Số TRC</label><input id="f_trcNo" class="input mt-1" value="${escapeHTML(emp.trcNo || "")}"></div>
         <div><label class="text-xs font-semibold">Ngày hết hạn TRC</label><input id="f_trcExpiry" type="date" class="input mt-1" value="${emp.trcExpiry || ""}"></div>
-        <div class="md:col-span-2">
-          <label class="text-xs font-semibold">File Ảnh TRC</label>
-          <input type="file" onchange="handleFileUpload(this, 'f_trcImg', 'TRC', 'f_trcFileId')" class="input mt-1">
-          <input id="f_trcImg" type="hidden" value="${escapeHTML(emp.trcImg || "")}">
-          <input id="f_trcFileId" type="hidden" value="${escapeHTML(emp.trcFileId || "")}">
+       // <div class="md:col-span-2">
+       //   <label class="text-xs font-semibold">File Ảnh TRC</label>
+       //   <input type="file" onchange="handleFileUpload(this, 'f_trcImg', 'TRC', 'f_trcFileId')" class="input mt-1">
+       //   <input id="f_trcImg" type="hidden" value="${escapeHTML(emp.trcImg || "")}">
+       //   <input id="f_trcFileId" type="hidden" value="${escapeHTML(emp.trcFileId || "")}">
+       // </div>
+        <!-- Khối hiển thị Preview cho TRC (Áp dụng tương tự cho Passport và WP) -->
+        <div class="preview-box">
+          <label>Ảnh TRC:</label>
+          <!-- Nếu có link ảnh thì hiện thẻ img, ngược lại hiện chữ "Chưa có file" -->
+          <div id="trc-preview-container">
+            <!-- Code JS sẽ render thẻ img vào đây -->
+            <img src="LINK_FILE_URL_FROM_API" alt="Preview TRC" style="max-width: 100%; max-height: 200px; border-radius: 4px; border: 1px solid #ddd; object-fit: contain;">
+          </div>
         </div>
 
         <div><label class="text-xs font-semibold">Số Giấy Phép Lao Động (WP)</label><input id="f_wpNo" class="input mt-1" value="${escapeHTML(emp.wpNo || "")}"></div>
@@ -980,11 +989,19 @@
         <div><label class="text-xs font-semibold">Phụ Cấp (USD)</label><input id="f_allowance" type="number" class="input mt-1" value="${emp.allowance || 0}"></div>
         <div><label class="text-xs font-semibold">Ngày bắt đầu HĐ</label><input id="f_contractStartDate" type="date" class="input mt-1" value="${emp.contractStartDate || ""}"></div>
         <div><label class="text-xs font-semibold">Ngày hết hạn HĐ</label><input id="f_contractExpiry" type="date" class="input mt-1" value="${emp.contractExpiry || ""}"></div>
-        <div class="md:col-span-2">
-          <label class="text-xs font-semibold">File Hợp Đồng (PDF/Image)</label>
-          <input type="file" onchange="handleFileUpload(this, 'f_contractImg', 'Contracts', 'f_contractFileId')" class="input mt-1">
-          <input id="f_contractImg" type="hidden" value="${escapeHTML(emp.contractImg || "")}">
-          <input id="f_contractFileId" type="hidden" value="${escapeHTML(emp.contractFileId || "")}">
+    //    <div class="md:col-span-2">
+    //      <label class="text-xs font-semibold">File Hợp Đồng (PDF/Image)</label>
+    //      <input type="file" onchange="handleFileUpload(this, 'f_contractImg', 'Contracts', 'f_contractFileId')" class="input mt-1">
+    //      <input id="f_contractImg" type="hidden" value="${escapeHTML(emp.contractImg || "")}">
+   //       <input id="f_contractFileId" type="hidden" value="${escapeHTML(emp.contractFileId || "")}">
+   //     </div>
+          <!-- Khối hiển thị Preview cho Hợp Đồng -->
+        <div class="preview-box" style="margin-top: 10px;">
+          <label>File Hợp Đồng (PDF):</label>
+          <div id="contract-preview-container" style="width: 100%; height: 350px; background: #f9f9f9; border: 1px solid #ddd; border-radius: 4px; overflow: hidden;">
+            <!-- Nhúng iframe link preview của Google Drive -->
+            <iframe src="LINK_FILE_URL_FROM_API" width="100%" height="100%" style="border: none;" allow="autoplay"></iframe>
+          </div>
         </div>
 
         <div class="md:col-span-2 mt-4"><button type="submit" class="btn"><i class="fa-solid fa-floppy-disk mr-2"></i> Lưu Hồ Sơ & Hợp Đồng</button></div>
@@ -1057,6 +1074,24 @@
     appendixfileurl: "appendixFileUrl", "appendix file url": "appendixFileUrl", "appendix url": "appendixFileUrl", "file phu luc": "appendixFileUrl"
   };
 
+  function convertToPreviewUrl(rawUrl, isPdf = false) {
+  if (!rawUrl || rawUrl.includes("Chưa có file")) return "";
+  
+  // Trích xuất File ID từ bất kỳ định dạng link Google Drive nào
+  const match = rawUrl.match(/(?:\/d\/|id=)([\w-]+)/);
+  if (match && match[1]) {
+    const fileId = match[1];
+    return isPdf 
+      ? `https://google.com{fileId}/preview`
+      : `https://google.com{fileId}`;
+  }
+  return rawUrl;
+}
+
+// Cách áp dụng khi render dữ liệu nhân viên từ API Profile:
+// document.getElementById("img-passport").src = convertToPreviewUrl(profile.passportImg, false);
+// document.getElementById("iframe-contract").src = convertToPreviewUrl(profile.contractImg, true);
+  
   function normalizeExcelHeader(v) {
     return String(v ?? "").trim().toLowerCase()
       .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
