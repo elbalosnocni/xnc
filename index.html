@@ -13,10 +13,10 @@
   .modal{background:rgba(15,23,42,.55)}
   .toast{position:fixed;right:20px;bottom:20px;z-index:100}
   .badge{display:inline-flex;padding:.25rem .625rem;border-radius:999px;font-size:.75rem;font-weight:700}
-  .employees-table-wrap{max-height:calc(100vh - 300px);min-height:260px;overflow:auto;position:relative;border:1px solid #e2e8f0;border-radius:.75rem}
-  .employees-table{min-width:900px;border-collapse:separate;border-spacing:0}
+  .employees-table-wrap{max-height:calc(100vh - 300px);min-height:260px;overflow:auto;overflow-x:auto;overflow-y:auto;position:relative;border:1px solid #e2e8f0;border-radius:.75rem;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-x pan-y}
+  .employees-table{min-width:760px;width:max-content;border-collapse:separate;border-spacing:0;table-layout:auto}
   .employees-table thead th{position:sticky;top:0;z-index:20;background:#f8fafc;box-shadow:0 1px 0 #cbd5e1}
-  .employees-table th:first-child,.employees-table td:first-child{position:sticky;left:0;z-index:10;background:#fff;min-width:230px}
+  .employees-table th:first-child,.employees-table td:first-child{position:sticky;left:0;z-index:10;background:#fff;width:230px;min-width:230px;max-width:230px;overflow:hidden}
   .employees-table thead th:first-child{z-index:30;background:#f8fafc}
   .employees-table tbody tr:hover td:first-child{background:#f8fafc}
   .doc-preview{margin-top:.75rem;border:1px solid #cbd5e1;border-radius:.75rem;background:#fff;overflow:hidden}
@@ -24,7 +24,19 @@
   .doc-preview img{display:block;max-width:100%;height:430px;margin:auto;object-fit:contain;background:#f8fafc}
   .doc-preview-actions{display:flex;justify-content:space-between;align-items:center;gap:.5rem;padding:.6rem .75rem;background:#f8fafc;border-top:1px solid #e2e8f0}
   .doc-preview-actions a{font-size:.75rem;font-weight:700;color:#2563eb}
-  @media (max-width:768px){.employees-table-wrap{max-height:calc(100vh - 340px)}.employees-table th:first-child,.employees-table td:first-child{min-width:190px}.doc-preview iframe,.doc-preview img{height:320px}}
+  @media (max-width:768px){
+    .employees-table-wrap{max-height:calc(100vh - 340px);width:100%;}
+    .employees-table{min-width:720px;font-size:12px}
+    .employees-table th:first-child,.employees-table td:first-child{width:125px;min-width:125px;max-width:125px;padding:.5rem!important;white-space:normal;word-break:break-word}
+    .employees-table th,.employees-table td{padding:.5rem!important;white-space:nowrap}
+    .employees-table td:first-child .font-semibold{display:block;line-height:1.2;max-height:2.4em;overflow:hidden}
+    .employees-table td:first-child .text-xs{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .employees-table .badge{font-size:10px;padding:.2rem .4rem}
+    .employees-table td:last-child{min-width:105px}
+    .employees-table td:last-child .flex{gap:.4rem}
+    .employees-table td:last-child button{padding:.35rem}
+    .doc-preview iframe,.doc-preview img{height:320px}
+  }
 </style>
 </head>
 <body class="bg-slate-100 text-slate-800" onload="restoreSession()">
