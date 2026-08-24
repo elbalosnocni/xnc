@@ -657,15 +657,29 @@ function uploadEmployeeFile(param, requester) {
     if (!ALLOWED_UPLOAD_MIME.has(safeMime)) {
       return { status: "ERROR", message: "Định dạng file không được hỗ trợ. Chỉ nhận PDF, JPG, PNG, WEBP." };
     }
+    // ---- ĐOẠN CODE THAY THẾ TRONG HÀM uploadEmployeeFile ----
     const blob = Utilities.newBlob(bytes, safeMime, safeName);
     const file = targetFolder.createFile(blob);
     
-    file.setSharing(DriveApp.Access.PRIVATE, DriveApp.Permission.NONE);
+    // 1. Chuyển quyền chia sẻ sang ANYONE_WITH_LINK để front-end đọc được preview
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+
+    const fileId = file.getId();
+    let previewUrl = "";
+
+    // 2. Tự động sinh đường dẫn Preview chuẩn theo định dạng file
+    if (safeMime === 'application/pdf') {
+      // Đối với tài liệu PDF (Hợp đồng)
+      previewUrl = "https://google.com" + fileId + "/preview";
+    } else {
+      // Đối với hình ảnh JPG, PNG, WEBP (Passport, TRC, WP)
+      previewUrl = "https://google.com" + fileId;
+    }
 
     return {
       status: "SUCCESS",
-      fileId: file.getId(),
-      fileUrl: file.getUrl()
+      fileId: fileId,
+      fileUrl: previewUrl // Link này giờ là link nhúng xem trực tiếp, không phải link gốc Drive
     };
   } catch (error) {
     return { status: "ERROR", message: error.toString() };
@@ -2049,4 +2063,3 @@ function formatDateTime(value) {
   if (!d.getTime()) return String(value);
   return Utilities.formatDate(d, Session.getScriptTimeZone(), "yyyy-MM-dd HH:mm");
 }
-
