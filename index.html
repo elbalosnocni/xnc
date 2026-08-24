@@ -664,7 +664,7 @@
         <div class="border-b pb-3 mb-3">
           <div class="flex justify-between items-start gap-2">
             <div>
-              <div class="font-bold">${x.type === "ENTRY" ? "✈️ Nhập cảnh" : "🛫 Xuất cảnh"}</div>
+              <div class="font-bold">${x.type === "ENTRY" ? "🛬 Nhập cảnh" : "🛫 Xuất cảnh"}</div>
               <div class="text-sm">${escapeHTML(x.dateTime)} - ${escapeHTML(x.airport || "")}</div>
               <div class="text-xs text-slate-400">Bay: ${escapeHTML(x.flightNo || "-")} | Điểm đến: ${escapeHTML(x.destination || "-")}</div>
               <div class="text-xs italic text-slate-500">Mục đích: ${escapeHTML(x.purpose || "-")}</div>
@@ -813,7 +813,7 @@
       const safeEmpId = encodeURIComponent(e.employeeId || "");
       const ee = e.nextEntryExit;
       const nextEntryExitHtml = ee
-        ? `<div class="text-xs font-semibold text-blue-700">${ee.type === "ENTRY" ? "✈️ Nhập cảnh" : "🛫 Xuất cảnh"}</div>
+        ? `<div class="text-xs font-semibold text-blue-700">${ee.type === "ENTRY" ? "🛬 Nhập cảnh" : "🛫 Xuất cảnh"}</div>
            <div class="text-slate-600 font-medium" style="font-size:11px">${escapeHTML(ee.dateTime || "")}</div>`
         : `<span class="text-slate-400 text-xs">Không có</span>`;
 
