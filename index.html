@@ -410,7 +410,7 @@
 
   const I18N = {
     en: {
-      "FOREIGN EMPLOYEE SYSTEM":"FOREIGN EMPLOYEE SYSTEM", "Immigration & Contract Management":"Immigration & Contract Management",
+      "FOREIGN EMPLOYEE SYSTEM":"FOREIGN EMPLOYEE SYSTEM", "Immigration & Contract Management":"Immigration & Contract Management", "🛬 Entry":"🛬 Entry", "🛫 Exit":"🛫 Exit",
       "Dashboard":"Dashboard", "My Profile":"My Profile", "Immigration":"Immigration", "Domestic Travel":"Domestic Travel", "Foreign Employees":"Foreign Employees",
       "Change Password":"Change Password", "Accounts":"Accounts", "LOGIN":"LOGIN", "Foreign Employee Management":"Foreign Employee Management",
       "EmpID / Email":"EmpID / Email", "Password":"Password", "Logout":"Logout", "Full Name":"Full Name", "Nationality":"Nationality", "Date of Birth":"Date of Birth",
@@ -426,7 +426,7 @@
       "👤 My Profile":"👤 My Profile", "✈️ Entry / Exit Declaration":"✈️ Entry / Exit Declaration", "🚗 Domestic Travel Registration":"🚗 Domestic Travel Registration", "Planned Entry/Exit Date":"Planned Entry/Exit Date", "Actual Entry/Exit Date":"Actual Entry/Exit Date", "📥 Batch Import Entry / Exit + Travel":"📥 Batch Import Entry / Exit + Travel", "Template Excel":"Excel Template", "Import pasted Excel":"Import pasted Excel", "Clear":"Clear"
     },
     zh: {
-      "FOREIGN EMPLOYEE SYSTEM":"外籍员工管理系统", "Immigration & Contract Management":"出入境与合同管理", "Dashboard":"仪表盘", "My Profile":"我的资料",
+      "FOREIGN EMPLOYEE SYSTEM":"外籍员工管理系统", "Immigration & Contract Management":"出入境与合同管理", "Dashboard":"仪表盘", "My Profile":"我的资料", "🛬 Entry":"🛬 入境", "🛫 Exit":"🛫 出境",
       "Immigration":"出入境", "Domestic Travel":"国内出行", "Foreign Employees":"外籍员工", "Change Password":"修改密码", "Accounts":"账户管理",
       "LOGIN":"登录", "Foreign Employee Management":"外籍员工管理", "EmpID / Email":"员工编号 / 邮箱", "Password":"密码", "Logout":"退出",
       "Full Name":"姓名", "Nationality":"国籍", "Date of Birth":"出生日期", "Passport No.":"护照号码", "Passport Expiry":"护照有效期", "TRC Expiry":"TRC有效期",
@@ -442,7 +442,7 @@
   };
 
   I18N.vi = {
-    "FOREIGN EMPLOYEE SYSTEM":"HỆ THỐNG QUẢN LÝ NHÂN VIÊN NƯỚC NGOÀI", "Immigration & Contract Management":"Quản lý Xuất nhập cảnh & Hợp đồng",
+    "FOREIGN EMPLOYEE SYSTEM":"HỆ THỐNG QUẢN LÝ NHÂN VIÊN NƯỚC NGOÀI", "Immigration & Contract Management":"Quản lý Xuất nhập cảnh & Hợp đồng", "🛬 Entry":"🛬 Nhập cảnh", "🛫 Exit":"🛫 Xuất cảnh",
     "Dashboard":"Tổng quan", "My Profile":"Hồ sơ của tôi", "Immigration":"Xuất nhập cảnh", "Domestic Travel":"Đi lại trong nước", "Foreign Employees":"Nhân viên nước ngoài",
     "Change Password":"Đổi mật khẩu", "Accounts":"Tài khoản", "LOGIN":"ĐĂNG NHẬP", "Foreign Employee Management":"Quản lý nhân viên nước ngoài",
     "EmpID / Email":"Mã NV / Email", "Password":"Mật khẩu", "Logout":"Đăng xuất", "Full Name":"Họ tên", "Nationality":"Quốc tịch", "Date of Birth":"Ngày sinh",
@@ -1017,7 +1017,7 @@
         <div class="border-b pb-3 mb-3">
           <div class="flex justify-between items-start gap-2">
             <div>
-              <div class="font-bold">${x.type === "ENTRY" ? "🛬 Nhập cảnh" : "🛫 Xuất cảnh"}</div>
+              <div class="font-bold">${x.type === "ENTRY" ? "🛬 Entry" : "🛫 Exit"}</div>
               <div class="text-sm">${escapeHTML(x.actualDateTime || x.dateTime)} - ${escapeHTML(x.airport || "")}<div class="text-xs text-slate-400">Planned: ${escapeHTML(x.plannedDateTime || x.dateTime || "")}</div></div>
               <div class="text-xs text-slate-400">Bay: ${escapeHTML(x.flightNo || "-")} | Điểm đến: ${escapeHTML(x.destination || "-")}</div>
               <div class="text-xs italic text-slate-500">Mục đích: ${escapeHTML(x.purpose || "-")}</div>
@@ -1166,7 +1166,7 @@
       const safeEmpId = encodeURIComponent(e.employeeId || "");
       const ee = e.nextEntryExit;
       const nextEntryExitHtml = ee
-        ? `<div class="text-xs font-semibold ${ee.type === "ENTRY" ? "text-emerald-700" : "text-red-600"}">${ee.type === "ENTRY" ? "🛬 Nhập cảnh" : "🛫 Xuất cảnh"}</div>
+        ? `<div class="text-xs font-semibold ${ee.type === "ENTRY" ? "text-emerald-700" : "text-red-600"}">${ee.type === "ENTRY" ? "🛬 Entry" : "🛫 Exit"}</div>
            <div class="${ee.type === "EXIT" ? "text-red-600" : "text-slate-600"} font-medium" style="font-size:11px">${escapeHTML(ee.dateTime || "")}</div>`
         : `<span class="text-slate-400 text-xs">Không có</span>`;
 
