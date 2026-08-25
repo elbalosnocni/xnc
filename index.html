@@ -402,11 +402,11 @@
 
     const b = document.getElementById("loginBtn");
     b.disabled = true;
-    b.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Đang đăng nhập...';
+    b.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Logging in...';
 
     try {
       const res = await callBackend("LOGIN", { username: u, password: p });
-      if (res.status !== "SUCCESS") return toast(res.message || "Đăng nhập thất bại");
+      if (res.status !== "SUCCESS") return toast(res.message || "Login Failed");
 
       currentUser = res.user;
       sessionToken = res.token;
