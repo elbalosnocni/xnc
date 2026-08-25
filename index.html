@@ -381,7 +381,7 @@
 
   async function apiGet(action, params = {}) {
     const res = await callBackend(action, {}, params);
-    if (res.status === "ERROR" && /phiên|đăng nhập/i.test(res.message || "")) {
+    if (res.status === "ERROR" && /phiên|login/i.test(res.message || "")) {
       await logout(false);
       throw new Error(res.message);
     }
@@ -390,7 +390,7 @@
 
   async function apiPost(action, data = {}) {
     const res = await callBackend(action, data, {});
-    if (res.status === "ERROR" && /phiên|đăng nhập/i.test(res.message || "")) {
+    if (res.status === "ERROR" && /phiên|login/i.test(res.message || "")) {
       await logout(false);
       throw new Error(res.message);
     }
@@ -425,7 +425,7 @@
       toast(e.message || "Không thể kết nối máy chủ.");
     } finally {
       b.disabled = false;
-      b.innerHTML = '<i class="fa-solid fa-right-to-bracket mr-2"></i> Đăng nhập';
+      b.innerHTML = '<i class="fa-solid fa-right-to-bracket mr-2"></i> Login';
     }
   }
 
