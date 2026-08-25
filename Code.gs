@@ -2060,7 +2060,7 @@ function handleGetTimeline(empId, req) {
       kind: "ENTRY_EXIT",
       rawDate: parseDateSafe(r[3]),
       date: formatDateTime(r[3]),
-      title: r[2] === "ENTRY" ? "✈️ Nhập cảnh Việt Nam" : "🛫 Xuất cảnh Việt Nam",
+      title: r[2] === "ENTRY" ? "🛬 Nhập cảnh Việt Nam" : "🛫 Xuất cảnh Việt Nam",
       status: r[2],
       location: `Cửa khẩu: ${r[4] || "-"} | Chuyến bay: ${flightNo || "-"} | Điểm đến: ${destination || "-"}`,
       purpose: purpose || ""
