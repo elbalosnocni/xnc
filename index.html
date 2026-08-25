@@ -412,7 +412,7 @@
     en: {
       "FOREIGN EMPLOYEE SYSTEM":"FOREIGN EMPLOYEE SYSTEM", "Immigration & Contract Management":"Immigration & Contract Management", "🛬 Entry":"🛬 Entry", "🛫 Exit":"🛫 Exit", "Not yet":"Not yet",
       "Dashboard":"Dashboard", "My Profile":"My Profile", "Immigration":"Immigration", "Domestic Travel":"Domestic Travel", "Foreign Employees":"Foreign Employees",
-      "Change Password":"Change Password", "Accounts":"Accounts", "LOGIN":"LOGIN", "Foreign Employee Management":"Foreign Employee Management",
+      "Change Password":"Change Password", "Accounts":"Accounts", "LOGIN":"LOGIN", "Foreign Employee Management":"Foreign Employee Management", "✓ No expired document / Contract.":"✓ No expired document / Contract."
       "EmpID / Email":"EmpID / Email", "Password":"Password", "Logout":"Logout", "Full Name":"Full Name", "Nationality":"Nationality", "Date of Birth":"Date of Birth",
       "Passport No.":"Passport No.", "Passport Expiry":"Passport Expiry", "TRC Expiry":"TRC Expiry", "Work Permit Expiry":"Work Permit Expiry", "Contract No.":"Contract No.",
       "Appendix No.":"Appendix No.", "Base Salary":"Base Salary", "Allowance":"Allowance", "Status":"Status", "Position":"Position", "Department":"Department",
@@ -428,7 +428,7 @@
     zh: {
       "FOREIGN EMPLOYEE SYSTEM":"外籍员工管理系统", "Immigration & Contract Management":"出入境与合同管理", "Dashboard":"仪表盘", "My Profile":"我的资料", "🛬 Entry":"🛬 入境", "🛫 Exit":"🛫 出境", "Not yet":"没有",
       "Immigration":"出入境", "Domestic Travel":"国内出行", "Foreign Employees":"外籍员工", "Change Password":"修改密码", "Accounts":"账户管理",
-      "LOGIN":"登录", "Foreign Employee Management":"外籍员工管理", "EmpID / Email":"员工编号 / 邮箱", "Password":"密码", "Logout":"退出",
+      "LOGIN":"登录", "Foreign Employee Management":"外籍员工管理", "✓ No expired document / Contract.":"✓ 无过期文件/合同.", "EmpID / Email":"员工编号 / 邮箱", "Password":"密码", "Logout":"退出",
       "Full Name":"姓名", "Nationality":"国籍", "Date of Birth":"出生日期", "Passport No.":"护照号码", "Passport Expiry":"护照有效期", "TRC Expiry":"TRC有效期",
       "Work Permit Expiry":"工作许可证有效期", "Contract No.":"合同编号", "Appendix No.":"合同附件编号", "Base Salary":"基本工资", "Allowance":"津贴", "Status":"状态",
       "Position":"职位", "Department":"部门", "👥 Batch Entry / Exit Registration":"👥 批量登记出入境", "👥 Batch Domestic Travel Registration":"👥 批量登记国内出行",
@@ -444,7 +444,7 @@
   I18N.vi = {
     "FOREIGN EMPLOYEE SYSTEM":"HỆ THỐNG QUẢN LÝ NHÂN VIÊN NƯỚC NGOÀI", "Immigration & Contract Management":"Quản lý Xuất nhập cảnh & Hợp đồng", "🛬 Entry":"🛬 Nhập cảnh", "🛫 Exit":"🛫 Xuất cảnh", "Not yet":"Không có",
     "Dashboard":"Tổng quan", "My Profile":"Hồ sơ của tôi", "Immigration":"Xuất nhập cảnh", "Domestic Travel":"Đi lại trong nước", "Foreign Employees":"Nhân viên nước ngoài",
-    "Change Password":"Đổi mật khẩu", "Accounts":"Tài khoản", "LOGIN":"ĐĂNG NHẬP", "Foreign Employee Management":"Quản lý nhân viên nước ngoài", 
+    "Change Password":"Đổi mật khẩu", "Accounts":"Tài khoản", "LOGIN":"ĐĂNG NHẬP", "Foreign Employee Management":"Quản lý nhân viên nước ngoài", "✓ No expired document / Contract.":"✓ Không có giấy tờ / Hợp đồng hết hạn."
     "EmpID / Email":"Mã NV / Email", "Password":"Mật khẩu", "Logout":"Đăng xuất", "Full Name":"Họ tên", "Nationality":"Quốc tịch", "Date of Birth":"Ngày sinh",
     "Passport No.":"Số hộ chiếu", "Passport Expiry":"Hạn Passport", "TRC Expiry":"Hạn TRC", "Work Permit Expiry":"Hạn Work Permit", "Contract No.":"Số Hợp đồng",
     "Appendix No.":"Số Phụ lục", "Base Salary":"Mức lương cơ bản", "Allowance":"Phụ cấp", "Status":"Trạng thái", "Position":"Chức vụ", "Department":"Phòng ban",
@@ -791,7 +791,7 @@
   function renderWarnings(list) {
     const tb = document.getElementById("warningTable");
     if (!list.length) {
-      tb.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-emerald-600">✓ Không có giấy tờ / Hợp đồng hết hạn.</td></tr>';
+      tb.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-emerald-600">✓ No expired document / Contract.</td></tr>';
       return;
     }
     tb.innerHTML = list.slice().sort((a, b) => a.daysRemaining - b.daysRemaining).map(x => `
