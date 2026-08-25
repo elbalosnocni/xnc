@@ -138,12 +138,6 @@ function dispatchApiAction(action, token, requester, data, params) {
     case "ADD_ENTRY_EXIT":
       result = handleAddEntryExit(data, requester);
       break;
-    case "BATCH_ADD_ENTRY_EXIT":
-      result = handleBatchAddEntryExit(data, requester);
-      break;
-    case "BATCH_IMPORT_MOVEMENT":
-      result = handleBatchImportMovement(data, requester);
-      break;
     case "UPDATE_ENTRY_EXIT":
       result = handleUpdateEntryExit(data, requester);
       break;
@@ -155,9 +149,6 @@ function dispatchApiAction(action, token, requester, data, params) {
       break;
     case "ADD_DOMESTIC_TRAVEL":
       result = handleAddDomesticTravel(data, requester);
-      break;
-    case "BATCH_ADD_DOMESTIC_TRAVEL":
-      result = handleBatchAddDomesticTravel(data, requester);
       break;
     case "UPDATE_DOMESTIC_TRAVEL":
       result = handleUpdateDomesticTravel(data, requester);
@@ -179,6 +170,15 @@ function dispatchApiAction(action, token, requester, data, params) {
       break;
     case "IMPORT_EMPLOYEES_EXCEL":
       result = handleImportEmployeesExcel(data, requester);
+      break;
+    case "BATCH_ADD_ENTRY_EXIT":
+      result = handleBatchAddEntryExit(data, requester);
+      break;
+    case "BATCH_ADD_DOMESTIC_TRAVEL":
+      result = handleBatchAddDomesticTravel(data, requester);
+      break;
+    case "BATCH_IMPORT_MOVEMENT":
+      result = handleBatchImportMovement(data, requester);
       break;
     case "CHANGE_PASSWORD":
       result = handleChangePassword(data, requester, token);
@@ -699,54 +699,57 @@ function parseDateSafe(val) {
   return isNaN(parsed.getTime()) ? new Date(0) : parsed;
 }
 
-
-const ENTRY_EXIT_HEADERS_V2 = ['LogID','EmployeeID','Type','PlannedDateTime','PortName','FlightNo','Destination','Purpose','ActualDateTime','TripID','CreatedAt','CreatedBy'];
-function parseEntryExitMeta(raw){ const s=String(raw||'').trim(); if(!s)return {}; try{const o=JSON.parse(s);return o&&typeof o==='object'?o:{}}catch(e){return {}} }
-function ensureEntryExitSchema(){
-  const sheet=getSheet(TABLES.ENTRY_EXIT); const lastColumn=Math.max(sheet.getLastColumn(),1);
-  const headers=sheet.getRange(1,1,1,lastColumn).getValues()[0].map(x=>String(x||'').trim());
-  if(ENTRY_EXIT_HEADERS_V2.every((h,i)=>headers[i]===h)) return sheet;
-  const lastRow=sheet.getLastRow(); const oldRows=lastRow>1?sheet.getRange(2,1,lastRow-1,lastColumn).getValues():[];
-  const migrated=oldRows.map(r=>{
-    let planned=r[3]||'',port=r[4]||'',flightNo='',destination='',purpose='',actual='',tripId='',createdAt='',createdBy='';
-    if(r.length>=9){ flightNo=r[5]||''; destination=r[6]||''; purpose=r[7]||''; createdAt=r[8]||''; const m=parseEntryExitMeta(r[5]); if(Object.keys(m).length){flightNo=m.flightNo||'';destination=m.destination||'';purpose=m.purpose||'';actual=m.actualDateTime||m.actual||'';tripId=m.tripId||'';planned=m.plannedDateTime||planned;} }
-    else { const m=parseEntryExitMeta(r[5]); if(Object.keys(m).length){flightNo=m.flightNo||'';destination=m.destination||'';purpose=m.purpose||'';actual=m.actualDateTime||m.actual||'';tripId=m.tripId||'';planned=m.plannedDateTime||planned;} else flightNo=r[5]||''; createdAt=r[6]||'';createdBy=r[7]||''; }
-    return [r[0]||'',r[1]||'',String(r[2]||'').toUpperCase(),planned,port,flightNo,destination,purpose,actual,tripId,createdAt,createdBy];
-  });
-  if(lastRow>1) sheet.getRange(2,1,lastRow-1,lastColumn).clearContent();
-  sheet.getRange(1,1,1,12).setValues([ENTRY_EXIT_HEADERS_V2]).setFontWeight('bold').setBackground('#f3f3f3');
-  if(migrated.length) sheet.getRange(2,1,migrated.length,12).setValues(migrated); return sheet;
-}
-function readEntryExitRow(r){
-  if((r||[]).length>=12) return {entryExitId:r[0],employeeId:r[1],type:String(r[2]||'').toUpperCase(),plannedDateTime:r[3]||'',airport:r[4]||'',flightNo:r[5]||'',destination:r[6]||'',purpose:r[7]||'',actualDateTime:r[8]||'',tripId:r[9]||'',createdAt:r[10]||'',createdBy:r[11]||''};
-  const m=parseEntryExitMeta(r?.[5]);
-  if((r||[]).length>=9) return {entryExitId:r[0],employeeId:r[1],type:String(r[2]||'').toUpperCase(),plannedDateTime:m.plannedDateTime||r[3]||'',airport:r[4]||'',flightNo:m.flightNo||r[5]||'',destination:m.destination||r[6]||'',purpose:m.purpose||r[7]||'',actualDateTime:m.actualDateTime||r[3]||'',tripId:m.tripId||'',createdAt:r[8]||'',createdBy:''};
-  return {entryExitId:r[0],employeeId:r[1],type:String(r[2]||'').toUpperCase(),plannedDateTime:m.plannedDateTime||r[3]||'',airport:r[4]||'',flightNo:m.flightNo||r[5]||'',destination:m.destination||'',purpose:m.purpose||'',actualDateTime:m.actualDateTime||r[3]||'',tripId:m.tripId||'',createdAt:r[6]||'',createdBy:r[7]||''};
-}
-function getEmployeeCurrentLocationStatus(employeeId){
-  const rows=ensureEntryExitSchema().getDataRange().getValues().slice(1).map(readEntryExitRow).filter(x=>String(x.employeeId||'').trim()===String(employeeId||'').trim()).map(x=>({...x,date:entryExitEffectiveDate(x)})).filter(x=>x.date.getTime()>0&&x.date<=new Date()).sort((a,b)=>b.date-a.date);
-  if(rows.length) return rows[0].type==='ENTRY'?'In Vietnam':'Exited';
-  const empRows=getSheet(TABLES.EMPLOYEES).getDataRange().getValues().slice(1); const row=empRows.find(r=>String(r[0]||'').trim()===String(employeeId||'').trim()); return row?String(row[8]||'Exited').trim():'Exited';
-}
-function validateRoundTripOrder(employeeId,entryPlanned,entryActual,exitPlanned,exitActual){
-  const entryDate=parseDateSafe(entryActual||entryPlanned), exitDate=parseDateSafe(exitActual||exitPlanned); if(entryDate.getTime()===0||exitDate.getTime()===0)return{ok:false,message:'Ngày giờ Entry/Exit không hợp lệ.'}; if(entryDate.getTime()===exitDate.getTime())return{ok:false,message:'Ngày giờ Entry và Exit không được trùng nhau.'};
-  const currentStatus=getEmployeeCurrentLocationStatus(employeeId).toLowerCase(); const isInVN=currentStatus==='in vietnam'||currentStatus==='traveling';
-  if(isInVN&&exitDate>=entryDate)return{ok:false,message:'Nhân viên đang ở Việt Nam: ngày Exit phải trước ngày Entry quay lại.'};
-  if(!isInVN&&entryDate>=exitDate)return{ok:false,message:'Nhân viên đang ở ngoài Việt Nam: ngày Entry phải trước ngày Exit.'};
-  return{ok:true,currentStatus};
-}
-function appendEntryExitEvent({employeeId,type,plannedDateTime,actualDateTime,airport,flightNo,destination,purpose,tripId,req}){ const sheet=ensureEntryExitSchema(); const id='EE-'+Utilities.getUuid().substring(0,8); const row=[id,String(employeeId).trim(),String(type).toUpperCase(),plannedDateTime||actualDateTime,String(airport||'').trim(),String(flightNo||'').trim(),String(destination||'').trim(),String(purpose||'').trim(),actualDateTime||'',tripId||'',new Date(),req.userId]; sheet.appendRow(row); writeAuditLog(req.userId,'ADD_ENTRY_EXIT',TABLES.ENTRY_EXIT,id,null,JSON.stringify(row)); return id; }
-function entryExitEffectiveDate(record){return parseDateSafe(record.actualDateTime||record.plannedDateTime);}
 function calculateEmployeeLocationStatus(employeeId) {
-  const now=new Date(); const eeSheet=ensureEntryExitSchema(); const travelSheet=getSheet(TABLES.TRAVEL);
-  const eeRows=eeSheet.getDataRange().getValues().slice(1).map(readEntryExitRow).filter(x=>String(x.employeeId).trim()===String(employeeId).trim()).map(x=>({...x,date:entryExitEffectiveDate(x)})).filter(x=>x.date.getTime()>0&&x.date<=now).sort((a,b)=>b.date-a.date);
-  let status='Exited',location='Overseas';
-  if(eeRows.length){status=eeRows[0].type==='ENTRY'?'In Vietnam':'Exited';location=status==='In Vietnam'?'Vietnam':'Overseas';}
-  if(status==='In Vietnam'){
-    const travelRows=travelSheet.getDataRange().getValues().slice(1).filter(r=>String(r[1]).trim()===String(employeeId).trim()).map(r=>({from:parseDateSafe(r[4]),to:(()=>{const d=parseDateSafe(r[5]);if(d.getTime()>0)d.setHours(23,59,59,999);return d;})(),status:String(r[6]||'').trim().toUpperCase(),toLocation:String(r[3]||'').trim(),fromLocation:String(r[2]||'').trim()})).filter(x=>x.status==='APPROVED'&&x.from.getTime()>0&&x.to.getTime()>0&&now>=x.from&&now<=x.to).sort((a,b)=>b.from-a.from);
-    if(travelRows.length){status='Traveling';location=travelRows[0].toLocation||travelRows[0].fromLocation||'Vietnam';}
+  const now = new Date();
+  const eeSheet = getSheet(TABLES.ENTRY_EXIT);
+  const travelSheet = getSheet(TABLES.TRAVEL);
+
+  const eeRows = eeSheet.getDataRange().getValues().slice(1)
+    .filter(r => String(r[1]).trim() === String(employeeId).trim())
+    .map(r => ({
+      type: String(r[2] || "").trim().toUpperCase(),
+      date: parseDateSafe(r[3])
+    }))
+    .filter(x => x.date.getTime() > 0 && x.date <= now)
+    .sort((a, b) => b.date - a.date);
+
+  // Trạng thái hiện tại chỉ dựa trên sự kiện nhập/xuất gần nhất ĐÃ xảy ra.
+  // Không dùng lịch Entry/Exit trong tương lai để làm thay đổi trạng thái hiện tại.
+  let status = "Exited";
+  let location = "Overseas";
+
+  if (eeRows.length) {
+    status = eeRows[0].type === "ENTRY" ? "In Vietnam" : "Exited";
+    location = status === "In Vietnam" ? "Vietnam" : "Overseas";
   }
-  updateEmployeeStatusRecord(employeeId,status,location); return{status,location};
+
+  // DomesticTravel chỉ được override khi đang ở Việt Nam và chuyến đã APPROVED
+  // với khoảng thời gian bao phủ thời điểm hiện tại.
+  if (status === "In Vietnam") {
+    const travelRows = travelSheet.getDataRange().getValues().slice(1)
+      .filter(r => String(r[1]).trim() === String(employeeId).trim())
+      .map(r => ({
+        from: parseDateSafe(r[4]),
+        to: (() => {
+          const d = parseDateSafe(r[5]);
+          if (d.getTime() > 0) d.setHours(23, 59, 59, 999);
+          return d;
+        })(),
+        status: String(r[6] || "").trim().toUpperCase(),
+        toLocation: String(r[3] || "").trim(),
+        fromLocation: String(r[2] || "").trim()
+      }))
+      .filter(x => x.status === "APPROVED" && x.from.getTime() > 0 && x.to.getTime() > 0 && now >= x.from && now <= x.to)
+      .sort((a, b) => b.from - a.from);
+
+    if (travelRows.length) {
+      status = "Traveling";
+      location = travelRows[0].toLocation || travelRows[0].fromLocation || "Vietnam";
+    }
+  }
+
+  updateEmployeeStatusRecord(employeeId, status, location);
+  return { status, location };
 }
 
 function updateEmployeeStatusRecord(employeeId, status, location) {
@@ -767,34 +770,95 @@ function updateEmployeeStatusRecord(employeeId, status, location) {
 
 // --- 1. HÀM THÊM KHAI BÁO NHẬP XUẤT CẢNH (Đã fix nhận dateTime) ---
 function handleAddEntryExit(data, req) {
-  data=data||{}; const employeeId=String(data.employeeId||'').trim(); if(!employeeId)return{status:'ERROR',message:'Thiếu Mã nhân viên.'}; if(!canAccessEmployee(req,employeeId))return{status:'ERROR',message:'Bạn không có quyền thực hiện.'};
-  const mode=String(data.mode||'').trim().toUpperCase(), purpose=String(data.purpose||'').trim();
-  if(mode==='ROUND_TRIP'){
-    const ep=data.entryPlannedDateTime,xp=data.exitPlannedDateTime,ea=data.entryActualDateTime||'',xa=data.exitActualDateTime||'',eport=String(data.entryAirport||'').trim(),xport=String(data.exitAirport||'').trim();
-    if(!ep||!xp||!eport||!xport)return{status:'ERROR',message:'Thiếu ngày giờ dự kiến và sân bay/cửa khẩu cho cả Entry và Exit.'};
-    const v=validateRoundTripOrder(employeeId,ep,ea,xp,xa); if(!v.ok)return{status:'ERROR',message:v.message}; const tripId=String(data.tripId||'').trim()||'TRIP-'+Utilities.getUuid().substring(0,8); const ids=[]; const invn=['in vietnam','traveling'].includes(v.currentStatus.toLowerCase());
-    const events=invn?[{type:'EXIT',plannedDateTime:xp,actualDateTime:xa,airport:xport,flightNo:data.exitFlightNo,destination:data.exitDestination},{type:'ENTRY',plannedDateTime:ep,actualDateTime:ea,airport:eport,flightNo:data.entryFlightNo,destination:data.entryDestination}]:[{type:'ENTRY',plannedDateTime:ep,actualDateTime:ea,airport:eport,flightNo:data.entryFlightNo,destination:data.entryDestination},{type:'EXIT',plannedDateTime:xp,actualDateTime:xa,airport:xport,flightNo:data.exitFlightNo,destination:data.exitDestination}];
-    events.forEach(ev=>ids.push(appendEntryExitEvent({...ev,employeeId,purpose,tripId,req}))); calculateEmployeeLocationStatus(employeeId); return{status:'SUCCESS',message:'Đã lưu Entry/Exit thành công.',tripId,entryExitIds:ids};
+  data = data || {};
+  const employeeId = String(data.employeeId || "").trim();
+  const type = String(data.type || "").trim().toUpperCase();
+  const plannedDateTime = data.plannedDateTime || data.dateTime || data.date;
+  const actualDateTime = data.actualDateTime || "";
+  const eventDate = actualDateTime || plannedDateTime;
+
+  if (!employeeId || !["ENTRY", "EXIT"].includes(type) || !eventDate || !data.airport) {
+    return { status: "ERROR", message: "Thiếu hoặc sai thông tin nhập/xuất cảnh." };
   }
-  const type=String(data.type||'').trim().toUpperCase(), plannedDateTime=data.plannedDateTime||data.dateTime||data.date, actualDateTime=data.actualDateTime||'', airport=String(data.airport||'').trim();
-  if(!['ENTRY','EXIT'].includes(type)||!plannedDateTime||!airport)return{status:'ERROR',message:'Thiếu hoặc sai thông tin nhập/xuất cảnh.'};
-  if(parseDateSafe(plannedDateTime).getTime()===0||(actualDateTime&&parseDateSafe(actualDateTime).getTime()===0))return{status:'ERROR',message:'Ngày giờ không hợp lệ.'};
-  const id=appendEntryExitEvent({employeeId,type,plannedDateTime,actualDateTime,airport,flightNo:data.flightNo,destination:data.destination,purpose,tripId:data.tripId||'',req}); calculateEmployeeLocationStatus(employeeId); return{status:'SUCCESS',message:'Đã lưu khai báo nhập/xuất cảnh thành công!',entryExitId:id};
+  if (!canAccessEmployee(req, employeeId)) {
+    return { status: "ERROR", message: "Bạn không có quyền thực hiện." };
+  }
+
+  const parsedEvent = parseDateSafe(eventDate);
+  if (parsedEvent.getTime() === 0) return { status: "ERROR", message: "Ngày giờ không hợp lệ." };
+
+  const sheet = getSheet(TABLES.ENTRY_EXIT);
+  const id = "EE-" + Utilities.getUuid().substring(0, 8);
+  const now = new Date();
+
+  // Schema mới giữ nguyên 9 cột đầu để tương thích dữ liệu cũ,
+  // đồng thời bổ sung CreatedBy / PlannedDateTime / ActualDateTime / TripID.
+  const row = [
+    id,
+    employeeId,
+    type,
+    eventDate,
+    String(data.airport || "").trim(),
+    String(data.flightNo || "").trim(),
+    String(data.destination || "").trim(),
+    String(data.purpose || "").trim(),
+    now,
+    req.userId || "",
+    plannedDateTime || "",
+    actualDateTime || "",
+    String(data.tripId || "").trim()
+  ];
+  sheet.getRange(sheet.getLastRow() + 1, 1, 1, row.length).setValues([row]);
+
+  calculateEmployeeLocationStatus(employeeId);
+  writeAuditLog(req.userId, "ADD_ENTRY_EXIT", TABLES.ENTRY_EXIT, id, null,
+    JSON.stringify({ employeeId, type, eventDate, plannedDateTime, actualDateTime, airport: data.airport, flightNo: data.flightNo, destination: data.destination, purpose: data.purpose }));
+
+  return { status: "SUCCESS", message: "Đã lưu khai báo nhập/xuất cảnh thành công!", entryExitId: id };
 }
 
-function isBatchOperator(req){return req&&String(req.role||'').toUpperCase()===ROLES.ADMIN;}
-function normalizeEmployeeIds(ids){if(!Array.isArray(ids))ids=ids?[ids]:[];return[...new Set(ids.flatMap(x=>String(x||'').split(',')).map(x=>x.trim()).filter(Boolean))];}
-function getActiveEmployeeIds(){const rows=getSheet(TABLES.EMPLOYEES).getDataRange().getValues().slice(1);return new Set(rows.filter(r=>String(r[10]||'ACTIVE').trim().toUpperCase()!=='INACTIVE').map(r=>String(r[0]||'').trim()).filter(Boolean));}
-function handleBatchAddEntryExit(data,req){
-  if(!isBatchOperator(req))return{status:'ERROR',message:'Chỉ ADMIN được đăng ký hàng loạt.'}; data=data||{}; const employeeIds=normalizeEmployeeIds(data.employeeIds); if(!employeeIds.length)return{status:'ERROR',message:'Vui lòng chọn ít nhất một nhân viên.'}; const mode=String(data.mode||'ROUND_TRIP').trim().toUpperCase(); if(!['ROUND_TRIP','ENTRY_ONLY','EXIT_ONLY'].includes(mode))return{status:'ERROR',message:'Loại đăng ký không hợp lệ.'}; const validIds=getActiveEmployeeIds(),created=[],failed=[];
-  employeeIds.forEach(employeeId=>{if(!validIds.has(employeeId)){failed.push({employeeId,message:'Không tìm thấy hoặc nhân viên đã INACTIVE.'});return;}try{
-    if(mode==='ROUND_TRIP'){const v=validateRoundTripOrder(employeeId,data.entryPlannedDateTime,data.entryActualDateTime||'',data.exitPlannedDateTime,data.exitActualDateTime||''); if(!data.entryPlannedDateTime||!data.exitPlannedDateTime||!data.entryAirport||!data.exitAirport)throw new Error('Thiếu ngày giờ và sân bay/cửa khẩu cho cả Entry và Exit.'); if(!v.ok)throw new Error(v.message); const tripId='TRIP-'+Utilities.getUuid().substring(0,8); const invn=['in vietnam','traveling'].includes(String(v.currentStatus).toLowerCase()); const evs=invn?[{type:'EXIT',plannedDateTime:data.exitPlannedDateTime,actualDateTime:data.exitActualDateTime||'',airport:data.exitAirport,flightNo:data.exitFlightNo,destination:data.exitDestination},{type:'ENTRY',plannedDateTime:data.entryPlannedDateTime,actualDateTime:data.entryActualDateTime||'',airport:data.entryAirport,flightNo:data.entryFlightNo,destination:data.entryDestination}]:[{type:'ENTRY',plannedDateTime:data.entryPlannedDateTime,actualDateTime:data.entryActualDateTime||'',airport:data.entryAirport,flightNo:data.entryFlightNo,destination:data.entryDestination},{type:'EXIT',plannedDateTime:data.exitPlannedDateTime,actualDateTime:data.exitActualDateTime||'',airport:data.exitAirport,flightNo:data.exitFlightNo,destination:data.exitDestination}]; evs.forEach(ev=>appendEntryExitEvent({...ev,employeeId,purpose:data.purpose,tripId,req})); calculateEmployeeLocationStatus(employeeId); created.push({employeeId,tripId});}
-    else {const type=mode==='ENTRY_ONLY'?'ENTRY':'EXIT',pd=type==='ENTRY'?data.entryPlannedDateTime:data.exitPlannedDateTime,ad=type==='ENTRY'?data.entryActualDateTime:data.exitActualDateTime,port=type==='ENTRY'?data.entryAirport:data.exitAirport;if(!pd||!port)throw new Error(`Thiếu ngày giờ và sân bay/cửa khẩu cho ${type}.`);const id=appendEntryExitEvent({employeeId,type,plannedDateTime:pd,actualDateTime:ad,airport:port,flightNo:type==='ENTRY'?data.entryFlightNo:data.exitFlightNo,destination:type==='ENTRY'?data.entryDestination:data.exitDestination,purpose:data.purpose,tripId:'',req});calculateEmployeeLocationStatus(employeeId);created.push({employeeId,entryExitId:id});}
-  }catch(e){failed.push({employeeId,message:e.message||String(e)});}}); return{status:created.length?'SUCCESS':'ERROR',message:`Đã đăng ký ${created.length}/${employeeIds.length} nhân viên.`+(failed.length?` Có ${failed.length} trường hợp lỗi.`:''),created,failed,count:created.length};
-}
+function handleUpdateEntryExit(data, req) {
+  data = data || {};
+  const id = String(data.entryExitId || data.logId || "").trim();
+  const employeeId = String(data.employeeId || "").trim();
+  if (!id || !employeeId) return { status: "ERROR", message: "Thiếu mã khai báo." };
+  if (!canAccessEmployee(req, employeeId)) return { status: "ERROR", message: "Bạn không có quyền thực hiện." };
 
-function handleUpdateEntryExit(data,req){
-  data=data||{};const id=String(data.entryExitId||data.logId||'').trim(),employeeId=String(data.employeeId||'').trim();if(!id||!employeeId)return{status:'ERROR',message:'Thiếu mã khai báo.'};if(!canAccessEmployee(req,employeeId))return{status:'ERROR',message:'Bạn không có quyền thực hiện.'};const type=String(data.type||'').trim().toUpperCase(),plannedDateTime=data.plannedDateTime||data.dateTime||data.date,actualDateTime=data.actualDateTime||'',airport=String(data.airport||'').trim();if(!['ENTRY','EXIT'].includes(type)||!plannedDateTime||!airport)return{status:'ERROR',message:'Thiếu hoặc sai thông tin nhập/xuất cảnh.'};if(parseDateSafe(plannedDateTime).getTime()===0||(actualDateTime&&parseDateSafe(actualDateTime).getTime()===0))return{status:'ERROR',message:'Ngày giờ không hợp lệ.'};const sheet=ensureEntryExitSchema(),rows=sheet.getDataRange().getValues();for(let i=1;i<rows.length;i++){if(String(rows[i][0]).trim()!==id)continue;const old=readEntryExitRow(rows[i]);if(String(old.employeeId).trim()!==employeeId)return{status:'ERROR',message:'Khai báo không thuộc nhân viên này.'};const updated=[id,employeeId,type,plannedDateTime,airport,String(data.flightNo||'').trim(),String(data.destination||'').trim(),String(data.purpose||'').trim(),actualDateTime||'',String(data.tripId||old.tripId||''),old.createdAt||new Date(),old.createdBy||req.userId];sheet.getRange(i+1,1,1,12).setValues([updated]);calculateEmployeeLocationStatus(employeeId);writeAuditLog(req.userId,'UPDATE_ENTRY_EXIT',TABLES.ENTRY_EXIT,id,JSON.stringify(old),JSON.stringify(updated));return{status:'SUCCESS',message:'Đã cập nhật khai báo nhập/xuất cảnh.'};}return{status:'ERROR',message:'Không tìm thấy khai báo nhập/xuất cảnh.'};
+  const type = String(data.type || "").trim().toUpperCase();
+  const plannedDateTime = data.plannedDateTime || data.dateTime || data.date;
+  const actualDateTime = data.actualDateTime || "";
+  const eventDate = actualDateTime || plannedDateTime;
+  if (!["ENTRY", "EXIT"].includes(type) || !eventDate || !data.airport) {
+    return { status: "ERROR", message: "Thiếu hoặc sai thông tin nhập/xuất cảnh." };
+  }
+
+  const sheet = getSheet(TABLES.ENTRY_EXIT);
+  const rows = sheet.getDataRange().getValues();
+  for (let i = 1; i < rows.length; i++) {
+    if (String(rows[i][0]).trim() !== id) continue;
+    if (String(rows[i][1]).trim() !== employeeId) return { status: "ERROR", message: "Khai báo không thuộc nhân viên này." };
+
+    const oldRow = rows[i].slice();
+    const updated = oldRow.slice();
+    while (updated.length < 13) updated.push("");
+    updated[2] = type;
+    updated[3] = eventDate;
+    updated[4] = String(data.airport || "").trim();
+    updated[5] = String(data.flightNo || "").trim();
+    updated[6] = String(data.destination || "").trim();
+    updated[7] = String(data.purpose || "").trim();
+    updated[8] = oldRow[8] || new Date();
+    updated[9] = oldRow[9] || req.userId || "";
+    updated[10] = plannedDateTime || "";
+    updated[11] = actualDateTime || "";
+    updated[12] = String(data.tripId || oldRow[12] || "").trim();
+
+    sheet.getRange(i + 1, 1, 1, 13).setValues([updated.slice(0, 13)]);
+    calculateEmployeeLocationStatus(employeeId);
+    writeAuditLog(req.userId, "UPDATE_ENTRY_EXIT", TABLES.ENTRY_EXIT, id, JSON.stringify(oldRow), JSON.stringify(updated));
+    return { status: "SUCCESS", message: "Đã cập nhật khai báo nhập/xuất cảnh." };
+  }
+  return { status: "ERROR", message: "Không tìm thấy khai báo nhập/xuất cảnh." };
 }
 
 function handleDeleteEntryExit(data, req) {
@@ -802,7 +866,7 @@ function handleDeleteEntryExit(data, req) {
   const id = String(data.entryExitId || data.logId || "").trim();
   if (!id) return { status: "ERROR", message: "Thiếu mã khai báo." };
 
-  const sheet = ensureEntryExitSchema();
+  const sheet = getSheet(TABLES.ENTRY_EXIT);
   const rows = sheet.getDataRange().getValues();
   for (let i = 1; i < rows.length; i++) {
     if (String(rows[i][0]).trim() !== id) continue;
@@ -818,15 +882,40 @@ function handleDeleteEntryExit(data, req) {
   return { status: "ERROR", message: "Không tìm thấy khai báo nhập/xuất cảnh." };
 }
 
-function handleGetEntryExit(empId,req){if(!canAccessEmployee(req,empId))return{status:'ERROR',message:'Không có quyền xem thông tin.'};const rows=ensureEntryExitSchema().getDataRange().getValues().slice(1);const records=rows.filter(r=>String(r[1]).trim()===String(empId).trim()).map(r=>{const x=readEntryExitRow(r);return{entryExitId:x.entryExitId,employeeId:x.employeeId,type:x.type,tripId:x.tripId||'',plannedDateTime:formatDateTime(x.plannedDateTime),actualDateTime:x.actualDateTime?formatDateTime(x.actualDateTime):'',dateTime:formatDateTime(x.actualDateTime||x.plannedDateTime),airport:x.airport,flightNo:x.flightNo,destination:x.destination,purpose:x.purpose};});return{status:'SUCCESS',records};}
+function handleGetEntryExit(empId, req) {
+  if (!canAccessEmployee(req, empId)) return { status: "ERROR", message: "Không có quyền xem thông tin." };
 
-function handleBatchImportMovement(data,req){
-  if(!isBatchOperator(req))return{status:'ERROR',message:'Chỉ ADMIN được import hàng loạt.'};const rows=Array.isArray(data&&data.rows)?data.rows:[];if(!rows.length)return{status:'ERROR',message:'Không có dữ liệu import.'};if(rows.length>1000)return{status:'ERROR',message:'Mỗi lần import tối đa 1000 dòng.'};const created=[],errors=[];
-  rows.forEach((row,index)=>{const excelRow=Number(row._excelRow||index+2),employeeIds=normalizeEmployeeIds(row.employeeIds||row.employeeId);if(!employeeIds.length){errors.push({row:excelRow,message:'Thiếu EmployeeID.'});return;}const movementType=String(row.movementType||row.module||'').trim().toUpperCase(),type=String(row.type||'').trim().toUpperCase();employeeIds.forEach(employeeId=>{try{
-    if(movementType==='TRAVEL'){const r=handleBatchAddDomesticTravel({employeeIds:[employeeId],fromDate:row.fromDate,toDate:row.toDate,fromLocation:row.fromLocation,toLocation:row.toLocation,purpose:row.purpose},req);if(r.status!=='SUCCESS')throw new Error(r.message);created.push({row:excelRow,employeeId,type:'TRAVEL'});return;}
-    if(movementType==='ENTRY_EXIT'||movementType==='ROUND_TRIP'||(!movementType&&(row.entryPlannedDateTime||row.exitPlannedDateTime))){const r=handleBatchAddEntryExit({employeeIds:[employeeId],mode:'ROUND_TRIP',entryPlannedDateTime:row.entryPlannedDateTime,entryActualDateTime:row.entryActualDateTime,entryAirport:row.entryAirport,entryFlightNo:row.entryFlightNo,entryDestination:row.entryDestination,exitPlannedDateTime:row.exitPlannedDateTime,exitActualDateTime:row.exitActualDateTime,exitAirport:row.exitAirport,exitFlightNo:row.exitFlightNo,exitDestination:row.exitDestination,purpose:row.purpose},req);if(r.status!=='SUCCESS')throw new Error(r.message);created.push({row:excelRow,employeeId,type:'ENTRY_EXIT'});return;}
-    const oneType=type||movementType;if(!['ENTRY','EXIT'].includes(oneType))throw new Error('MovementType/Type phải là ENTRY, EXIT, ENTRY_EXIT hoặc TRAVEL.');const r=handleBatchAddEntryExit({employeeIds:[employeeId],mode:oneType==='ENTRY'?'ENTRY_ONLY':'EXIT_ONLY',entryPlannedDateTime:row.plannedDateTime,entryActualDateTime:row.actualDateTime,entryAirport:row.airport,entryFlightNo:row.flightNo,entryDestination:row.destination,exitPlannedDateTime:row.plannedDateTime,exitActualDateTime:row.actualDateTime,exitAirport:row.airport,exitFlightNo:row.flightNo,exitDestination:row.destination,purpose:row.purpose},req);if(r.status!=='SUCCESS')throw new Error(r.message);created.push({row:excelRow,employeeId,type:oneType});
-  }catch(e){errors.push({row:excelRow,employeeId,message:e.message||String(e)});}});});return{status:created.length?'SUCCESS':'ERROR',message:`Import xong ${created.length} bản ghi.`+(errors.length?` Có ${errors.length} lỗi.`:''),created,errors};
+  const sheet = getSheet(TABLES.ENTRY_EXIT);
+  const rows = sheet.getDataRange().getValues().slice(1);
+  const records = rows.filter(r => String(r[1]) === String(empId)).map(r => {
+    let flightNo = String(r[5] || "");
+    let destination = String(r[6] || "");
+    let purpose = String(r[7] || "");
+
+    try {
+      const noteObj = JSON.parse(String(r[5] || ""));
+      if (noteObj && typeof noteObj === "object") {
+        flightNo = noteObj.flightNo || "";
+        destination = noteObj.destination || "";
+        purpose = noteObj.purpose || "";
+      }
+    } catch (e) {}
+
+    return {
+      entryExitId: r[0],
+      employeeId: r[1],
+      type: r[2],
+      dateTime: formatDateTime(r[3]),
+      plannedDateTime: formatDateTime(r[10] || r[3]),
+      actualDateTime: r[11] ? formatDateTime(r[11]) : "",
+      airport: r[4],
+      flightNo,
+      destination,
+      purpose,
+      tripId: r[12] || ""
+    };
+  });
+  return { status: "SUCCESS", records };
 }
 
 function handleAddDomesticTravel(d, req) {
@@ -862,54 +951,6 @@ function handleAddDomesticTravel(d, req) {
     status: "SUCCESS",
     message: isHR ? "Đã lưu và duyệt lịch trình công tác!" : "Đã gửi yêu cầu công tác (Chờ duyệt)!",
     travelId: id
-  };
-}
-
-
-// ============================================================
-// BATCH DOMESTIC TRAVEL - ADMIN / HR ADMIN / HR
-// ============================================================
-function handleBatchAddDomesticTravel(data, req) {
-  if (!isBatchOperator(req)) return { status: 'ERROR', message: 'Chỉ ADMIN được đăng ký hàng loạt.' };
-  data = data || {};
-  const employeeIds = normalizeEmployeeIds(data.employeeIds);
-  const fromDate = String(data.fromDate || '').trim();
-  const toDate = String(data.toDate || '').trim();
-  const fromLocation = String(data.fromLocation || '').trim();
-  const toLocation = String(data.toLocation || '').trim();
-  const purpose = String(data.purpose || '').trim();
-  if (!employeeIds.length) return { status: 'ERROR', message: 'Vui lòng chọn ít nhất một nhân viên.' };
-  if (!fromDate || !toDate || !fromLocation || !toLocation) return { status: 'ERROR', message: 'Thiếu thông tin lịch trình.' };
-  const start = parseDateSafe(fromDate), end = parseDateSafe(toDate);
-  if (start.getTime() === 0 || end.getTime() === 0 || end < start) return { status: 'ERROR', message: 'Khoảng ngày đi lại không hợp lệ.' };
-
-  const validIds = getActiveEmployeeIds();
-  const sheet = getSheet(TABLES.TRAVEL);
-  const isHR = isBatchOperator(req);
-  const initialStatus = isHR ? 'APPROVED' : 'PENDING';
-  const created = [], failed = [];
-
-  employeeIds.forEach(employeeId => {
-    if (!validIds.has(employeeId)) {
-      failed.push({ employeeId, message: 'Không tìm thấy hoặc nhân viên đã INACTIVE.' });
-      return;
-    }
-    try {
-      const id = 'TRV-' + Utilities.getUuid().substring(0, 8);
-      const row = [id, employeeId, fromLocation, toLocation, fromDate, toDate, initialStatus, '', '', new Date(), req.userId, purpose];
-      sheet.appendRow(row);
-      calculateEmployeeLocationStatus(employeeId);
-      writeAuditLog(req.userId, 'BATCH_ADD_DOMESTIC_TRAVEL', TABLES.TRAVEL, id, null, JSON.stringify(row));
-      created.push({ employeeId, travelId: id });
-    } catch (e) {
-      failed.push({ employeeId, message: e.message || String(e) });
-    }
-  });
-
-  return {
-    status: created.length ? 'SUCCESS' : 'ERROR',
-    message: `Đã đăng ký ${created.length}/${employeeIds.length} nhân viên đi lại nội địa.` + (failed.length ? ` Có ${failed.length} trường hợp lỗi.` : ''),
-    created, failed, count: created.length
   };
 }
 
@@ -993,6 +1034,214 @@ function handleGetDomesticTravel(empId, req) {
   return { status: "SUCCESS", records };
 }
 
+
+// ==========================================
+// BATCH ADMIN / UNIFIED MOVEMENT IMPORT
+// ==========================================
+function requireBatchAdmin(req) {
+  if (!req || ![ROLES.ADMIN, ROLES.HR_ADMIN].includes(String(req.role || "").toUpperCase())) {
+    return { status: "ERROR", message: "Chỉ ADMIN / HR ADMIN được phép thực hiện thao tác hàng loạt." };
+  }
+  return null;
+}
+
+function handleBatchAddEntryExit(data, req) {
+  const denied = requireBatchAdmin(req);
+  if (denied) return denied;
+
+  data = data || {};
+  const employeeIds = Array.isArray(data.employeeIds) ? data.employeeIds.map(String).map(x => x.trim()).filter(Boolean) : [];
+  const mode = String(data.mode || "ROUND_TRIP").toUpperCase();
+  if (!employeeIds.length) return { status: "ERROR", message: "Chưa chọn nhân viên." };
+
+  const results = [];
+  const errors = [];
+
+  employeeIds.forEach(employeeId => {
+    try {
+      if (["ROUND_TRIP", "ENTRY_ONLY"].includes(mode)) {
+        if (!data.entryPlannedDateTime || !data.entryAirport) {
+          throw new Error("Thiếu thông tin Entry.");
+        }
+        const r = handleAddEntryExit({
+          employeeId,
+          type: "ENTRY",
+          plannedDateTime: data.entryPlannedDateTime,
+          actualDateTime: data.entryActualDateTime || "",
+          airport: data.entryAirport,
+          flightNo: data.entryFlightNo || "",
+          destination: data.entryDestination || "",
+          purpose: data.purpose || "",
+          tripId: data.tripId || ""
+        }, req);
+        if (r.status !== "SUCCESS") throw new Error(r.message || "Không lưu được Entry.");
+        results.push({ employeeId, type: "ENTRY", id: r.entryExitId });
+      }
+
+      if (["ROUND_TRIP", "EXIT_ONLY"].includes(mode)) {
+        if (!data.exitPlannedDateTime || !data.exitAirport) {
+          throw new Error("Thiếu thông tin Exit.");
+        }
+        const r = handleAddEntryExit({
+          employeeId,
+          type: "EXIT",
+          plannedDateTime: data.exitPlannedDateTime,
+          actualDateTime: data.exitActualDateTime || "",
+          airport: data.exitAirport,
+          flightNo: data.exitFlightNo || "",
+          destination: data.exitDestination || "",
+          purpose: data.purpose || "",
+          tripId: data.tripId || ""
+        }, req);
+        if (r.status !== "SUCCESS") throw new Error(r.message || "Không lưu được Exit.");
+        results.push({ employeeId, type: "EXIT", id: r.entryExitId });
+      }
+    } catch (e) {
+      errors.push({ employeeId, message: e.message || String(e) });
+    }
+  });
+
+  return {
+    status: errors.length && !results.length ? "ERROR" : "SUCCESS",
+    message: `Đã xử lý ${results.length} bản ghi Entry/Exit${errors.length ? `, ${errors.length} lỗi` : ""}.`,
+    created: results.length,
+    errors,
+    records: results
+  };
+}
+
+function handleBatchAddDomesticTravel(data, req) {
+  const denied = requireBatchAdmin(req);
+  if (denied) return denied;
+
+  data = data || {};
+  const employeeIds = Array.isArray(data.employeeIds) ? data.employeeIds.map(String).map(x => x.trim()).filter(Boolean) : [];
+  if (!employeeIds.length) return { status: "ERROR", message: "Chưa chọn nhân viên." };
+
+  const results = [];
+  const errors = [];
+  employeeIds.forEach(employeeId => {
+    try {
+      const r = handleAddDomesticTravel({
+        employeeId,
+        fromDate: data.fromDate,
+        toDate: data.toDate,
+        fromLocation: data.fromLocation,
+        toLocation: data.toLocation,
+        purpose: data.purpose || ""
+      }, req);
+      if (r.status !== "SUCCESS") throw new Error(r.message || "Không lưu được lịch Travel.");
+      results.push({ employeeId, id: r.travelId });
+    } catch (e) {
+      errors.push({ employeeId, message: e.message || String(e) });
+    }
+  });
+
+  return {
+    status: errors.length && !results.length ? "ERROR" : "SUCCESS",
+    message: `Đã xử lý ${results.length} lịch Travel${errors.length ? `, ${errors.length} lỗi` : ""}.`,
+    created: results.length,
+    errors,
+    records: results
+  };
+}
+
+function handleBatchImportMovement(data, req) {
+  const denied = requireBatchAdmin(req);
+  if (denied) return denied;
+
+  const rows = Array.isArray(data && data.rows) ? data.rows : [];
+  if (!rows.length) return { status: "ERROR", message: "Không có dữ liệu Movement." };
+
+  const errors = [];
+  const created = [];
+  let entryExitCreated = 0;
+  let travelCreated = 0;
+
+  rows.forEach((raw, idx) => {
+    const row = raw || {};
+    const rowNo = Number(row._excelRow || idx + 2);
+    const movementType = String(row.movementType || row.module || row.type || "").trim().toUpperCase();
+    const employeeId = String(row.employeeId || "").trim();
+
+    try {
+      if (!employeeId) throw new Error("Thiếu EmployeeID.");
+      if (!["ENTRY_EXIT", "TRAVEL"].includes(movementType)) {
+        throw new Error("MovementType phải là ENTRY_EXIT hoặc TRAVEL.");
+      }
+
+      if (movementType === "ENTRY_EXIT") {
+        const entryPlanned = row.entryPlannedDateTime || "";
+        const entryActual = row.entryActualDateTime || "";
+        const exitPlanned = row.exitPlannedDateTime || "";
+        const exitActual = row.exitActualDateTime || "";
+
+        if (entryPlanned || entryActual) {
+          const r = handleAddEntryExit({
+            employeeId,
+            type: "ENTRY",
+            plannedDateTime: entryPlanned || entryActual,
+            actualDateTime: entryActual,
+            airport: row.entryAirport || row.airport,
+            flightNo: row.entryFlightNo || row.flightNo,
+            destination: row.entryDestination || row.destination,
+            purpose: row.purpose,
+            tripId: row.tripId
+          }, req);
+          if (r.status !== "SUCCESS") throw new Error(r.message || "Không tạo Entry.");
+          entryExitCreated++;
+          created.push({ row: rowNo, employeeId, type: "ENTRY", id: r.entryExitId });
+        }
+
+        if (exitPlanned || exitActual) {
+          const r = handleAddEntryExit({
+            employeeId,
+            type: "EXIT",
+            plannedDateTime: exitPlanned || exitActual,
+            actualDateTime: exitActual,
+            airport: row.exitAirport || row.airport,
+            flightNo: row.exitFlightNo || row.flightNo,
+            destination: row.exitDestination || row.destination,
+            purpose: row.purpose,
+            tripId: row.tripId
+          }, req);
+          if (r.status !== "SUCCESS") throw new Error(r.message || "Không tạo Exit.");
+          entryExitCreated++;
+          created.push({ row: rowNo, employeeId, type: "EXIT", id: r.entryExitId });
+        }
+
+        if (!(entryPlanned || entryActual || exitPlanned || exitActual)) {
+          throw new Error("ENTRY_EXIT phải có ít nhất Entry hoặc Exit.");
+        }
+      } else {
+        const r = handleAddDomesticTravel({
+          employeeId,
+          fromDate: row.fromDate,
+          toDate: row.toDate,
+          fromLocation: row.fromLocation,
+          toLocation: row.toLocation,
+          purpose: row.purpose || ""
+        }, req);
+        if (r.status !== "SUCCESS") throw new Error(r.message || "Không tạo Travel.");
+        travelCreated++;
+        created.push({ row: rowNo, employeeId, type: "TRAVEL", id: r.travelId });
+      }
+    } catch (e) {
+      errors.push({ row: rowNo, employeeId, message: e.message || String(e) });
+    }
+  });
+
+  return {
+    status: errors.length && !created.length ? "ERROR" : "SUCCESS",
+    message: `Import Movement hoàn tất: ${entryExitCreated} Entry/Exit, ${travelCreated} Travel${errors.length ? `, ${errors.length} dòng lỗi` : ""}.`,
+    entryExitCreated,
+    travelCreated,
+    created: created.length,
+    errors,
+    records: created
+  };
+}
+
 // ==========================================
 // G. DASHBOARD & PROFILE RESPONSE
 // ==========================================
@@ -1005,7 +1254,7 @@ function getDashboardData(requester) {
   const empRows = empSheet.getDataRange().getValues().slice(1);
   const ctrSheet = getSheet(TABLES.CONTRACTS);
   const ctrRows = ctrSheet.getDataRange().getValues().slice(1);
-  const eeSheet = ensureEntryExitSchema();
+  const eeSheet = getSheet(TABLES.ENTRY_EXIT);
   const eeRows = eeSheet.getDataRange().getValues().slice(1);
   const travelSheet = getSheet(TABLES.TRAVEL);
   const travelRows = travelSheet.getDataRange().getValues().slice(1);
@@ -1029,8 +1278,38 @@ function getDashboardData(requester) {
   const nextTravelMap = {};
   const nextEntryExitMap = {};
 
-  // Entry/Exit: lấy sự kiện gần nhất trong tương lai theo PlannedDateTime.
-  eeRows.map(readEntryExitRow).forEach(x=>{const employeeId=String(x.employeeId||'').trim(),eventDate=parseDateSafe(x.plannedDateTime);if(!employeeId||eventDate.getTime()===0||eventDate<now)return;if(!nextEntryExitMap[employeeId]||eventDate<nextEntryExitMap[employeeId].rawDate){nextEntryExitMap[employeeId]={entryExitId:x.entryExitId,rawDate:eventDate,type:x.type,dateTime:formatDateTime(x.plannedDateTime),airport:x.airport||'',flightNo:x.flightNo||'',destination:x.destination||'',purpose:x.purpose||'',tripId:x.tripId||''};}});
+  // Entry/Exit: chỉ lấy sự kiện gần nhất trong tương lai, tính theo thời gian đầy đủ.
+  eeRows.forEach(r => {
+    const employeeId = String(r[1] || "").trim();
+    const eventDate = parseDateSafe(r[10] || r[3]);
+    if (!employeeId || eventDate.getTime() === 0 || eventDate < now) return;
+
+    if (!nextEntryExitMap[employeeId] || eventDate < nextEntryExitMap[employeeId].rawDate) {
+      let flightNo = String(r[5] || "");
+      let destination = String(r[6] || "");
+      let purpose = String(r[7] || "");
+      try {
+        const obj = JSON.parse(String(r[5] || ""));
+        if (obj && typeof obj === "object") {
+          flightNo = obj.flightNo || "";
+          destination = obj.destination || "";
+          purpose = obj.purpose || "";
+        }
+      } catch (e) {}
+
+      nextEntryExitMap[employeeId] = {
+        entryExitId: r[0],
+        rawDate: eventDate,
+        type: String(r[2] || "").toUpperCase(),
+        dateTime: formatDateTime(r[3]),
+        airport: r[4] || "",
+        flightNo,
+        destination,
+        purpose
+      };
+    }
+  });
+
   // DomesticTravel: chỉ lấy chuyến APPROVED có ngày bắt đầu từ hiện tại trở đi.
   travelRows.forEach(r => {
     const employeeId = String(r[1] || "").trim();
@@ -1237,8 +1516,9 @@ function normalizeImportDate(value) {
 }
 
 function handleImportEmployeesExcel(data, requester) {
-  if (requester.role !== ROLES.ADMIN) {
-    return { status: "ERROR", message: "Chỉ ADMIN được import Excel danh sách nhân viên." };
+  const allowedRoles = [ROLES.ADMIN, ROLES.HR_ADMIN, ROLES.HR];
+  if (!allowedRoles.includes(requester.role)) {
+    return { status: "ERROR", message: "Chỉ HR/HR ADMIN/ADMIN được import danh sách nhân viên." };
   }
 
   const rows = Array.isArray(data && data.rows) ? data.rows : [];
@@ -1857,7 +2137,7 @@ function setupSystem() {
     [TABLES.DOCUMENTS]: ['DocID', 'EmployeeID', 'DocType', 'DocNo', 'IssueDate', 'ExpiryDate', 'Issuer', 'FileId', 'FileUrl', 'IsCurrent', 'Status', 'CreatedAt', 'CreatedBy'],
     [TABLES.CONTRACTS]: ['ContractID', 'EmployeeID', 'ContractNo', 'ContractType', 'StartDate', 'EndDate', 'Salary', 'AllowancesJson', 'Status', 'IsCurrent', 'FileId', 'FileUrl', 'CreatedAt', 'CreatedBy'],
     [TABLES.APPENDICES]: ['AppendixID', 'ContractID', 'EmployeeID', 'AppendixNo', 'EffectiveDate', 'EndDate', 'NewSalary', 'AllowancesJson', 'Content', 'FileId', 'FileUrl', 'CreatedAt', 'CreatedBy'],
-    [TABLES.ENTRY_EXIT]: ENTRY_EXIT_HEADERS_V2,
+    [TABLES.ENTRY_EXIT]: ['LogID', 'EmployeeID', 'Type', 'EventDate', 'PortName', 'FlightNo', 'Destination', 'Purpose', 'CreatedAt', 'CreatedBy', 'PlannedDateTime', 'ActualDateTime', 'TripID'],
     [TABLES.TRAVEL]: ['TravelID', 'EmployeeID', 'FromLocation', 'ToLocation', 'StartDate', 'EndDate', 'Status', 'TicketFileId', 'TicketUrl', 'CreatedAt', 'CreatedBy', 'Purpose'],
     [TABLES.AUDIT]: ['AuditID', 'UserID', 'Action', 'Module', 'TargetID', 'OldValue', 'NewValue', 'Timestamp', 'IPAddress'],
     [TABLES.CONFIG]: ['Key', 'Value', 'UpdatedAt']
@@ -1865,16 +2145,14 @@ function setupSystem() {
 
   Object.keys(schema).forEach(sheetName => {
     let sheet = ss.getSheetByName(sheetName);
-    const existed = !!sheet;
-    if (!sheet) sheet = ss.insertSheet(sheetName);
-
-    // EntryExit có migration riêng để không làm mất dữ liệu cũ khi chạy setupSystem() lại.
-    if (sheetName === TABLES.ENTRY_EXIT && existed) {
-      ensureEntryExitSchema();
-      return;
+    if (!sheet) {
+      sheet = ss.insertSheet(sheetName);
     }
-
     const headers = schema[sheetName];
+    const currentCols = Math.max(sheet.getLastColumn(), headers.length);
+    if (sheet.getLastColumn() < headers.length) {
+      sheet.insertColumnsAfter(Math.max(1, sheet.getLastColumn()), headers.length - Math.max(1, sheet.getLastColumn()));
+    }
     sheet.getRange(1, 1, 1, headers.length)
          .setValues([headers])
          .setFontWeight("bold")
@@ -1997,14 +2275,37 @@ function writeAuditLog(userId, action, module, targetId, oldValue, newValue) {
 function handleGetTimeline(empId, req) {
   if (!canAccessEmployee(req, empId)) return { status: "ERROR", message: "Không có quyền xem thông tin." };
 
-  const eeSheet = ensureEntryExitSchema();
+  const eeSheet = getSheet(TABLES.ENTRY_EXIT);
   const eeRows = eeSheet.getDataRange().getValues().slice(1);
   const travelSheet = getSheet(TABLES.TRAVEL);
   const travelRows = travelSheet.getDataRange().getValues().slice(1);
 
   const timeline = [];
 
-  eeRows.map(readEntryExitRow).filter(x=>String(x.employeeId)===String(empId)).forEach(x=>{timeline.push({id:x.entryExitId,kind:'ENTRY_EXIT',rawDate:parseDateSafe(x.actualDateTime||x.plannedDateTime),date:formatDateTime(x.actualDateTime||x.plannedDateTime),title:x.type==='ENTRY'?'🛬 Nhập cảnh Việt Nam':'🛫 Xuất cảnh Việt Nam',status:x.type,location:`Cửa khẩu: ${x.airport||'-'} | Chuyến bay: ${x.flightNo||'-'} | Điểm đến: ${x.destination||'-'}`,purpose:x.purpose||''});});
+  eeRows.filter(r => String(r[1]) === String(empId)).forEach(r => {
+    let flightNo = String(r[5] || "");
+    let destination = String(r[6] || "");
+    let purpose = String(r[7] || "");
+    try {
+      const noteObj = JSON.parse(String(r[5] || ""));
+      if (noteObj && typeof noteObj === "object") {
+        flightNo = noteObj.flightNo || "";
+        destination = noteObj.destination || "";
+        purpose = noteObj.purpose || "";
+      }
+    } catch (e) {}
+
+    timeline.push({
+      id: r[0],
+      kind: "ENTRY_EXIT",
+      rawDate: parseDateSafe(r[3]),
+      date: formatDateTime(r[3]),
+      title: r[2] === "ENTRY" ? "✈️ Nhập cảnh Việt Nam" : "🛫 Xuất cảnh Việt Nam",
+      status: r[2],
+      location: `Cửa khẩu: ${r[4] || "-"} | Chuyến bay: ${flightNo || "-"} | Điểm đến: ${destination || "-"}`,
+      purpose: purpose || ""
+    });
+  });
 
   travelRows.filter(r => String(r[1]) === String(empId) && String(r[6] || "").toUpperCase() !== "CANCELLED").forEach(r => {
     timeline.push({

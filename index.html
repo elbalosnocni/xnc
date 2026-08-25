@@ -486,27 +486,48 @@
     return (I18N[uiLang] && I18N[uiLang][text]) || text;
   }
   function translatePage() {
+    const dict = I18N[uiLang] || I18N.en || {};
+
+    // New key-based i18n. Any future UI can use:
+    // data-i18n="document.passport" / data-i18n-placeholder="employee.search"
+    document.querySelectorAll("[data-i18n]").forEach(el => {
+      const key = el.dataset.i18n;
+      if (dict[key] != null) el.textContent = dict[key];
+      else if (I18N.en[key] != null) el.textContent = I18N.en[key];
+    });
+    document.querySelectorAll("[data-i18n-placeholder]").forEach(el => {
+      const key = el.dataset.i18nPlaceholder;
+      if (dict[key] != null) el.placeholder = dict[key];
+      else if (I18N.en[key] != null) el.placeholder = I18N.en[key];
+    });
+    document.querySelectorAll("[data-i18n-title]").forEach(el => {
+      const key = el.dataset.i18nTitle;
+      if (dict[key] != null) el.title = dict[key];
+      else if (I18N.en[key] != null) el.title = I18N.en[key];
+    });
+
+    // Backward-compatible legacy translation for existing HTML.
     document.querySelectorAll("body *:not(script):not(style)").forEach(el => {
-      if (el.children.length === 0) {
+      if (el.children.length === 0 && !el.hasAttribute("data-i18n")) {
         if (!el.dataset.i18nOriginal) el.dataset.i18nOriginal = el.textContent.trim();
         const raw = el.dataset.i18nOriginal;
-        if (raw && I18N[uiLang][raw]) el.textContent = I18N[uiLang][raw];
+        if (raw && dict[raw]) el.textContent = dict[raw];
       }
-      if (el.placeholder) {
+      if (el.placeholder && !el.hasAttribute("data-i18n-placeholder")) {
         if (!el.dataset.i18nPlaceholder) el.dataset.i18nPlaceholder = el.placeholder;
         const rawPh = el.dataset.i18nPlaceholder;
-        if (I18N[uiLang][rawPh]) el.placeholder = I18N[uiLang][rawPh];
+        if (dict[rawPh]) el.placeholder = dict[rawPh];
       }
-      if (el.title) {
+      if (el.title && !el.hasAttribute("data-i18n-title")) {
         if (!el.dataset.i18nTitle) el.dataset.i18nTitle = el.title;
         const rawTitle = el.dataset.i18nTitle;
-        if (I18N[uiLang][rawTitle]) el.title = I18N[uiLang][rawTitle];
+        if (dict[rawTitle]) el.title = dict[rawTitle];
       }
     });
   }
 
   function isBatchAdmin() {
-    return currentUser && String(currentUser.role || '').toUpperCase() === 'ADMIN';
+    return currentUser && ['ADMIN','HR ADMIN'].includes(String(currentUser.role || '').toUpperCase());
   }
   function renderBatchEmployeePickers() {
     if (!isBatchAdmin()) return;
@@ -1446,9 +1467,9 @@
   const match = rawUrl.match(/(?:\/d\/|id=)([\w-]+)/);
   if (match && match[1]) {
     const fileId = match[1];
-    return isPdf 
-      ? `https://google.com{fileId}/preview`
-      : `https://google.com{fileId}`;
+    return isPdf
+      ? `https://drive.google.com/file/d/${encodeURIComponent(fileId)}/preview`
+      : `https://drive.google.com/file/d/${encodeURIComponent(fileId)}/view`;
   }
   return rawUrl;
 }
@@ -1503,7 +1524,7 @@
 
 
   const MOVEMENT_HEADERS = {
-    movementtype:'movementType', module:'movementType', type:'type', employeeid:'employeeId', 'employee id':'employeeId', 'ma nhan vien':'employeeId', 'ma nv':'employeeId', employeeids:'employeeIds',
+    movementtype:'movementType', module:'movementType', type:'type', employeeid:'employeeId', 'employee id':'employeeId', 'ma nhan vien':'employeeId', 'ma nv':'employeeId', employeeids:'employeeIds', tripid:'tripId',
     planneddatetime:'plannedDateTime','planned date/time':'plannedDateTime','ngay du kien':'plannedDateTime', eventdate:'plannedDateTime', datetime:'plannedDateTime', entryplanneddatetime:'entryPlannedDateTime', exitplanneddatetime:'exitPlannedDateTime', entryactualdatetime:'entryActualDateTime', exitactualdatetime:'exitActualDateTime', entryairport:'entryAirport', exitairport:'exitAirport', entryflightno:'entryFlightNo', exitflightno:'exitFlightNo', entrydestination:'entryDestination', exitdestination:'exitDestination',
     actualdatetime:'actualDateTime','actual date/time':'actualDateTime','ngay thuc te':'actualDateTime', actualdate:'actualDateTime',
     airport:'airport','port name':'airport','san bay':'airport','cua khau':'airport', flightno:'flightNo','flight number':'flightNo', destination:'destination', purpose:'purpose',
@@ -1555,49 +1576,96 @@
     input.value = "";
     if (!file) return;
     if (!/\.(xlsx|xls|csv)$/i.test(file.name)) return toast("Chỉ hỗ trợ Excel .xlsx, .xls hoặc .csv.");
-    if (file.size > 5 * 1024 * 1024) return toast("File Excel tối đa 5 MB.");
-    if (!isSuperAdmin()) return toast("Chỉ ADMIN mới được import danh sách Excel.");
+    if (file.size > 10 * 1024 * 1024) return toast("File Excel tối đa 10 MB.");
+    if (!isSuperAdmin()) return toast("Chỉ ADMIN mới được import Master Excel.");
 
     try {
-      toast("Đang đọc và tự map Excel...");
+      toast("Đang đọc Master Excel...");
       const buffer = await file.arrayBuffer();
       const wb = XLSX.read(buffer, { type: "array", cellDates: true, raw: true });
-      const ws = wb.Sheets[wb.SheetNames[0]];
-      if (!ws) throw new Error("Không tìm thấy sheet dữ liệu trong file Excel.");
-      const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "", raw: true });
-      const list = mapExcelEmployeeRows(rows);
+
+      // Sheet 1: EmployeeMaster
+      const employeeSheetName = wb.SheetNames.find(n => normalizeExcelHeader(n) === "employee master")
+        || wb.SheetNames[0];
+      const employeeWs = wb.Sheets[employeeSheetName];
+      if (!employeeWs) throw new Error("Không tìm thấy sheet EmployeeMaster.");
+      const employeeRows = XLSX.utils.sheet_to_json(employeeWs, { header: 1, defval: "", raw: true });
+      const list = mapExcelEmployeeRows(employeeRows);
 
       let total = 0, created = 0, updated = 0, skipped = 0;
-      let documentsCreated = 0, documentsUpdated = 0, contractsCreated = 0, contractsUpdated = 0, appendicesCreated = 0, appendicesUpdated = 0;
+      let documentsCreated = 0, documentsUpdated = 0, contractsCreated = 0, contractsUpdated = 0;
+      let appendicesCreated = 0, appendicesUpdated = 0;
       const errors = [];
+
       for (let i = 0; i < list.length; i += EMPLOYEE_IMPORT_BATCH_SIZE) {
         const batch = list.slice(i, i + EMPLOYEE_IMPORT_BATCH_SIZE);
-        toast(`Đang import ${Math.min(i + batch.length, list.length)}/${list.length}...`);
+        toast(`Đang import hồ sơ ${Math.min(i + batch.length, list.length)}/${list.length}...`);
         const res = await apiPost("IMPORT_EMPLOYEES_EXCEL", { fileName: file.name, rows: batch });
-        if (res.status !== "SUCCESS") throw new Error(res.message || "Import thất bại.");
-        total += Number(res.total || 0); created += Number(res.created || 0); updated += Number(res.updated || 0); skipped += Number(res.skipped || 0);
-        documentsCreated += Number(res.documentsCreated || 0); documentsUpdated += Number(res.documentsUpdated || 0);
-        contractsCreated += Number(res.contractsCreated || 0); contractsUpdated += Number(res.contractsUpdated || 0);
-        appendicesCreated += Number(res.appendicesCreated || 0); appendicesUpdated += Number(res.appendicesUpdated || 0);
+        if (res.status !== "SUCCESS") throw new Error(res.message || "Import hồ sơ thất bại.");
+
+        total += Number(res.total || 0);
+        created += Number(res.created || 0);
+        updated += Number(res.updated || 0);
+        skipped += Number(res.skipped || 0);
+        documentsCreated += Number(res.documentsCreated || 0);
+        documentsUpdated += Number(res.documentsUpdated || 0);
+        contractsCreated += Number(res.contractsCreated || 0);
+        contractsUpdated += Number(res.contractsUpdated || 0);
+        appendicesCreated += Number(res.appendicesCreated || 0);
+        appendicesUpdated += Number(res.appendicesUpdated || 0);
         if (Array.isArray(res.errors)) errors.push(...res.errors);
       }
 
+      // Sheet 2: MovementPlan. It can contain Entry/Exit and Travel in one sheet.
+      let movementImported = 0;
+      let movementErrors = [];
+      const movementSheetName = wb.SheetNames.find(n => {
+        const k = normalizeExcelHeader(n);
+        return k === "movement plan" || k === "movement import" || k === "entry exit travel";
+      });
+
+      if (movementSheetName && isBatchAdmin()) {
+        const movementWs = wb.Sheets[movementSheetName];
+        const movementRows = XLSX.utils.sheet_to_json(movementWs, { header: 1, defval: "", raw: true });
+        if (movementRows.length > 1) {
+          const movementList = mapMovementRows(movementRows);
+          for (let i = 0; i < movementList.length; i += 100) {
+            const batch = movementList.slice(i, i + 100);
+            toast(`Đang import lịch trình ${Math.min(i + batch.length, movementList.length)}/${movementList.length}...`);
+            const res = await apiPost("BATCH_IMPORT_MOVEMENT", { rows: batch });
+            if (res.status !== "SUCCESS" && !res.created) {
+              throw new Error(res.message || "Import lịch trình thất bại.");
+            }
+            movementImported += Number(res.created || 0);
+            if (Array.isArray(res.errors)) movementErrors.push(...res.errors);
+          }
+        }
+      }
+
       await loadDashboard();
-      const msg = `Import xong: ${total} NV | thêm ${created} | cập nhật ${updated} | bỏ qua ${skipped}\n` +
-        `Documents: thêm ${documentsCreated}, cập nhật ${documentsUpdated}\n` +
-        `Contracts: thêm ${contractsCreated}, cập nhật ${contractsUpdated}\n` +
-        `Phụ lục: thêm ${appendicesCreated}, cập nhật ${appendicesUpdated}`;
-      toast(errors.length ? `Import xong nhưng có ${errors.length} dòng lỗi.` : `Đã import ${total} nhân viên + hồ sơ pháp lý/hợp đồng.`);
-      if (errors.length) alert(msg + "\n\n" + errors.slice(0, 30).map(e => `Dòng ${e.row}: ${e.message}`).join("\n"));
-      else alert(msg);
+      const msg =
+        `Import hoàn tất: ${total} NV | thêm ${created} | cập nhật ${updated} | bỏ qua ${skipped}\n` +
+        `Documents: +${documentsCreated} / cập nhật ${documentsUpdated}\n` +
+        `Contracts: +${contractsCreated} / cập nhật ${contractsUpdated}\n` +
+        `Phụ lục: +${appendicesCreated} / cập nhật ${appendicesUpdated}\n` +
+        `Movement: ${movementImported} bản ghi`;
+
+      const allErrors = errors.concat(movementErrors);
+      if (allErrors.length) {
+        toast(`Import xong nhưng có ${allErrors.length} dòng lỗi.`);
+        alert(msg + "\n\n" + allErrors.slice(0, 50).map(e => `Dòng ${e.row || e._excelRow || "?"} ${e.employeeId || ""}: ${e.message}`).join("\n"));
+      } else {
+        toast("Đã import Master Excel thành công.");
+        alert(msg);
+      }
     } catch (e) {
       console.error(e);
-      toast(e.message || "Không thể import Excel.");
+      toast(e.message || "Không thể import Master Excel.");
     }
   }
 
   function downloadEmployeeTemplate() {
-    const headers = [
+    const employeeHeaders = [
       "EmployeeID", "FullName", "Nationality", "DOB", "Position", "Department", "Phone", "Email", "CurrentStatus", "CurrentLocation", "ActiveStatus",
       "PassportNo", "PassportIssueDate", "PassportExpiry", "PassportIssuer", "PassportFileId", "PassportFileUrl", "PassportStatus",
       "TRCNo", "TRCIssueDate", "TRCExpiry", "TRCIssuer", "TRCFileId", "TRCFileUrl", "TRCStatus",
@@ -1605,7 +1673,8 @@
       "ContractNo", "ContractType", "ContractStartDate", "ContractExpiry", "Salary", "Allowance", "AllowancesJson", "ContractStatus", "ContractFileId", "ContractFileUrl",
       "AppendixNo", "AppendixEffectiveDate", "AppendixEndDate", "AppendixSalary", "AppendixAllowance", "AppendixAllowancesJson", "AppendixContent", "AppendixFileId", "AppendixFileUrl"
     ];
-    const example = [
+
+    const employeeExample = [
       "EMP-001", "Nguyen Example", "Korea", "1990-01-15", "Manager", "HR", "0900000000", "example@company.com", "Exited", "Overseas", "ACTIVE",
       "M1234567", "2024-01-01", "2034-01-01", "Passport Authority", "", "https://drive.google.com/...", "VALID",
       "TRC123", "2025-01-01", "2027-01-01", "Immigration", "", "https://drive.google.com/...", "VALID",
@@ -1613,11 +1682,30 @@
       "HD-001", "DEFINITE", "2025-01-01", "2027-01-01", 30000000, 5000000, "", "VALID", "", "https://drive.google.com/...",
       "PL-001", "2025-06-01", "2027-01-01", 35000000, 5000000, "", "Cập nhật lương", "", "https://drive.google.com/..."
     ];
-    const ws = XLSX.utils.aoa_to_sheet([headers, example]);
-    ws["A1"].s = { font: { bold: true } };
+
+    const movementHeaders = [
+      "MovementType", "EmployeeID", "TripID",
+      "EntryPlannedDateTime", "EntryActualDateTime", "EntryAirport", "EntryFlightNo", "EntryDestination",
+      "ExitPlannedDateTime", "ExitActualDateTime", "ExitAirport", "ExitFlightNo", "ExitDestination",
+      "FromDate", "ToDate", "FromLocation", "ToLocation", "Purpose"
+    ];
+
+    const movementExamples = [
+      ["ENTRY_EXIT", "EMP-001", "TRIP-001", "2026-09-01 09:00", "2026-09-01 09:15", "Tan Son Nhat", "VN123", "Vietnam", "2026-09-10 18:00", "2026-09-10 18:20", "Tan Son Nhat", "VN456", "Korea", "", "", "", "", "Business trip"],
+      ["TRAVEL", "EMP-001", "TRIP-001", "", "", "", "", "", "", "", "", "", "", "2026-09-03", "2026-09-04", "Ho Chi Minh City", "Binh Duong", "Site visit"],
+      ["ENTRY_EXIT", "EMP-002", "TRIP-002", "2026-09-05 10:00", "", "Noi Bai", "VN125", "Vietnam", "", "", "", "", "", "", "", "", "", "Home leave"]
+    ];
+
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "ForeignEmployees");
-    XLSX.writeFile(wb, "ForeignEmployees_Full_Import_Template.xlsx");
+    const wsEmployee = XLSX.utils.aoa_to_sheet([employeeHeaders, employeeExample]);
+    const wsMovement = XLSX.utils.aoa_to_sheet([movementHeaders, ...movementExamples]);
+
+    wsEmployee["A1"].s = { font: { bold: true } };
+    wsMovement["A1"].s = { font: { bold: true } };
+
+    XLSX.utils.book_append_sheet(wb, wsEmployee, "EmployeeMaster");
+    XLSX.utils.book_append_sheet(wb, wsMovement, "MovementPlan");
+    XLSX.writeFile(wb, "ForeignEmployee_Master_Import.xlsx");
   }
 
   async function handleSaveEmployee(e) {
