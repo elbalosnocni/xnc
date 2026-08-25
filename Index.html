@@ -1,0 +1,1743 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Foreign Employee Management</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+  .menuBtn{padding:.5rem 1rem;border-radius:.5rem;background:#fff;border:1px solid #e2e8f0;font-weight:600;font-size:.875rem;display:inline-flex;align-items:center;gap:.5rem;transition:.2s}
+  .menuBtn:hover{background:#f8fafc;border-color:#cbd5e1}.input{width:100%;border:1px solid #cbd5e1;border-radius:.5rem;padding:.625rem;margin-bottom:.75rem;font-size:.875rem}.input:focus{outline:2px solid #3b82f6}.btn{width:100%;background:#2563eb;color:#fff;font-weight:700;padding:.75rem;border-radius:.5rem}.btn:hover{background:#1d4ed8}.btn:disabled{opacity:.6;cursor:not-allowed}.kpi{background:#fff;padding:1rem;border-radius:.75rem;border:1px solid #e2e8f0}
+  .modal{background:rgba(15,23,42,.55)}
+  .toast{position:fixed;right:20px;bottom:20px;z-index:100}
+  #globalLoader{position:fixed;inset:0;background:rgba(15,23,42,.35);backdrop-filter:blur(2px);z-index:9999;display:flex;align-items:center;justify-content:center}
+  #globalLoader.hidden{display:none}
+  .loaderCard{background:#fff;border-radius:1rem;padding:1.25rem 1.5rem;box-shadow:0 20px 50px rgba(0,0,0,.2);display:flex;align-items:center;gap:.8rem;font-weight:700}
+  .loaderSpinner{width:28px;height:28px;border:4px solid #cbd5e1;border-top-color:#2563eb;border-radius:50%;animation:spin .8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
+  .badge{display:inline-flex;padding:.25rem .625rem;border-radius:999px;font-size:.75rem;font-weight:700}
+  .employees-table-wrap{max-height:calc(100vh - 300px);min-height:260px;overflow:auto;overflow-x:auto;overflow-y:auto;position:relative;border:1px solid #e2e8f0;border-radius:.75rem;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-x pan-y}
+  .employees-table{min-width:760px;width:max-content;border-collapse:separate;border-spacing:0;table-layout:auto}
+  .employees-table thead th{position:sticky;top:0;z-index:20;background:#f8fafc;box-shadow:0 1px 0 #cbd5e1}
+  .employees-table th:first-child,.employees-table td:first-child{position:sticky;left:0;z-index:10;background:#fff;width:230px;min-width:230px;max-width:230px;overflow:hidden}
+  .employees-table thead th:first-child{z-index:30;background:#f8fafc}
+  .employees-table tbody tr:hover td:first-child{background:#f8fafc}
+  .doc-preview{margin-top:.75rem;border:1px solid #cbd5e1;border-radius:.75rem;background:#fff;overflow:hidden}
+  .doc-preview iframe{display:block;width:100%;height:430px;border:0;background:#f8fafc}
+  .doc-preview img{display:block;max-width:100%;height:430px;margin:auto;object-fit:contain;background:#f8fafc}
+  .doc-preview-actions{display:flex;justify-content:space-between;align-items:center;gap:.5rem;padding:.6rem .75rem;background:#f8fafc;border-top:1px solid #e2e8f0}
+  .doc-preview-actions a{font-size:.75rem;font-weight:700;color:#2563eb}
+  @media (max-width:768px){
+    .employees-table-wrap{max-height:calc(100vh - 340px);width:100%;}
+    .employees-table{min-width:720px;font-size:12px}
+    .employees-table th:first-child,.employees-table td:first-child{width:125px;min-width:125px;max-width:125px;padding:.5rem!important;white-space:normal;word-break:break-word}
+    .employees-table th,.employees-table td{padding:.5rem!important;white-space:nowrap}
+    .employees-table td:first-child .font-semibold{display:block;line-height:1.2;max-height:2.4em;overflow:hidden}
+    .employees-table td:first-child .text-xs{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .employees-table .badge{font-size:10px;padding:.2rem .4rem}
+    .employees-table td:last-child{min-width:105px}
+    .employees-table td:last-child .flex{gap:.4rem}
+    .employees-table td:last-child button{padding:.35rem}
+    .doc-preview iframe,.doc-preview img{height:320px}
+  }
+</style>
+</head>
+<body class="bg-slate-100 text-slate-800" onload="restoreSession()">
+
+<nav class="bg-slate-900 text-white px-6 py-4 flex justify-between items-center shadow-lg">
+  <div class="flex items-center gap-3">
+    <i class="fa-solid fa-globe text-blue-400 text-2xl"></i>
+    <div>
+      <div class="font-bold text-lg">FOREIGN EMPLOYEE SYSTEM</div>
+      <div class="text-xs text-slate-400">Immigration & Contract Management</div>
+    </div>
+  </div>
+  <div class="flex items-center gap-3">
+    <select id="languageSelect" onchange="setLanguage(this.value)" class="text-slate-900 bg-white rounded-lg px-2 py-1 text-sm font-semibold border border-slate-300" title="Language">
+      <option value="en">English</option>
+      <option value="zh">中文</option>
+    </select>
+    <div id="userNav" class="hidden items-center gap-4">
+      <span id="userName" class="font-semibold"></span>
+      <span id="roleBadge" class="bg-blue-600 px-3 py-1 rounded-full text-xs font-bold"></span>
+      <button onclick="logout()" class="text-slate-300 hover:text-white" title="Logout"><i class="fa-solid fa-right-from-bracket text-lg"></i></button>
+    </div>
+  </div>
+</nav>
+
+<!-- Trang Đăng nhập -->
+<section id="loginSection" class="max-w-md mx-auto mt-16 px-4">
+  <div class="bg-white rounded-2xl shadow-xl border p-8">
+    <div class="text-center mb-8">
+      <div class="w-16 h-16 mx-auto bg-blue-100 rounded-full flex items-center justify-center">
+        <i class="fa-solid fa-user-shield text-blue-600 text-2xl"></i>
+      </div>
+      <h2 class="text-2xl font-bold mt-4">LOGIN</h2>
+      <p class="text-sm text-slate-500">Foreign Employee Management</p>
+      <a href="https://zalo.me/3933191910227963298" target="_blank" class="btn-zalo">💬 Get Support</a>       
+    </div>
+    <label class="text-sm font-semibold">EmpID / Email</label>
+    <input id="loginUser" class="input mt-1" autocomplete="username">
+    <label class="text-sm font-semibold">Password</label>
+    <input id="loginPass" type="password" class="input mt-1 mb-6" autocomplete="current-password" onkeydown="if(event.key==='Enter') doLogin()">
+    <button id="loginBtn" onclick="doLogin()" class="btn"><i class="fa-solid fa-right-to-bracket mr-2"></i> Login </button>
+  </div>
+</section>
+
+<!-- Trang Ứng dụng chính -->
+<div id="app" class="hidden max-w-7xl mx-auto p-6">
+  <div class="flex flex-wrap gap-2 mb-6">
+    <button id="dashboardMenu" onclick="showPage('dashboard')" class="menuBtn hidden"><i class="fa-solid fa-chart-line text-blue-600"></i>Dashboard</button>
+    <button onclick="showPage('profile')" class="menuBtn"><i class="fa-solid fa-user text-blue-600"></i>My Profile</button>
+    <button onclick="showPage('immigration')" class="menuBtn"><i class="fa-solid fa-plane text-blue-600"></i>Immigration</button>
+    <button onclick="showPage('travel')" class="menuBtn"><i class="fa-solid fa-car text-blue-600"></i>Domestic Travel</button>
+    <button id="employeeMenu" onclick="showPage('employees')" class="menuBtn hidden"><i class="fa-solid fa-users text-blue-600"></i>Foreign Employees</button>
+    <button id="accountMenu" onclick="showPage('accounts'); loadAccounts()" class="menuBtn hidden"><i class="fa-solid fa-user-lock text-indigo-600"></i>Tài khoản</button>
+    <button onclick="openChangePasswordModal()" class="menuBtn"><i class="fa-solid fa-key text-amber-600"></i>Đổi mật khẩu</button>
+  </div>
+
+  <!-- Page: Dashboard -->
+  <section id="page-dashboard" class="page hidden space-y-6">
+    <div class="grid grid-cols-2 md:grid-cols-6 gap-4">
+      <div class="kpi"><div class="text-xs text-slate-400 font-bold">TOTAL FOREIGNERS</div><div id="kpiTotal" class="text-3xl font-bold mt-1">0</div></div>
+      <div class="kpi bg-emerald-50 border-emerald-200"><div class="text-xs text-emerald-600 font-bold">🟢 IN VIETNAM</div><div id="kpiInVN" class="text-3xl font-bold text-emerald-700 mt-1">0</div></div>
+      <div class="kpi bg-blue-50 border-blue-200"><div class="text-xs text-blue-600 font-bold">✈️ TRAVELING</div><div id="kpiBusiness" class="text-3xl font-bold text-blue-700 mt-1">0</div></div>
+      <div class="kpi"><div class="text-xs text-slate-400 font-bold">🔴 EXITED</div><div id="kpiExited" class="text-3xl font-bold mt-1">0</div></div>
+      <div class="kpi bg-amber-50 border-amber-200"><div class="text-xs text-amber-600 font-bold">⚠ WARNING DOCS</div><div id="kpiWarning" class="text-3xl font-bold text-amber-700 mt-1">0</div></div>
+      <div class="kpi bg-rose-50 border-rose-200"><div class="text-xs text-rose-600 font-bold">📄 EXP CONTRACT</div><div id="kpiExpContract" class="text-3xl font-bold text-rose-700 mt-1">0</div></div>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm border p-6">
+      <h2 class="font-bold text-lg mb-4">⚠ Cảnh báo Giấy tờ & Hợp đồng Hết hạn</h2>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b bg-slate-50">
+              <th class="p-3 text-left">Employee</th>
+              <th class="p-3">Loại giấy tờ / Hợp đồng</th>
+              <th class="p-3">Ngày hết hạn</th>
+              <th class="p-3">Trạng thái</th>
+            </tr>
+          </thead>
+          <tbody id="warningTable"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- Page: Profile -->
+  <section id="page-profile" class="page hidden">
+    <div class="bg-white rounded-xl shadow-sm border p-6">
+      <h2 class="font-bold text-xl mb-6">👤 Hồ sơ của tôi</h2>
+      <div id="profileContent">Đang tải...</div>
+    </div>
+  </section>
+
+  <!-- Page: Immigration -->
+  <section id="page-immigration" class="page hidden">
+    <div id="batchImmigrationPanel" class="hidden bg-white rounded-xl shadow-sm border p-6 mb-6">
+      <div class="flex flex-wrap justify-between items-center gap-3 mb-4">
+        <div>
+          <h2 class="font-bold text-lg">👥 Batch Entry / Exit Registration</h2>
+          <p class="text-sm text-slate-500">Register multiple employees with the same date, time, location and travel details.</p>
+        </div>
+        <div class="flex gap-2">
+          <button type="button" onclick="selectBatchEmployees('immigration', true)" class="bg-slate-700 text-white px-3 py-2 rounded-lg text-sm font-bold">Select All</button>
+          <button type="button" onclick="selectBatchEmployees('immigration', false)" class="bg-slate-200 text-slate-700 px-3 py-2 rounded-lg text-sm font-bold">Clear</button>
+        </div>
+      </div>
+      <div id="batchImmigrationEmployees" class="grid grid-cols-1 md:grid-cols-3 gap-2 max-h-56 overflow-y-auto border rounded-lg p-3 mb-4"></div>
+      <div class="grid md:grid-cols-2 gap-4">
+        <div class="border rounded-xl p-4 bg-emerald-50/40">
+          <div class="font-bold text-emerald-700 mb-3">🛬 ENTRY — Nhập cảnh</div>
+          <label class="text-xs font-semibold">Ngày giờ dự kiến Entry</label><input id="batchEeEntryPlanned" type="datetime-local" class="input">
+          <label class="text-xs font-semibold">Ngày giờ thực tế Entry</label><input id="batchEeEntryActual" type="datetime-local" class="input">
+          <input id="batchEeEntryAirport" class="input" placeholder="Sân bay / cửa khẩu Entry">
+          <input id="batchEeEntryFlight" class="input" placeholder="Flight Entry">
+          <input id="batchEeEntryDestination" class="input" placeholder="Điểm đến Entry">
+        </div>
+        <div class="border rounded-xl p-4 bg-rose-50/40">
+          <div class="font-bold text-rose-700 mb-3">🛫 EXIT — Xuất cảnh</div>
+          <label class="text-xs font-semibold">Ngày giờ dự kiến Exit</label><input id="batchEeExitPlanned" type="datetime-local" class="input">
+          <label class="text-xs font-semibold">Ngày giờ thực tế Exit</label><input id="batchEeExitActual" type="datetime-local" class="input">
+          <input id="batchEeExitAirport" class="input" placeholder="Sân bay / cửa khẩu Exit">
+          <input id="batchEeExitFlight" class="input" placeholder="Flight Exit">
+          <input id="batchEeExitDestination" class="input" placeholder="Điểm đến Exit">
+        </div>
+        <input id="batchEePurpose" class="input md:col-span-2" placeholder="Mục đích chuyến đi">
+      </div>
+      <button id="batchEeBtn" onclick="saveBatchEntryExit()" class="btn">Save for Selected Employees</button>
+      <div id="batchEeResult" class="text-sm mt-3"></div>
+    </div>
+    <div id="batchImportPanel" class="hidden bg-white rounded-xl shadow-sm border p-6 mb-6">
+      <div class="flex flex-wrap justify-between items-center gap-3 mb-3">
+        <div>
+          <h2 class="font-bold text-lg">📥 Batch Import Entry / Exit + Travel</h2>
+          <p class="text-sm text-slate-500">Upload Excel hoặc paste trực tiếp từ Excel. Mỗi dòng có thể có 1 EmployeeID hoặc nhiều EmployeeID ngăn cách bằng dấu phẩy.</p>
+        </div>
+        <button onclick="downloadMovementTemplate()" class="bg-slate-700 text-white px-3 py-2 rounded-lg text-sm font-bold">Template Excel</button>
+      </div>
+      <input id="movementExcelInput" type="file" accept=".xlsx,.xls,.csv" class="input" onchange="importMovementExcelFile(this)">
+      <textarea id="movementPasteArea" class="input" rows="6" placeholder="Paste Excel here (tab-separated). Headers: MovementType, EmployeeID, Type, PlannedDateTime, ActualDateTime, Airport, FlightNo, Destination, Purpose, FromDate, ToDate, FromLocation, ToLocation"></textarea>
+      <div class="flex flex-wrap gap-2">
+        <button onclick="importMovementPaste()" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold">Import pasted Excel</button>
+        <button onclick="document.getElementById('movementPasteArea').value=''" class="bg-slate-200 text-slate-700 px-4 py-2 rounded-lg font-bold">Clear</button>
+      </div>
+      <div id="movementImportResult" class="text-sm mt-3"></div>
+    </div>
+    <div class="grid md:grid-cols-2 gap-6">
+      <div class="bg-white rounded-xl shadow-sm border p-6">
+        <h2 class="font-bold text-lg mb-2">✈️ Đăng ký Entry / Exit</h2>
+        <p class="text-xs text-slate-500 mb-4">Nếu có vé khứ hồi, nhập Entry và Exit trong cùng một lần. Hệ thống sẽ tạo 2 record cùng TripID.</p>
+        <input id="eeEditId" type="hidden" value="">
+        <input id="eeTripId" type="hidden" value="">
+        <select id="eeMode" class="input" onchange="toggleEntryExitMode()">
+          <option value="ROUND_TRIP">ENTRY + EXIT — Vé khứ hồi</option>
+          <option value="ENTRY_ONLY">ENTRY ONLY — Chỉ nhập cảnh</option>
+          <option value="EXIT_ONLY">EXIT ONLY — Chỉ xuất cảnh</option>
+        </select>
+        <div id="eeRoundTripFields" class="grid md:grid-cols-2 gap-3">
+          <div class="border rounded-xl p-3 bg-emerald-50/40">
+            <div class="font-bold text-emerald-700 mb-2">🛬 ENTRY</div>
+            <label class="text-xs font-semibold">Ngày giờ dự kiến</label><input id="eeEntryPlanned" type="datetime-local" class="input">
+            <label class="text-xs font-semibold">Ngày giờ thực tế</label><input id="eeEntryActual" type="datetime-local" class="input">
+            <input id="eeEntryAirport" class="input" placeholder="Sân bay / cửa khẩu">
+            <input id="eeEntryFlight" class="input" placeholder="Số chuyến bay">
+            <input id="eeEntryDestination" class="input" placeholder="Điểm đến">
+          </div>
+          <div class="border rounded-xl p-3 bg-rose-50/40">
+            <div class="font-bold text-rose-700 mb-2">🛫 EXIT</div>
+            <label class="text-xs font-semibold">Ngày giờ dự kiến</label><input id="eeExitPlanned" type="datetime-local" class="input">
+            <label class="text-xs font-semibold">Ngày giờ thực tế</label><input id="eeExitActual" type="datetime-local" class="input">
+            <input id="eeExitAirport" class="input" placeholder="Sân bay / cửa khẩu">
+            <input id="eeExitFlight" class="input" placeholder="Số chuyến bay">
+            <input id="eeExitDestination" class="input" placeholder="Điểm đến">
+          </div>
+        </div>
+        <div id="eeSingleFields" class="hidden">
+          <select id="eeType" class="input"><option value="ENTRY">Nhập cảnh Việt Nam</option><option value="EXIT">Xuất cảnh Việt Nam</option></select>
+          <label class="text-xs font-semibold">Ngày giờ dự kiến</label><input id="eePlannedDate" type="datetime-local" class="input">
+          <label class="text-xs font-semibold">Ngày giờ thực tế</label><input id="eeActualDate" type="datetime-local" class="input">
+          <input id="eeAirport" class="input" placeholder="Sân bay / cửa khẩu">
+          <input id="eeFlight" class="input" placeholder="Số chuyến bay">
+          <input id="eeDestination" class="input" placeholder="Điểm đến">
+        </div>
+        <input id="eePurpose" class="input" placeholder="Mục đích">
+        <button id="eeBtn" onclick="saveEntryExit()" class="btn">Lưu thông tin</button>
+        <button id="eeCancelEditBtn" onclick="resetEntryExitForm()" type="button" class="hidden mt-2 w-full bg-slate-200 text-slate-700 font-bold p-3 rounded-lg">Hủy sửa</button>
+      </div>
+      <div class="bg-white rounded-xl shadow-sm border p-6">
+        <h2 class="font-bold text-lg mb-5">📋 Lịch sử nhập / xuất cảnh</h2>
+        <div id="entryExitList">Đang tải...</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Page: Travel -->
+  <section id="page-travel" class="page hidden">
+    <div id="batchTravelPanel" class="hidden bg-white rounded-xl shadow-sm border p-6 mb-6">
+      <div class="flex flex-wrap justify-between items-center gap-3 mb-4">
+        <div>
+          <h2 class="font-bold text-lg">👥 Batch Domestic Travel Registration</h2>
+          <p class="text-sm text-slate-500">Register multiple employees for the same domestic itinerary and period.</p>
+        </div>
+        <div class="flex gap-2">
+          <button type="button" onclick="selectBatchEmployees('travel', true)" class="bg-slate-700 text-white px-3 py-2 rounded-lg text-sm font-bold">Select All</button>
+          <button type="button" onclick="selectBatchEmployees('travel', false)" class="bg-slate-200 text-slate-700 px-3 py-2 rounded-lg text-sm font-bold">Clear</button>
+        </div>
+      </div>
+      <div id="batchTravelEmployees" class="grid grid-cols-1 md:grid-cols-3 gap-2 max-h-56 overflow-y-auto border rounded-lg p-3 mb-4"></div>
+      <div class="grid md:grid-cols-2 gap-3">
+        <div><label class="text-xs font-semibold">From date</label><input id="batchTravelFromDate" type="date" class="input"></div>
+        <div><label class="text-xs font-semibold">To date</label><input id="batchTravelToDate" type="date" class="input"></div>
+        <input id="batchTravelFrom" class="input" placeholder="From location">
+        <input id="batchTravelTo" class="input" placeholder="To location">
+        <input id="batchTravelPurpose" class="input md:col-span-2" placeholder="Purpose">
+      </div>
+      <button id="batchTravelBtn" onclick="saveBatchDomesticTravel()" class="btn">Save for Selected Employees</button>
+      <div id="batchTravelResult" class="text-sm mt-3"></div>
+    </div>
+    <div class="grid md:grid-cols-2 gap-6">
+      <div class="bg-white rounded-xl shadow-sm border p-6">
+        <h2 class="font-bold text-lg mb-5">🚗 Đăng ký đi lại trong Việt Nam</h2>
+        <input id="travelEditId" type="hidden" value="">
+        <label class="text-xs font-semibold">Từ ngày</label><input id="travelFromDate" type="date" class="input">
+        <label class="text-xs font-semibold">Đến ngày</label><input id="travelToDate" type="date" class="input">
+        <input id="travelFrom" class="input" placeholder="Từ đâu">
+        <input id="travelTo" class="input" placeholder="Đến đâu">
+        <input id="travelPurpose" class="input" placeholder="Mục đích">
+        <button id="travelBtn" onclick="saveDomesticTravel()" class="btn">Gửi yêu cầu đi lại</button>
+        <button id="travelCancelEditBtn" onclick="resetTravelForm()" type="button" class="hidden mt-2 w-full bg-slate-200 text-slate-700 font-bold p-3 rounded-lg">Hủy sửa</button>
+      </div>
+      <div class="bg-white rounded-xl shadow-sm border p-6">
+        <h2 class="font-bold text-lg mb-5">📋 Lịch sử đi lại</h2>
+        <div id="travelList">Đang tải...</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Page: Employees -->
+  <section id="page-employees" class="page hidden">
+    <div class="bg-white rounded-xl shadow-sm border p-6">
+      <div class="flex justify-between items-center mb-5">
+        <h2 class="font-bold text-xl">👥 Danh sách chuyên gia</h2>
+        <div class="flex flex-wrap gap-2">
+          <label class="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-blue-700 cursor-pointer inline-flex items-center">
+            <i class="fa-solid fa-file-excel mr-1"></i> Import Excel
+            <input id="employeeExcelInput" type="file" accept=".xlsx,.xls,.csv" class="hidden" onchange="importEmployeesExcel(this)">
+          </label>
+          <button onclick="downloadEmployeeTemplate()" class="bg-slate-700 text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-slate-800">
+            <i class="fa-solid fa-download mr-1"></i> Template
+          </button>
+          <button onclick="openEmployeeForm()" class="bg-emerald-600 text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-emerald-700">
+            <i class="fa-solid fa-user-plus mr-1"></i> Thêm Nhân Viên
+          </button>
+        </div>
+      </div>
+      <input id="employeeSearch" oninput="filterEmployees()" class="input" placeholder="Tìm tên / mã NV / quốc tịch...">
+      <div class="employees-table-wrap">
+        <table class="employees-table w-full text-sm">
+          <thead>
+            <tr class="border-b">
+              <th class="p-3 text-left">Name</th>
+              <th class="p-3">Status</th>
+              <th class="p-3">Entry/Exit</th>
+              <th class="p-3">Domestic Travel</th>
+              <th class="p-3 text-center">Action</th>
+            </tr>
+          </thead>
+          <tbody id="employeeTable"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- Page: Account Management -->
+  <section id="page-accounts" class="page hidden">
+    <div class="bg-white rounded-xl shadow-sm border p-6">
+      <div class="flex justify-between items-center mb-5">
+        <div>
+          <h2 class="font-bold text-xl">🔐 Quản lý tài khoản</h2>
+          <p class="text-sm text-slate-500 mt-1">Không hiển thị mật khẩu. ADMIN có thể reset; ADMIN/HR ADMIN có thể khóa/mở tài khoản.</p>
+        </div>
+        <button onclick="loadAccounts()" class="bg-slate-700 text-white px-4 py-2 rounded-lg font-bold text-sm"><i class="fa-solid fa-rotate mr-1"></i>Làm mới</button>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead><tr class="border-b bg-slate-50">
+            <th class="p-3 text-left">Nhân viên</th><th class="p-3">Email / Login</th><th class="p-3">Role</th><th class="p-3">Trạng thái</th><th class="p-3 text-center">Thao tác</th>
+          </tr></thead>
+          <tbody id="accountTable"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- Modal Chi Tiết & Chỉnh Sửa Nhân Viên -->
+<div id="employeeModal" class="hidden fixed inset-0 modal z-50 p-4 overflow-y-auto">
+  <div class="max-w-6xl mx-auto mt-6 bg-white rounded-2xl shadow-2xl overflow-hidden">
+    <div class="p-5 bg-slate-900 text-white flex justify-between items-center">
+      <h2 id="modalTitle" class="font-bold text-xl">Thông tin Nhân Viên</h2>
+      <button onclick="closeModal()" class="text-xl font-bold hover:text-slate-300">✕</button>
+    </div>
+    <div id="modalBody" class="p-6 max-h-[80vh] overflow-y-auto"></div>
+  </div>
+</div>
+
+<div id="passwordModal" class="hidden fixed inset-0 modal z-[60] p-4 overflow-y-auto">
+  <div class="max-w-md mx-auto mt-20 bg-white rounded-2xl shadow-2xl overflow-hidden">
+    <div class="p-5 bg-slate-900 text-white flex justify-between items-center">
+      <h2 id="passwordModalTitle" class="font-bold text-lg">🔐 Đổi mật khẩu</h2>
+      <button onclick="closePasswordModal()" class="text-xl font-bold">✕</button>
+    </div>
+    <div class="p-6">
+      <div id="passwordTargetInfo" class="text-sm text-slate-500 mb-4"></div>
+      <label class="text-xs font-semibold">Mật khẩu hiện tại</label>
+      <input id="cpCurrent" type="password" class="input mt-1" autocomplete="current-password">
+      <label class="text-xs font-semibold">Mật khẩu mới (ít nhất 8 ký tự)</label>
+      <input id="cpNew" type="password" class="input mt-1" autocomplete="new-password">
+      <label class="text-xs font-semibold">Nhập lại mật khẩu mới</label>
+      <input id="cpConfirm" type="password" class="input mt-1" autocomplete="new-password">
+      <button id="changePasswordBtn" onclick="submitChangePassword()" class="btn mt-2">Đổi mật khẩu</button>
+    </div>
+  </div>
+</div>
+
+<div id="resetPasswordModal" class="hidden fixed inset-0 modal z-[60] p-4 overflow-y-auto">
+  <div class="max-w-md mx-auto mt-20 bg-white rounded-2xl shadow-2xl overflow-hidden">
+    <div class="p-5 bg-slate-900 text-white flex justify-between items-center">
+      <h2 class="font-bold text-lg">🔑 ADMIN Reset mật khẩu</h2>
+      <button onclick="closeResetPasswordModal()" class="text-xl font-bold">✕</button>
+    </div>
+    <div class="p-6">
+      <div id="resetTargetInfo" class="text-sm text-slate-500 mb-4"></div>
+      <input id="resetUserId" type="hidden">
+      <label class="text-xs font-semibold">Mật khẩu mới (ít nhất 8 ký tự)</label>
+      <input id="resetNewPassword" type="password" class="input mt-1" autocomplete="new-password">
+      <label class="text-xs font-semibold">Nhập lại mật khẩu mới</label>
+      <input id="resetConfirmPassword" type="password" class="input mt-1" autocomplete="new-password">
+      <button id="resetPasswordBtn" onclick="submitAdminResetPassword()" class="btn mt-2">Reset mật khẩu</button>
+    </div>
+  </div>
+</div>
+
+<div id="globalLoader" class="hidden" aria-live="polite"><div class="loaderCard"><span class="loaderSpinner"></span><span id="globalLoaderText">Loading data...</span></div></div>
+<div id="toast" class="toast hidden">
+  <div id="toastText" class="bg-slate-900 text-white px-4 py-3 rounded-lg shadow-lg"></div>
+</div>
+
+<script>
+  let currentUser = null, sessionToken = null, employees = [];
+  let accountUsers = [];
+  const pendingUploads = {};
+  const API_TIMEOUT_MS = 30000;
+  const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxe9MyaYTOMQQq82Tyzo1T6x2UAjm4TlML-tXtxICmQpGhuGqtgJK5Q8n3jE8Lgociwxg/exec";
+  let uiLang = localStorage.getItem("fe_lang") || "en";
+
+  const I18N = {
+    en: {
+      "FOREIGN EMPLOYEE SYSTEM":"FOREIGN EMPLOYEE SYSTEM", "Immigration & Contract Management":"Immigration & Contract Management",
+      "Dashboard":"Dashboard", "My Profile":"My Profile", "Immigration":"Immigration", "Domestic Travel":"Domestic Travel", "Foreign Employees":"Foreign Employees",
+      "Đổi mật khẩu":"Change Password", "Tài khoản":"Accounts", "LOGIN":"LOGIN", "Foreign Employee Management":"Foreign Employee Management",
+      "EmpID / Email":"EmpID / Email", "Password":"Password", "Đăng xuất":"Logout", "Họ tên":"Full Name", "Quốc tịch":"Nationality", "Ngày sinh":"Date of Birth",
+      "Số hộ chiếu":"Passport No.", "Hạn Passport":"Passport Expiry", "Hạn TRC":"TRC Expiry", "Hạn WP":"Work Permit Expiry", "Số Hợp Đồng":"Contract No.",
+      "Số Phụ Lục":"Appendix No.", "Mức Lương Cơ Bản":"Base Salary", "Phụ Cấp":"Allowance", "Trạng thái":"Status", "Chức vụ":"Position", "Phòng ban":"Department",
+      "👥 Batch Entry / Exit Registration":"👥 Batch Entry / Exit Registration", "👥 Batch Domestic Travel Registration":"👥 Batch Domestic Travel Registration",
+      "Select All":"Select All", "Clear":"Clear", "Save for Selected Employees":"Save for Selected Employees", "Entry to Vietnam":"Entry to Vietnam", "Exit from Vietnam":"Exit from Vietnam",
+      "Airport / border gate":"Airport / border gate", "Flight number":"Flight number", "Destination":"Destination", "Purpose":"Purpose", "From date":"From date", "To date":"To date",
+      "From location":"From location", "To location":"To location", "Name":"Name", "Status":"Status", "Entry/Exit":"Entry/Exit", "Domestic Travel":"Domestic Travel", "Action":"Action",
+      "Import Excel":"Import Excel", "Template":"Template", "Thêm Nhân Viên":"Add Employee", "Tìm tên / mã NV / quốc tịch...":"Search name / employee ID / nationality...",
+      "⚠ Cảnh báo Giấy tờ & Hợp đồng Hết hạn":"⚠ Expiring Documents & Contracts", "Employee":"Employee", "Loại giấy tờ / Hợp đồng":"Document / Contract", "Ngày hết hạn":"Expiry Date",
+      "Chưa có lịch sử.":"No history.", "Chưa có file":"No file", "Mở toàn bộ":"Open", "Lịch sử nhập / xuất cảnh":"Entry / Exit History", "Lịch sử đi lại":"Travel History",
+      "👤 Hồ sơ của tôi":"👤 My Profile", "✈️ Khai báo nhập / xuất cảnh":"✈️ Entry / Exit Declaration", "🚗 Đăng ký đi lại trong Việt Nam":"🚗 Domestic Travel Registration", "Planned Entry/Exit Date":"Planned Entry/Exit Date", "Actual Entry/Exit Date":"Actual Entry/Exit Date", "Ngày dự kiến nhập/xuất cảnh":"Planned Entry/Exit Date", "Ngày thực tế nhập/xuất cảnh":"Actual Entry/Exit Date", "📥 Batch Import Entry / Exit + Travel":"📥 Batch Import Entry / Exit + Travel", "Template Excel":"Excel Template", "Import pasted Excel":"Import pasted Excel", "Clear":"Clear"
+    },
+    zh: {
+      "FOREIGN EMPLOYEE SYSTEM":"外籍员工管理系统", "Immigration & Contract Management":"出入境与合同管理", "Dashboard":"仪表盘", "My Profile":"我的资料",
+      "Immigration":"出入境", "Domestic Travel":"国内出行", "Foreign Employees":"外籍员工", "Đổi mật khẩu":"修改密码", "Tài khoản":"账户管理",
+      "LOGIN":"登录", "Foreign Employee Management":"外籍员工管理", "EmpID / Email":"员工编号 / 邮箱", "Password":"密码", "Đăng xuất":"退出",
+      "Họ tên":"姓名", "Quốc tịch":"国籍", "Ngày sinh":"出生日期", "Số hộ chiếu":"护照号码", "Hạn Passport":"护照有效期", "Hạn TRC":"TRC有效期",
+      "Hạn WP":"工作许可证有效期", "Số Hợp Đồng":"合同编号", "Số Phụ Lục":"合同附件编号", "Mức Lương Cơ Bản":"基本工资", "Phụ Cấp":"津贴", "Trạng thái":"状态",
+      "Chức vụ":"职位", "Phòng ban":"部门", "👥 Batch Entry / Exit Registration":"👥 批量登记出入境", "👥 Batch Domestic Travel Registration":"👥 批量登记国内出行",
+      "Select All":"全选", "Clear":"清除", "Save for Selected Employees":"为选中员工保存", "Entry to Vietnam":"入境越南", "Exit from Vietnam":"出境越南",
+      "Airport / border gate":"机场 / 口岸", "Flight number":"航班号", "Destination":"目的地", "Purpose":"目的", "From date":"开始日期", "To date":"结束日期",
+      "From location":"出发地", "To location":"目的地", "Name":"姓名", "Status":"状态", "Entry/Exit":"出入境", "Action":"操作", "Import Excel":"导入Excel", "Template":"模板", "Thêm Nhân Viên":"添加员工",
+      "Tìm tên / mã NV / quốc tịch...":"搜索姓名 / 员工编号 / 国籍...", "⚠ Cảnh báo Giấy tờ & Hợp đồng Hết hạn":"⚠ 证件与合同到期提醒", "Employee":"员工",
+      "Loại giấy tờ / Hợp đồng":"证件 / 合同", "Ngày hết hạn":"到期日期", "Chưa có lịch sử.":"暂无记录", "Chưa có file":"暂无文件", "Mở toàn bộ":"打开",
+      "Lịch sử nhập / xuất cảnh":"出入境记录", "Lịch sử đi lại":"出行记录", "👤 Hồ sơ của tôi":"👤 我的资料", "✈️ Khai báo nhập / xuất cảnh":"✈️ 出入境登记", "🚗 Đăng ký đi lại trong Việt Nam":"🚗 越南国内出行登记", "Planned Entry/Exit Date":"计划出入境日期", "Actual Entry/Exit Date":"实际出入境日期", "Ngày dự kiến nhập/xuất cảnh":"计划出入境日期", "Ngày thực tế nhập/xuất cảnh":"实际出入境日期", "📥 Batch Import Entry / Exit + Travel":"📥 批量导入出入境与国内出行", "Template Excel":"Excel模板", "Import pasted Excel":"导入粘贴的Excel", "Clear":"清除"
+    }
+  };
+
+  function setLanguage(lang) {
+    uiLang = ["en","zh"].includes(lang) ? lang : "en";
+    localStorage.setItem("fe_lang", uiLang);
+    const sel = document.getElementById("languageSelect");
+    if (sel) sel.value = uiLang;
+    translatePage();
+  }
+  function t(text) { return (I18N[uiLang] && I18N[uiLang][text]) || text; }
+  function translatePage() {
+    document.querySelectorAll("body *:not(script):not(style)").forEach(el => {
+      if (el.children.length === 0) {
+        if (!el.dataset.i18nOriginal) el.dataset.i18nOriginal = el.textContent.trim();
+        const raw = el.dataset.i18nOriginal;
+        if (raw && I18N[uiLang][raw]) el.textContent = I18N[uiLang][raw];
+      }
+      if (el.placeholder) {
+        if (!el.dataset.i18nPlaceholder) el.dataset.i18nPlaceholder = el.placeholder;
+        const rawPh = el.dataset.i18nPlaceholder;
+        if (I18N[uiLang][rawPh]) el.placeholder = I18N[uiLang][rawPh];
+      }
+      if (el.title) {
+        if (!el.dataset.i18nTitle) el.dataset.i18nTitle = el.title;
+        const rawTitle = el.dataset.i18nTitle;
+        if (I18N[uiLang][rawTitle]) el.title = I18N[uiLang][rawTitle];
+      }
+    });
+  }
+
+  function isBatchAdmin() {
+    return currentUser && ['ADMIN','HR ADMIN','HR'].includes(String(currentUser.role || '').toUpperCase());
+  }
+  function renderBatchEmployeePickers() {
+    if (!isBatchAdmin()) return;
+    const list = (employees || []).filter(e => String(e.activeStatus || 'ACTIVE').toUpperCase() !== 'INACTIVE');
+    ['immigration','travel'].forEach(kind => {
+      const box = document.getElementById(kind === 'immigration' ? 'batchImmigrationEmployees' : 'batchTravelEmployees');
+      if (!box) return;
+      box.innerHTML = list.length ? list.map(e => `<label class="flex items-center gap-2 p-2 rounded hover:bg-slate-50 border"><input type="checkbox" class="batch-${kind}-employee w-4 h-4" value="${escapeHTML(e.employeeId)}"><span class="text-sm"><b>${escapeHTML(e.fullName)}</b><span class="text-xs text-slate-400 ml-1">${escapeHTML(e.employeeId)}</span></span></label>`).join('') : '<div class="text-sm text-slate-400">No active employees.</div>';
+    });
+    translatePage();
+  }
+  function selectBatchEmployees(kind, checked) {
+    document.querySelectorAll(`.batch-${kind}-employee`).forEach(x => x.checked = checked);
+  }
+  function selectedBatchEmployees(kind) {
+    return [...document.querySelectorAll(`.batch-${kind}-employee:checked`)].map(x => x.value);
+  }
+  async function saveBatchEntryExit(){
+    if(!isBatchAdmin())return toast('Bạn không có quyền đăng ký hàng loạt.');
+    const employeeIds=selectedBatchEmployees('immigration'); if(!employeeIds.length)return toast('Vui lòng chọn ít nhất một nhân viên.');
+    const data={employeeIds,mode:'ROUND_TRIP',entryPlannedDateTime:document.getElementById('batchEeEntryPlanned').value,entryActualDateTime:document.getElementById('batchEeEntryActual').value,entryAirport:document.getElementById('batchEeEntryAirport').value.trim(),entryFlightNo:document.getElementById('batchEeEntryFlight').value.trim(),entryDestination:document.getElementById('batchEeEntryDestination').value.trim(),exitPlannedDateTime:document.getElementById('batchEeExitPlanned').value,exitActualDateTime:document.getElementById('batchEeExitActual').value,exitAirport:document.getElementById('batchEeExitAirport').value.trim(),exitFlightNo:document.getElementById('batchEeExitFlight').value.trim(),exitDestination:document.getElementById('batchEeExitDestination').value.trim(),purpose:document.getElementById('batchEePurpose').value.trim()};
+    if(!data.entryPlannedDateTime||!data.entryAirport||!data.exitPlannedDateTime||!data.exitAirport)return toast('Vui lòng nhập đầy đủ Entry và Exit.');
+    const btn=document.getElementById('batchEeBtn');btn.disabled=true;const old=btn.textContent;btn.textContent='Processing...';
+    try{const r=await apiPost('BATCH_ADD_ENTRY_EXIT',data);document.getElementById('batchEeResult').textContent=r.message||'';toast(r.message||'Completed.');if(r.status==='SUCCESS'){await loadEntryExit();await loadDashboard();}}catch(e){toast(e.message||'Batch registration failed.');}finally{btn.disabled=false;btn.textContent=old;translatePage();}
+  }
+  async function saveBatchDomesticTravel() {
+    if (!isBatchAdmin()) return toast('Only ADMIN can use batch registration.');
+    const employeeIds = selectedBatchEmployees('travel');
+    if (!employeeIds.length) return toast('Please select at least one employee.');
+    const data = { employeeIds, fromDate: document.getElementById('batchTravelFromDate').value, toDate: document.getElementById('batchTravelToDate').value,
+      fromLocation: document.getElementById('batchTravelFrom').value.trim(), toLocation: document.getElementById('batchTravelTo').value.trim(), purpose: document.getElementById('batchTravelPurpose').value.trim() };
+    if (!data.fromDate || !data.toDate || !data.fromLocation || !data.toLocation) return toast('Please complete the itinerary.');
+    const btn = document.getElementById('batchTravelBtn'); btn.disabled = true; const old = btn.textContent; btn.textContent = 'Processing...';
+    try {
+      const r = await apiPost('BATCH_ADD_DOMESTIC_TRAVEL', data);
+      document.getElementById('batchTravelResult').textContent = r.message || '';
+      toast(r.message || 'Completed.');
+      if (r.status === 'SUCCESS') { await loadTravel(); await loadDashboard(); }
+    } catch(e) { toast(e.message || 'Batch registration failed.'); }
+    finally { btn.disabled = false; btn.textContent = old; translatePage(); }
+  }
+
+
+  function isHR() {
+    return currentUser && ["HR", "HR ADMIN", "DIRECTOR", "ADMIN"].includes(String(currentUser.role || "").toUpperCase());
+  }
+
+  function isAccountAdmin() {
+    return currentUser && ["ADMIN", "HR ADMIN"].includes(String(currentUser.role || "").toUpperCase());
+  }
+
+  function isSuperAdmin() {
+    return currentUser && String(currentUser.role || "").toUpperCase() === "ADMIN";
+  }
+
+  function escapeHTML(v) {
+    return String(v ?? "").replace(/[&<>"']/g, m => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[m]));
+  }
+
+  function toast(msg) {
+    const t = document.getElementById("toast");
+    document.getElementById("toastText").textContent = msg;
+    t.classList.remove("hidden");
+    setTimeout(() => t.classList.add("hidden"), 2500);
+  }
+
+  function showPage(page) {
+    document.querySelectorAll(".page").forEach(x => x.classList.add("hidden"));
+    document.getElementById("page-" + page)?.classList.remove("hidden");
+  }
+
+  let activeRequests = 0;
+  let loaderTimer = null;
+  function showGlobalLoader(text = "Loading data...") {
+    activeRequests++;
+    const el = document.getElementById("globalLoader");
+    if (el) { document.getElementById("globalLoaderText").textContent = text; el.classList.remove("hidden"); }
+  }
+  function hideGlobalLoader() {
+    activeRequests = Math.max(0, activeRequests - 1);
+    if (!activeRequests) { clearTimeout(loaderTimer); loaderTimer = setTimeout(() => document.getElementById("globalLoader")?.classList.add("hidden"), 120); }
+  }
+
+  function callBackend(action, data = {}, params = {}) {
+  const token = sessionToken || sessionStorage.getItem("sessionToken") || "";
+  showGlobalLoader(action === "LOGIN" ? "Signing in..." : "Loading / saving data...");
+
+  return new Promise((resolve, reject) => {
+
+    // Google Apps Script container
+    if (
+      typeof google !== "undefined" &&
+      google.script &&
+      google.script.run
+    ) {
+      google.script.run
+        .withSuccessHandler(v => { hideGlobalLoader(); resolve(v); })
+        .withFailureHandler(e => { hideGlobalLoader(); reject(e); })
+        .apiCall(action, token, data, params);
+
+      return;
+    }
+
+    // Cloudflare Pages / Web App
+    const payload = {
+      action,
+      token,
+      data,
+      params
+    };
+
+    if (action === "LOGIN") {
+      payload.username = data.username;
+      payload.password = data.password;
+    }
+
+    const controller = new AbortController();
+
+    const timer = setTimeout(() => {
+      controller.abort();
+    }, API_TIMEOUT_MS);
+
+    fetch(WEB_APP_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "text/plain;charset=utf-8"
+      },
+      body: JSON.stringify(payload),
+      signal: controller.signal
+    })
+      .then(res => {
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
+        }
+        return res.json();
+      })
+      .then(resolve)
+      .catch(err => {
+        if (err.name === "AbortError") {
+          reject(new Error("API timeout sau 30 giây. Vui lòng thử lại."));
+        } else {
+          reject(err);
+        }
+      })
+      .finally(() => {
+        clearTimeout(timer);
+        hideGlobalLoader();
+      });
+  });
+}
+
+  async function apiGet(action, params = {}) {
+    const res = await callBackend(action, {}, params);
+    if (res.status === "ERROR" && /phiên|login/i.test(res.message || "")) {
+      await logout(false);
+      throw new Error(res.message);
+    }
+    return res;
+  }
+
+  async function apiPost(action, data = {}) {
+    const res = await callBackend(action, data, {});
+    if (res.status === "ERROR" && /phiên|login/i.test(res.message || "")) {
+      await logout(false);
+      throw new Error(res.message);
+    }
+    return res;
+  }
+
+  async function doLogin() {
+    const u = document.getElementById("loginUser").value.trim();
+    const p = document.getElementById("loginPass").value;
+    if (!u || !p) return toast("Vui lòng nhập tài khoản và mật khẩu!");
+
+    const b = document.getElementById("loginBtn");
+    b.disabled = true;
+    b.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Logging in...';
+
+    try {
+      const res = await callBackend("LOGIN", { username: u, password: p });
+      if (res.status !== "SUCCESS") return toast(res.message || "Login Failed");
+
+      currentUser = res.user;
+      sessionToken = res.token;
+      sessionStorage.setItem("sessionToken", sessionToken);
+      sessionStorage.setItem("currentUser", JSON.stringify(currentUser));
+
+      // Reset lại ô nhập thông tin đăng nhập
+      document.getElementById("loginUser").value = "";
+      document.getElementById("loginPass").value = "";
+      
+      initSessionUI();
+    } catch (e) {
+      console.error(e);
+      toast(e.message || "Không thể kết nối máy chủ.");
+    } finally {
+      b.disabled = false;
+      b.innerHTML = '<i class="fa-solid fa-right-to-bracket mr-2"></i> Login';
+    }
+  }
+
+  function restoreSession() {
+    setLanguage(localStorage.getItem("fe_lang") || "en");
+    sessionToken = sessionStorage.getItem("sessionToken");
+    const raw = sessionStorage.getItem("currentUser");
+    if (!sessionToken || !raw) return;
+    try {
+      currentUser = JSON.parse(raw);
+      initSessionUI();
+    } catch (e) {
+      logout(false);
+    }
+  }
+
+  function initSessionUI() {
+    document.getElementById("loginSection").classList.add("hidden");
+    document.getElementById("app").classList.remove("hidden");
+    document.getElementById("userNav").classList.remove("hidden");
+    document.getElementById("userNav").classList.add("flex");
+    document.getElementById("userName").textContent = currentUser.name || currentUser.email;
+    document.getElementById("roleBadge").textContent = currentUser.role || "USER";
+
+    if (isHR()) {
+      document.getElementById("dashboardMenu").classList.remove("hidden");
+      if (isBatchAdmin()) {
+        document.getElementById("batchImmigrationPanel")?.classList.remove("hidden");
+        document.getElementById("batchTravelPanel")?.classList.remove("hidden");
+        document.getElementById("batchImportPanel")?.classList.remove("hidden");
+      }
+      document.getElementById("employeeMenu").classList.remove("hidden");
+      if (isAccountAdmin()) document.getElementById("accountMenu").classList.remove("hidden");
+      showPage("dashboard");
+      loadDashboard();
+    } else {
+      showPage("profile");
+    }
+    loadProfile();
+    loadEntryExit();
+    loadTravel();
+  }
+
+  async function logout(notify = true) {
+    try {
+      if (sessionToken) await callBackend("LOGOUT");
+    } catch (e) {}
+  
+    // Xóa sạch bộ nhớ tạm thời
+    currentUser = null;
+    sessionToken = null;
+    employees = [];
+    accountUsers = [];
+    sessionStorage.clear();
+    document.getElementById("app").classList.add("hidden");
+    document.getElementById("userNav").classList.add("hidden");
+    document.getElementById("loginSection").classList.remove("hidden");
+    if (notify) toast("Đã đăng xuất.");
+
+    // Reload lại toàn bộ trang web để xóa sạch thông tin cũ trên DOM
+  window.location.reload();
+  }
+
+  async function loadDashboard() {
+    if (!isHR()) return;
+    try {
+      const r = await apiGet("GET_DASHBOARD_DATA");
+      if (r.status !== "SUCCESS") return;
+      document.getElementById("kpiTotal").textContent = r.kpi.total || 0;
+      document.getElementById("kpiInVN").textContent = r.kpi.inVN || 0;
+      document.getElementById("kpiBusiness").textContent = r.kpi.business || 0;
+      document.getElementById("kpiExited").textContent = r.kpi.exited || 0;
+      document.getElementById("kpiWarning").textContent = r.kpi.warning || 0;
+      document.getElementById("kpiExpContract").textContent = r.kpi.expContract || 0;
+      
+      employees = r.employees || [];
+      renderEmployees();
+      renderBatchEmployeePickers();
+      renderWarnings(r.expiryWarnings || []);
+    } catch (e) { console.error(e); }
+    translatePage();
+  }
+
+  function renderWarnings(list) {
+    const tb = document.getElementById("warningTable");
+    if (!list.length) {
+      tb.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-emerald-600">✓ Không có giấy tờ / Hợp đồng hết hạn.</td></tr>';
+      return;
+    }
+    tb.innerHTML = list.slice().sort((a, b) => a.daysRemaining - b.daysRemaining).map(x => `
+      <tr class="border-b">
+        <td class="p-3 font-semibold">${escapeHTML(x.fullName)}<div class="text-xs text-slate-400">${escapeHTML(x.employeeId)}</div></td>
+        <td class="p-3 text-center">${escapeHTML(x.document)}</td>
+        <td class="p-3 text-center">${escapeHTML(x.expiryDate)}</td>
+        <td class="p-3 text-center">${x.severity === 'EXPIRED'
+          ? '<span class="badge bg-red-100 text-red-700">HẾT HẠN</span>'
+          : '<span class="badge bg-amber-100 text-amber-700">Còn ' + escapeHTML(x.daysRemaining) + ' ngày</span>'}</td>
+      </tr>`).join("");
+  }
+
+  async function loadProfile() {
+    if (!currentUser?.employeeId) return;
+    try {
+      const r = await apiGet("GET_PROFILE", { employeeId: currentUser.employeeId });
+      if (r.status !== "SUCCESS") return;
+      const p = r.profile;
+      document.getElementById("profileContent").innerHTML = `
+        <div class="grid md:grid-cols-3 gap-4">
+          ${field("Họ tên", p.fullName)}
+          ${field("Quốc tịch", p.nationality)}
+          ${field("Ngày sinh", p.dob)}
+          ${field("Số hộ chiếu", p.passportNo)}
+          ${field("Hạn Passport", p.passportExpiry)}
+          ${docPreview("Passport", p.passport)}
+          ${field("TRC", p.trcNo)}
+          ${field("Hạn TRC", p.trcExpiry)}
+          ${docPreview("TRC", p.trc)}
+          ${field("Work Permit", p.wpNo)}
+          ${field("Hạn WP", p.wpExpiry)}
+          ${docPreview("Work Permit", p.workPermit)}
+          ${field("Số Hợp Đồng", p.contractNo)}
+          ${field("Số Phụ Lục", p.appendixNo)}
+          ${field("Hạn Hợp Đồng", p.contractExpiry)}
+          ${docPreview("Hợp đồng", p.contract)}
+          ${field("Mức Lương Cơ Bản", Number(p.salary || 0).toLocaleString() + " USD")}
+          ${field("Phụ Cấp", Number(p.allowance || 0).toLocaleString() + " USD")}
+          ${field("Trạng thái", p.currentStatus)}
+        </div>
+      `;
+    } catch (e) { console.error(e); }
+  }
+
+  function field(l, v) {
+    return `<div class="border rounded-lg p-3 bg-slate-50"><div class="text-xs text-slate-400 font-semibold">${escapeHTML(l)}</div><div class="font-semibold mt-1">${escapeHTML(v || "-")}</div></div>`;
+  }
+
+  function extractDriveFileId(raw) {
+    const s = String(raw || "").trim();
+    if (!s) return "";
+    const patterns = [/\/file\/d\/([a-zA-Z0-9_-]+)/, /\/d\/([a-zA-Z0-9_-]+)/, /[?&]id=([a-zA-Z0-9_-]+)/, /^([a-zA-Z0-9_-]{20,})$/];
+    for (const re of patterns) {
+      const m = s.match(re);
+      if (m && m[1]) return m[1];
+    }
+    return "";
+  }
+
+  function normalizeDocInfo(label, urlOrInfo, fileId = "", mimeType = "") {
+    const info = (urlOrInfo && typeof urlOrInfo === "object") ? urlOrInfo : {
+      fileUrl: urlOrInfo || "", fileId: fileId || "", mimeType: mimeType || ""
+    };
+    const id = String(info.fileId || "").trim() || extractDriveFileId(info.fileUrl || info.previewUrl || "");
+    const rawUrl = String(info.fileUrl || info.previewUrl || "").trim();
+    const mt = String(info.mimeType || "").toLowerCase();
+    let previewUrl = String(info.previewUrl || "").trim();
+    let openUrl = rawUrl;
+    if (id) {
+      previewUrl = `https://drive.google.com/file/d/${encodeURIComponent(id)}/preview`;
+      openUrl = `https://drive.google.com/file/d/${encodeURIComponent(id)}/view`;
+    }
+    return {
+      label, id, rawUrl, previewUrl, openUrl, mimeType: mt,
+      isPdf: mt === "application/pdf" || /\.pdf(?:[?#]|$)/i.test(rawUrl),
+      isImage: mt.startsWith("image/") || /\.(jpe?g|png|webp|gif)(?:[?#]|$)/i.test(rawUrl),
+      fileName: info.fileName || ""
+    };
+  }
+
+  function docPreview(label, doc) {
+    const d = normalizeDocInfo(label, doc);
+    if (!d.id && !d.rawUrl) return `<div class="border rounded-lg p-3 bg-slate-50"><div class="text-xs text-slate-400 font-semibold">${escapeHTML(label)}</div><div class="font-semibold mt-1 text-slate-400">Chưa có file</div></div>`;
+    const safePreview = escapeHTML(d.previewUrl || d.rawUrl);
+    const safeOpen = escapeHTML(d.openUrl || d.rawUrl);
+    const title = escapeHTML(d.fileName || label);
+    const media = d.isImage && !d.isPdf
+      ? `<img src="${safePreview}" alt="${title}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.classList.remove('hidden');"><div class="hidden p-6 text-center text-sm text-slate-500">Không thể hiển thị ảnh trực tiếp. Vui lòng mở file.</div>`
+      : `<iframe src="${safePreview}" title="${title}" loading="lazy" allow="autoplay; fullscreen"></iframe>`;
+    return `<div class="border rounded-lg p-3 bg-slate-50">
+      <div class="text-xs text-slate-400 font-semibold">${escapeHTML(label)}</div>
+      <div class="doc-preview">
+        ${media}
+        <div class="doc-preview-actions">
+          <span class="text-xs text-slate-500"><i class="fa-solid ${d.isPdf ? "fa-file-pdf" : "fa-file-image"} mr-1"></i>${d.isPdf ? "PDF" : "Tài liệu"}</span>
+          <a href="${safeOpen}" target="_blank" rel="noopener noreferrer"><i class="fa-solid fa-up-right-from-square mr-1"></i>Mở toàn bộ</a>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  function docField(l, urlOrInfo, fileId = "", mimeType = "") {
+    return docPreview(l, { fileUrl: urlOrInfo, fileId, mimeType });
+  }
+
+  async function handleFileUpload(inputElem, targetInputId, subFolder, fileIdInputId) {
+    const file = inputElem.files[0];
+    if (!file) return;
+    const allowed = ["application/pdf", "image/jpeg", "image/png", "image/webp"];
+    if (!allowed.includes(file.type)) {
+      inputElem.value = "";
+      return toast("Chỉ hỗ trợ PDF, JPG, PNG hoặc WEBP.");
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      inputElem.value = "";
+      return toast("File tối đa 10 MB.");
+    }
+
+    const employeeId = document.getElementById("f_empId")?.value.trim();
+    const isNew = document.getElementById("f_isNewEmployee")?.value === "1";
+    const reader = new FileReader();
+    reader.onload = async function (e) {
+      const base64Data = e.target.result;
+      if (isNew) {
+        pendingUploads[targetInputId] = { base64Data, fileName: file.name, mimeType: file.type, employeeId, subFolder, fileIdInputId };
+        document.getElementById(targetInputId).value = "PENDING:" + file.name;
+        if (fileIdInputId) document.getElementById(fileIdInputId).value = "";
+        toast(`Đã chọn ${file.name}. File sẽ được upload sau khi lưu hồ sơ.`);
+        return;
+      }
+
+      toast("Đang tải file lên Drive...");
+      try {
+        const res = await apiPost("UPLOAD_FILE", {
+          base64Data, fileName: file.name, mimeType: file.type,
+          employeeId, subFolderType: subFolder
+        });
+        if (res.status === "SUCCESS") {
+          document.getElementById(targetInputId).value = res.fileUrl;
+          if (fileIdInputId) document.getElementById(fileIdInputId).value = res.fileId || "";
+          toast("Tải file thành công!");
+        } else toast(res.message);
+      } catch (err) {
+        toast(err.message || "Upload thất bại!");
+      }
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function toDateTimeLocal(v){ return String(v||'').replace(' ','T').slice(0,16); }
+  function toggleEntryExitMode(){
+    const mode=document.getElementById('eeMode').value;
+    document.getElementById('eeRoundTripFields').classList.toggle('hidden',mode!=='ROUND_TRIP');
+    document.getElementById('eeSingleFields').classList.toggle('hidden',mode==='ROUND_TRIP');
+  }
+  async function saveEntryExit(){
+    if(!currentUser?.employeeId)return toast('Tài khoản chưa có Mã nhân viên.');
+    const mode=document.getElementById('eeMode').value; const purpose=document.getElementById('eePurpose').value.trim(); const tripId=document.getElementById('eeTripId').value.trim(); const editId=document.getElementById('eeEditId').value.trim();
+    let payload={employeeId:currentUser.employeeId,mode,purpose,tripId,entryExitId:editId};
+    if(mode==='ROUND_TRIP'){
+      payload={...payload,entryPlannedDateTime:document.getElementById('eeEntryPlanned').value,entryActualDateTime:document.getElementById('eeEntryActual').value,entryAirport:document.getElementById('eeEntryAirport').value.trim(),entryFlightNo:document.getElementById('eeEntryFlight').value.trim(),entryDestination:document.getElementById('eeEntryDestination').value.trim(),exitPlannedDateTime:document.getElementById('eeExitPlanned').value,exitActualDateTime:document.getElementById('eeExitActual').value,exitAirport:document.getElementById('eeExitAirport').value.trim(),exitFlightNo:document.getElementById('eeExitFlight').value.trim(),exitDestination:document.getElementById('eeExitDestination').value.trim()};
+      if(!payload.entryPlannedDateTime||!payload.entryAirport||!payload.exitPlannedDateTime||!payload.exitAirport)return toast('Vui lòng nhập đầy đủ Entry và Exit.');
+      if(payload.exitPlannedDateTime<payload.entryPlannedDateTime)return toast('Ngày Exit phải sau ngày Entry.');
+      if(editId){
+        return await submitButton('eeBtn',async()=>{ const r=await updateRoundTrip(payload); if(r.status==='SUCCESS')resetEntryExitForm(); return r; });
+      }
+    }else{
+      const type=mode==='ENTRY_ONLY'?'ENTRY':'EXIT'; payload={...payload,type,plannedDateTime:document.getElementById('eePlannedDate').value,actualDateTime:document.getElementById('eeActualDate').value,airport:document.getElementById('eeAirport').value.trim(),flightNo:document.getElementById('eeFlight').value.trim(),destination:document.getElementById('eeDestination').value.trim()};
+      if(!payload.plannedDateTime||!payload.airport)return toast('Vui lòng nhập ngày giờ dự kiến và sân bay/cửa khẩu.');
+      if(editId) return await submitButton('eeBtn',async()=>{const r=await apiPost('UPDATE_ENTRY_EXIT',payload);if(r.status==='SUCCESS')resetEntryExitForm();return r;});
+    }
+    await submitButton('eeBtn',async()=>{const r=await apiPost('ADD_ENTRY_EXIT',payload);if(r.status==='SUCCESS')resetEntryExitForm();return r;});
+  }
+  async function updateRoundTrip(p){
+    const r=await apiGet('GET_ENTRY_EXIT',{employeeId:currentUser.employeeId}); if(r.status!=='SUCCESS')return r;
+    const records=r.records||[]; const trip=records.filter(x=>String(x.tripId||'')===String(p.tripId||''));
+    const entry=trip.find(x=>x.type==='ENTRY'), exit=trip.find(x=>x.type==='EXIT');
+    if(!entry||!exit)return {status:'ERROR',message:'Không tìm thấy đủ Entry và Exit của Trip.'};
+    const r1=await apiPost('UPDATE_ENTRY_EXIT',{entryExitId:entry.entryExitId,employeeId:currentUser.employeeId,tripId:p.tripId,type:'ENTRY',plannedDateTime:p.entryPlannedDateTime,actualDateTime:p.entryActualDateTime||p.entryPlannedDateTime,airport:p.entryAirport,flightNo:p.entryFlightNo,destination:p.entryDestination,purpose:p.purpose});
+    if(r1.status!=='SUCCESS')return r1;
+    return await apiPost('UPDATE_ENTRY_EXIT',{entryExitId:exit.entryExitId,employeeId:currentUser.employeeId,tripId:p.tripId,type:'EXIT',plannedDateTime:p.exitPlannedDateTime,actualDateTime:p.exitActualDateTime||p.exitPlannedDateTime,airport:p.exitAirport,flightNo:p.exitFlightNo,destination:p.exitDestination,purpose:p.purpose});
+  }
+  function resetEntryExitForm(){
+    ['eeEditId','eeTripId','eeEntryPlanned','eeEntryActual','eeEntryAirport','eeEntryFlight','eeEntryDestination','eeExitPlanned','eeExitActual','eeExitAirport','eeExitFlight','eeExitDestination','eePlannedDate','eeActualDate','eeAirport','eeFlight','eeDestination','eePurpose'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+    document.getElementById('eeMode').value='ROUND_TRIP'; toggleEntryExitMode(); document.getElementById('eeType').value='ENTRY'; document.getElementById('eeBtn').textContent='Lưu thông tin'; document.getElementById('eeCancelEditBtn').classList.add('hidden');
+  }
+  function editEntryExit(encoded){
+    const id=decodeURIComponent(encoded); apiGet('GET_ENTRY_EXIT',{employeeId:currentUser.employeeId}).then(r=>{
+      const x=(r.records||[]).find(v=>String(v.entryExitId)===String(id)); if(!x)return toast('Không tìm thấy khai báo.');
+      const trip=(x.tripId?(r.records||[]).filter(v=>String(v.tripId)===String(x.tripId)):[]); const entry=trip.find(v=>v.type==='ENTRY'), exit=trip.find(v=>v.type==='EXIT');
+      document.getElementById('eeEditId').value=x.entryExitId; document.getElementById('eeTripId').value=x.tripId||'';
+      if(entry&&exit){ document.getElementById('eeMode').value='ROUND_TRIP'; toggleEntryExitMode();
+        ['entryPlanned','entryActual','entryAirport','entryFlight','entryDestination'].forEach((k,i)=>document.getElementById('ee'+k.charAt(0).toUpperCase()+k.slice(1)).value=i<2?toDateTimeLocal(entry[i===0?'plannedDateTime':'actualDateTime']):entry[['plannedDateTime','actualDateTime','airport','flightNo','destination'][i]]||'');
+        document.getElementById('eeEntryPlanned').value=toDateTimeLocal(entry.plannedDateTime);document.getElementById('eeEntryActual').value=toDateTimeLocal(entry.actualDateTime);document.getElementById('eeEntryAirport').value=entry.airport||'';document.getElementById('eeEntryFlight').value=entry.flightNo||'';document.getElementById('eeEntryDestination').value=entry.destination||'';
+        document.getElementById('eeExitPlanned').value=toDateTimeLocal(exit.plannedDateTime);document.getElementById('eeExitActual').value=toDateTimeLocal(exit.actualDateTime);document.getElementById('eeExitAirport').value=exit.airport||'';document.getElementById('eeExitFlight').value=exit.flightNo||'';document.getElementById('eeExitDestination').value=exit.destination||'';document.getElementById('eePurpose').value=entry.purpose||exit.purpose||'';
+      } else { const mode=x.type==='ENTRY'?'ENTRY_ONLY':'EXIT_ONLY';document.getElementById('eeMode').value=mode;toggleEntryExitMode();document.getElementById('eeType').value=x.type;document.getElementById('eePlannedDate').value=toDateTimeLocal(x.plannedDateTime||x.dateTime);document.getElementById('eeActualDate').value=toDateTimeLocal(x.actualDateTime||x.dateTime);document.getElementById('eeAirport').value=x.airport||'';document.getElementById('eeFlight').value=x.flightNo||'';document.getElementById('eeDestination').value=x.destination||'';document.getElementById('eePurpose').value=x.purpose||''; }
+      document.getElementById('eeBtn').textContent='Cập nhật chuyến';document.getElementById('eeCancelEditBtn').classList.remove('hidden');showPage('immigration');window.scrollTo({top:0,behavior:'smooth'});
+    }).catch(e=>toast(e.message||'Không tải được khai báo.'));
+  }
+
+  async function deleteEntryExit(encoded) {
+    const id = decodeURIComponent(encoded);
+    if (!confirm("Bạn có chắc muốn xóa khai báo nhập/xuất cảnh này?")) return;
+    try {
+      const r = await apiPost("DELETE_ENTRY_EXIT", { entryExitId: id, employeeId: currentUser.employeeId });
+      if (r.status === "SUCCESS") {
+        toast(r.message);
+        await loadEntryExit();
+        await loadProfile();
+        if (isHR()) await loadDashboard();
+      } else toast(r.message || "Không thể xóa khai báo.");
+    } catch (e) { toast(e.message || "Không thể xóa khai báo."); }
+  }
+
+  async function loadEntryExit() {
+    if (!currentUser?.employeeId) return;
+    try {
+      const r = await apiGet("GET_ENTRY_EXIT", { employeeId: currentUser.employeeId });
+      const b = document.getElementById("entryExitList");
+      const records = (r.records || []).slice().reverse();
+      b.innerHTML = records.map(x => `
+        <div class="border-b pb-3 mb-3">
+          <div class="flex justify-between items-start gap-2">
+            <div>
+              <div class="font-bold">${x.type === "ENTRY" ? "🛬 Nhập cảnh" : "🛫 Xuất cảnh"}</div>
+              <div class="text-sm">${escapeHTML(x.actualDateTime || x.dateTime)} - ${escapeHTML(x.airport || "")}<div class="text-xs text-slate-400">Planned: ${escapeHTML(x.plannedDateTime || x.dateTime || "")}</div></div>
+              <div class="text-xs text-slate-400">Bay: ${escapeHTML(x.flightNo || "-")} | Điểm đến: ${escapeHTML(x.destination || "-")}</div>
+              <div class="text-xs italic text-slate-500">Mục đích: ${escapeHTML(x.purpose || "-")}</div>
+            </div>
+            <div class="flex gap-2 shrink-0">
+              <button onclick="editEntryExit('${encodeURIComponent(x.entryExitId)}')" class="text-amber-600 hover:text-amber-800" title="Sửa"><i class="fa-solid fa-pen-to-square"></i></button>
+              <button onclick="deleteEntryExit('${encodeURIComponent(x.entryExitId)}')" class="text-red-600 hover:text-red-800" title="Xóa"><i class="fa-solid fa-trash"></i></button>
+            </div>
+          </div>
+        </div>`).join("");
+      if (!records.length) b.innerHTML = '<div class="text-slate-400">Chưa có lịch sử.</div>';
+    } catch (e) { console.error(e); }
+  }
+
+  async function saveDomesticTravel() {
+    if (!currentUser?.employeeId) return toast("Tài khoản chưa có Mã nhân viên.");
+    const editId = document.getElementById("travelEditId").value.trim();
+    const d = {
+      employeeId: currentUser.employeeId,
+      travelId: editId,
+      fromDate: document.getElementById("travelFromDate").value,
+      toDate: document.getElementById("travelToDate").value,
+      fromLocation: document.getElementById("travelFrom").value.trim(),
+      toLocation: document.getElementById("travelTo").value.trim(),
+      purpose: document.getElementById("travelPurpose").value.trim()
+    };
+    if (!d.fromDate || !d.toDate || !d.fromLocation || !d.toLocation) return toast("Vui lòng kiểm tra đầy đủ thông tin!");
+    if (d.toDate < d.fromDate) return toast("Ngày đến phải sau hoặc bằng ngày đi.");
+
+    const action = editId ? "UPDATE_DOMESTIC_TRAVEL" : "ADD_DOMESTIC_TRAVEL";
+    await submitButton("travelBtn", async () => {
+      const r = await apiPost(action, d);
+      if (r.status === "SUCCESS") resetTravelForm();
+      return r;
+    });
+  }
+
+  function resetTravelForm() {
+    document.getElementById("travelEditId").value = "";
+    document.getElementById("travelFromDate").value = "";
+    document.getElementById("travelToDate").value = "";
+    document.getElementById("travelFrom").value = "";
+    document.getElementById("travelTo").value = "";
+    document.getElementById("travelPurpose").value = "";
+    document.getElementById("travelBtn").textContent = "Gửi yêu cầu đi lại";
+    document.getElementById("travelCancelEditBtn").classList.add("hidden");
+  }
+
+  function editDomesticTravel(encoded) {
+    const id = decodeURIComponent(encoded);
+    apiGet("GET_DOMESTIC_TRAVEL", { employeeId: currentUser.employeeId }).then(r => {
+      const x = (r.records || []).find(v => String(v.travelId) === String(id));
+      if (!x) return toast("Không tìm thấy lịch đi lại.");
+      if (String(x.status).toUpperCase() === "CANCELLED") return toast("Lịch này đã hủy, không thể sửa.");
+      document.getElementById("travelEditId").value = x.travelId;
+      document.getElementById("travelFromDate").value = x.fromDate || "";
+      document.getElementById("travelToDate").value = x.toDate || "";
+      document.getElementById("travelFrom").value = x.fromLocation || "";
+      document.getElementById("travelTo").value = x.toLocation || "";
+      document.getElementById("travelPurpose").value = x.purpose || "";
+      document.getElementById("travelBtn").textContent = "Cập nhật lịch đi lại";
+      document.getElementById("travelCancelEditBtn").classList.remove("hidden");
+      showPage("travel");
+      window.scrollTo({top: 0, behavior: "smooth"});
+    }).catch(e => toast(e.message || "Không tải được lịch đi lại."));
+  }
+
+  async function cancelDomesticTravel(encoded) {
+    const id = decodeURIComponent(encoded);
+    if (!confirm("Bạn có chắc muốn hủy chuyến đi này?")) return;
+    try {
+      const r = await apiPost("CANCEL_DOMESTIC_TRAVEL", { travelId: id, employeeId: currentUser.employeeId });
+      if (r.status === "SUCCESS") {
+        toast(r.message);
+        await loadTravel();
+        await loadProfile();
+        if (isHR()) await loadDashboard();
+      } else toast(r.message || "Không thể hủy chuyến đi.");
+    } catch (e) { toast(e.message || "Không thể hủy chuyến đi."); }
+  }
+
+  async function loadTravel() {
+    if (!currentUser?.employeeId) return;
+    try {
+      const r = await apiGet("GET_DOMESTIC_TRAVEL", { employeeId: currentUser.employeeId });
+      const b = document.getElementById("travelList");
+      const records = (r.records || []).slice().reverse();
+      b.innerHTML = records.map(x => `
+        <div class="border-b pb-3 mb-3">
+          <div class="flex justify-between items-start gap-2">
+            <div>
+              <div class="font-bold">${escapeHTML(x.fromLocation)} → ${escapeHTML(x.toLocation)}</div>
+              <div class="text-sm">${escapeHTML(x.fromDate)} → ${escapeHTML(x.toDate)}</div>
+              <div class="text-xs font-semibold ${x.status === 'APPROVED' ? 'text-emerald-600' : x.status === 'CANCELLED' ? 'text-red-600' : 'text-amber-600'}">${escapeHTML(x.status)}</div>
+              <div class="text-xs italic text-slate-500">Mục đích: ${escapeHTML(x.purpose || "-")}</div>
+            </div>
+            <div class="flex gap-2 shrink-0">
+              ${x.status !== 'CANCELLED' ? `<button onclick="editDomesticTravel('${encodeURIComponent(x.travelId)}')" class="text-amber-600 hover:text-amber-800" title="Sửa"><i class="fa-solid fa-pen-to-square"></i></button>
+              <button onclick="cancelDomesticTravel('${encodeURIComponent(x.travelId)}')" class="text-red-600 hover:text-red-800" title="Hủy"><i class="fa-solid fa-ban"></i></button>` : ""}
+            </div>
+          </div>
+        </div>`).join("");
+      if (!records.length) b.innerHTML = '<div class="text-slate-400">Chưa có lịch sử.</div>';
+    } catch (e) { console.error(e); }
+  }
+
+  async function submitButton(id, fn) {
+    const b = document.getElementById(id);
+    b.disabled = true;
+    const old = b.innerHTML;
+    b.textContent = "Đang xử lý...";
+    try {
+      const r = await fn();
+      if (r.status === "SUCCESS") {
+        toast(r.message || "Thành công!");
+        await loadEntryExit();
+        await loadTravel();
+        await loadProfile();
+        if (isHR()) await loadDashboard();
+      } else toast(r.message || "Lỗi!");
+    } catch (e) {
+      toast(e.message || "Lỗi kết nối API.");
+    } finally {
+      b.disabled = false;
+      b.innerHTML = old;
+    }
+  }
+
+  function renderEmployees(list = employees) {
+    const tb = document.getElementById("employeeTable");
+    if (!tb) return;
+
+    const search = (document.getElementById("employeeSearch")?.value || "").toLowerCase().trim();
+    const filtered = list.filter(e =>
+      (e.fullName || "").toLowerCase().includes(search) ||
+      (e.employeeId || "").toLowerCase().includes(search) ||
+      (e.nationality || "").toLowerCase().includes(search)
+    );
+
+    if (!filtered.length) {
+      tb.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-slate-400">Không tìm thấy nhân viên.</td></tr>`;
+      return;
+    }
+
+    tb.innerHTML = filtered.map(e => {
+      const safeEmpId = encodeURIComponent(e.employeeId || "");
+      const ee = e.nextEntryExit;
+      const nextEntryExitHtml = ee
+        ? `<div class="text-xs font-semibold text-blue-700">${ee.type === "ENTRY" ? "🛬 Nhập cảnh" : "🛫 Xuất cảnh"}</div>
+           <div class="text-slate-600 font-medium" style="font-size:11px">${escapeHTML(ee.dateTime || "")}</div>`
+        : `<span class="text-slate-400 text-xs">Không có</span>`;
+
+      const tr = e.nextTravel;
+      const nextTravelHtml = tr
+        ? `<div class="text-xs font-semibold text-slate-700">${escapeHTML(tr.fromLocation)} → ${escapeHTML(tr.toLocation)}</div>
+           <div class="text-slate-500" style="font-size:10px">${escapeHTML(tr.fromDate)} ~ ${escapeHTML(tr.toDate)}</div>`
+        : `<span class="text-slate-400 text-xs">Không có</span>`;
+
+      return `
+        <tr class="border-b hover:bg-slate-50 transition-colors">
+          <td class="p-3"><div class="font-semibold text-slate-800">${escapeHTML(e.fullName)}</div><div class="text-xs text-slate-400">${escapeHTML(e.employeeId)}</div></td>
+          <td class="p-3 text-center">${statusBadge(e.currentStatus || e.status)}</td>
+          <td class="p-3 text-center">${nextEntryExitHtml}</td>
+          <td class="p-3 text-center">${nextTravelHtml}</td>
+          <td class="p-3 text-center">
+            <div class="flex justify-center gap-3">
+              <button onclick="viewEmployee('${safeEmpId}')" class="text-blue-600 hover:text-blue-800 p-1" title="Xem chi tiết"><i class="fa-solid fa-eye"></i></button>
+              <button onclick="openEmployeeForm('${safeEmpId}')" class="text-amber-600 hover:text-amber-800 p-1" title="Sửa thông tin"><i class="fa-solid fa-pen-to-square"></i></button>
+              <button onclick="deleteEmployee('${safeEmpId}')" class="text-red-600 hover:text-red-800 p-1" title="Vô hiệu hóa"><i class="fa-solid fa-trash"></i></button>
+            </div>
+          </td>
+        </tr>`;
+    }).join("");
+  }
+
+  function filterEmployees() {
+    const q = document.getElementById("employeeSearch").value.trim().toLowerCase();
+    renderEmployees(employees.filter(e => [e.fullName, e.employeeId, e.nationality, e.contractNo].some(v => String(v || "").toLowerCase().includes(q))));
+  }
+
+  function statusBadge(s) {
+    let c = "bg-slate-100 text-slate-600";
+    if (s === "In Vietnam") c = "bg-emerald-100 text-emerald-700";
+    if (s === "Traveling") c = "bg-blue-100 text-blue-700";
+    if (s === "Exited") c = "bg-slate-200 text-slate-700";
+    return `<span class="badge ${c}">${escapeHTML(s || "-")}</span>`;
+  }
+
+  async function viewEmployeeTimeline(empId) {
+    try {
+      const res = await apiGet("GET_TIMELINE", { employeeId: empId });
+      if (res.status !== "SUCCESS") return toast(res.message);
+      
+      document.getElementById("modalTitle").textContent = "Lịch sử Xuất Nhập Cảnh & Di Chuyển (" + empId + ")";
+      document.getElementById("modalBody").innerHTML = `
+        <div class="space-y-4">
+          ${(res.timeline || []).map(x => `
+            <div class="border-l-4 border-blue-500 pl-4 py-1">
+              <div class="font-bold text-slate-800">${escapeHTML(x.title)}</div>
+              <div class="text-xs text-blue-600 font-semibold">${escapeHTML(x.date)} ${x.endDate ? " → " + escapeHTML(x.endDate) : ""}</div>
+              <div class="text-xs text-slate-500 mt-1">${escapeHTML(x.location || "")}</div>
+              ${x.status ? `<div class="text-xs font-semibold mt-1">Trạng thái: ${escapeHTML(x.status)}</div>` : ""}
+              ${x.purpose ? `<div class="text-xs italic text-slate-500 mt-1">Mục đích: ${escapeHTML(x.purpose)}</div>` : ""}
+            </div>
+          `).join("") || '<div class="text-slate-400 py-4 text-center">Chưa có lịch sử di chuyển.</div>'}
+        </div>
+      `;
+      document.getElementById("employeeModal").classList.remove("hidden");
+    } catch (e) {
+      toast("Không thể tải lịch sử!");
+    }
+  }
+  
+  async function viewEmployee(encoded) {
+    const id = decodeURIComponent(encoded);
+    try {
+      const [p, t] = await Promise.all([apiGet("GET_PROFILE", { employeeId: id }), apiGet("GET_TIMELINE", { employeeId: id })]);
+      if (p.status !== "SUCCESS") return toast(p.message);
+      const prof = p.profile;
+      document.getElementById("modalTitle").textContent = "Chi tiết: " + prof.fullName;
+      document.getElementById("modalBody").innerHTML = `
+        <div class="grid md:grid-cols-3 gap-3">
+          ${field("Mã Nhân Viên", prof.employeeId)}
+          ${field("Quốc tịch", prof.nationality)}
+          ${field("Chức vụ", prof.position)}
+          ${field("Phòng ban", prof.department)}
+          ${field("Số hộ chiếu", prof.passportNo)}
+          ${field("Hạn Passport", prof.passportExpiry)}
+          ${docPreview("Passport", prof.passport)}
+          ${field("Số TRC", prof.trcNo)}
+          ${field("Hạn TRC", prof.trcExpiry)}
+          ${docPreview("TRC", prof.trc)}
+          ${field("Số Work Permit", prof.wpNo)}
+          ${field("Hạn WP", prof.wpExpiry)}
+          ${docPreview("Work Permit", prof.workPermit)}
+          ${field("Số Hợp Đồng", prof.contractNo)}
+          ${field("Số Phụ Lục", prof.appendixNo)}
+          ${field("Hạn Hợp Đồng", prof.contractExpiry)}
+          ${docPreview("Hợp đồng", prof.contract)}
+          ${field("Mức Lương Cơ Bản", Number(prof.salary || 0).toLocaleString() + " USD")}
+          ${field("Phụ Cấp", Number(prof.allowance || 0).toLocaleString() + " USD")}
+        </div>
+        <hr class="my-6">
+        <h3 class="font-bold mb-3">🕒 Lịch trình di chuyển & Công tác</h3>
+        <div>${(t.timeline || []).map(x => `
+          <div class="border-l-4 border-blue-300 pl-4 mb-4">
+            <div class="font-bold">${escapeHTML(x.title)}</div>
+            <div class="text-sm">${escapeHTML(x.date)} ${x.endDate ? "→ " + escapeHTML(x.endDate) : ""}</div>
+            <div class="text-sm text-slate-500">${escapeHTML(x.location || "")}</div>
+          </div>`).join("") || "Chưa có lịch sử di chuyển."}
+        </div>
+      `;
+      document.getElementById("employeeModal").classList.remove("hidden");
+    } catch (e) { toast(e.message); }
+  }
+
+  async function openEmployeeForm(encoded = "") {
+    let emp = {};
+    if (encoded) {
+      const r = await apiGet("GET_PROFILE", { employeeId: decodeURIComponent(encoded) });
+      if (r.status === "SUCCESS") emp = r.profile;
+    }
+
+    document.getElementById("modalTitle").textContent = encoded ? "Sửa/Cập Nhật Hồ Sơ Nhân Viên" : "Thêm Nhân Viên Mới";
+    document.getElementById("modalBody").innerHTML = `
+      <form id="empForm" class="grid md:grid-cols-2 gap-4" onsubmit="handleSaveEmployee(event)">
+        <input id="f_isNewEmployee" type="hidden" value="${encoded ? "0" : "1"}">
+        <div><label class="text-xs font-semibold">Mã Nhân Viên (*)</label><input id="f_empId" class="input mt-1" value="${escapeHTML(emp.employeeId || "")}" ${encoded ? "readonly bg-slate-100" : ""} required></div>
+        <div><label class="text-xs font-semibold">Họ và Tên (*)</label><input id="f_fullName" class="input mt-1" value="${escapeHTML(emp.fullName || "")}" required></div>
+        <div><label class="text-xs font-semibold">Quốc tịch</label><input id="f_nationality" class="input mt-1" value="${escapeHTML(emp.nationality || "")}"></div>
+        <div><label class="text-xs font-semibold">Ngày sinh</label><input id="f_dob" type="date" class="input mt-1" value="${emp.dob || ""}"></div>
+        <div><label class="text-xs font-semibold">Chức vụ</label><input id="f_position" class="input mt-1" value="${escapeHTML(emp.position || "")}"></div>
+        <div><label class="text-xs font-semibold">Phòng ban</label><input id="f_department" class="input mt-1" value="${escapeHTML(emp.department || "")}"></div>
+        <div><label class="text-xs font-semibold">Điện thoại</label><input id="f_phone" class="input mt-1" value="${escapeHTML(emp.phone || "")}"></div>
+        <div><label class="text-xs font-semibold">Email</label><input id="f_email" type="email" class="input mt-1" value="${escapeHTML(emp.email || "")}"></div>
+
+        <div class="md:col-span-2 font-bold border-b pb-1 text-blue-600 mt-2">Giấy Tờ Pháp Lý (Passport, TRC, WP)</div>
+        <div><label class="text-xs font-semibold">Số Passport</label><input id="f_passportNo" class="input mt-1" value="${escapeHTML(emp.passportNo || "")}"></div>
+        <div><label class="text-xs font-semibold">Ngày hết hạn Passport</label><input id="f_passportExpiry" type="date" class="input mt-1" value="${emp.passportExpiry || ""}"></div>
+        <div class="md:col-span-2">
+          <label class="text-xs font-semibold">File Passport</label>
+          <input type="file" onchange="handleFileUpload(this, 'f_passportImg', 'Passport', 'f_passportFileId')" class="input mt-1">
+          <input id="f_passportImg" type="hidden" value="${escapeHTML(emp.passportImg || "")}">
+          <input id="f_passportFileId" type="hidden" value="${escapeHTML(emp.passportFileId || "")}">
+        </div>
+
+        <div><label class="text-xs font-semibold">Số TRC</label><input id="f_trcNo" class="input mt-1" value="${escapeHTML(emp.trcNo || "")}"></div>
+        <div><label class="text-xs font-semibold">Ngày hết hạn TRC</label><input id="f_trcExpiry" type="date" class="input mt-1" value="${emp.trcExpiry || ""}"></div>
+        <div class="md:col-span-2">
+          <label class="text-xs font-semibold">File TRC (PDF/JPG/PNG/WEBP)</label>
+          <input type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp" onchange="handleFileUpload(this, 'f_trcImg', 'TRC', 'f_trcFileId')" class="input mt-1">
+          <input id="f_trcImg" type="hidden" value="${escapeHTML(emp.trcImg || "")}">
+          <input id="f_trcFileId" type="hidden" value="${escapeHTML(emp.trcFileId || "")}">
+          ${docPreview("TRC hiện tại", emp.trc)}
+        </div>
+
+        <div><label class="text-xs font-semibold">Số Giấy Phép Lao Động (WP)</label><input id="f_wpNo" class="input mt-1" value="${escapeHTML(emp.wpNo || "")}"></div>
+        <div><label class="text-xs font-semibold">Ngày hết hạn WP</label><input id="f_wpExpiry" type="date" class="input mt-1" value="${emp.wpExpiry || ""}"></div>
+        <div class="md:col-span-2">
+          <label class="text-xs font-semibold">File Work Permit</label>
+          <input type="file" onchange="handleFileUpload(this, 'f_wpImg', 'Work Permit', 'f_wpFileId')" class="input mt-1">
+          <input id="f_wpImg" type="hidden" value="${escapeHTML(emp.wpImg || "")}">
+          <input id="f_wpFileId" type="hidden" value="${escapeHTML(emp.wpFileId || "")}">
+        </div>
+
+        <div class="md:col-span-2 font-bold border-b pb-1 text-blue-600 mt-2">Hợp Đồng Lao Động & Lương</div>
+        <div><label class="text-xs font-semibold">Số Hợp Đồng</label><input id="f_contractNo" class="input mt-1" value="${escapeHTML(emp.contractNo || "")}"></div>
+        <div><label class="text-xs font-semibold">Số Phụ Lục Hợp Đồng</label><input id="f_appendixNo" class="input mt-1" value="${escapeHTML(emp.appendixNo || "")}"></div>
+        <div><label class="text-xs font-semibold">Mức Lương Cơ Bản (USD)</label><input id="f_salary" type="number" class="input mt-1" value="${emp.salary || 0}"></div>
+        <div><label class="text-xs font-semibold">Phụ Cấp (USD)</label><input id="f_allowance" type="number" class="input mt-1" value="${emp.allowance || 0}"></div>
+        <div><label class="text-xs font-semibold">Ngày bắt đầu HĐ</label><input id="f_contractStartDate" type="date" class="input mt-1" value="${emp.contractStartDate || ""}"></div>
+        <div><label class="text-xs font-semibold">Ngày hết hạn HĐ</label><input id="f_contractExpiry" type="date" class="input mt-1" value="${emp.contractExpiry || ""}"></div>
+        <div class="md:col-span-2">
+          <label class="text-xs font-semibold">File Hợp Đồng (PDF/Image)</label>
+          <input type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp" onchange="handleFileUpload(this, 'f_contractImg', 'Contracts', 'f_contractFileId')" class="input mt-1">
+          <input id="f_contractImg" type="hidden" value="${escapeHTML(emp.contractImg || "")}">
+          <input id="f_contractFileId" type="hidden" value="${escapeHTML(emp.contractFileId || "")}">
+          ${docPreview("Hợp đồng hiện tại", emp.contract)}
+        </div>
+
+        <div class="md:col-span-2 mt-4"><button type="submit" class="btn"><i class="fa-solid fa-floppy-disk mr-2"></i> Lưu Hồ Sơ & Hợp Đồng</button></div>
+      </form>
+    `;
+    document.getElementById("employeeModal").classList.remove("hidden");
+  }
+
+
+  const EMPLOYEE_IMPORT_BATCH_SIZE = 100;
+
+  // Một file Excel có thể chứa cả thông tin Employees + Passport/TRC/WP + Hợp đồng/Phụ lục.
+  // Header được normalize nên hỗ trợ tiếng Việt có dấu, không dấu và tên tiếng Anh.
+  const EMPLOYEE_EXCEL_HEADERS = {
+    employeeid: "employeeId", "ma nhan vien": "employeeId", "ma nv": "employeeId", "employee id": "employeeId",
+    fullname: "fullName", "ho va ten": "fullName", "ho ten": "fullName", "full name": "fullName",
+    nationality: "nationality", "quoc tich": "nationality",
+    dob: "dob", "ngay sinh": "dob", "date of birth": "dob",
+    position: "position", "chuc vu": "position", "job title": "position",
+    department: "department", "phong ban": "department",
+    phone: "phone", "dien thoai": "phone", "so dien thoai": "phone", "phone number": "phone",
+    email: "email", "email address": "email",
+    currentstatus: "currentStatus", "trang thai": "currentStatus", "status": "currentStatus",
+    currentlocation: "currentLocation", "vi tri hien tai": "currentLocation", "location": "currentLocation",
+    activestatus: "activeStatus", "trang thai hoat dong": "activeStatus", "active status": "activeStatus",
+
+    passportno: "passportNo", "passport number": "passportNo", "so passport": "passportNo", "so ho chieu": "passportNo", "ho chieu": "passportNo",
+    passportissuedate: "passportIssueDate", "passport issue date": "passportIssueDate", "ngay cap passport": "passportIssueDate", "ngay cap ho chieu": "passportIssueDate",
+    passportexpiry: "passportExpiry", "passport expiry": "passportExpiry", "passport expiry date": "passportExpiry", "han passport": "passportExpiry", "han ho chieu": "passportExpiry",
+    passportissuer: "passportIssuer", "passport issuer": "passportIssuer", "noi cap passport": "passportIssuer", "co quan cap passport": "passportIssuer",
+    passportfileid: "passportFileId", "passport file id": "passportFileId",
+    passportfileurl: "passportFileUrl", "passport file url": "passportFileUrl", "passport url": "passportFileUrl", "file passport": "passportFileUrl", "anh passport": "passportFileUrl",
+    passportstatus: "passportStatus", "passport status": "passportStatus",
+
+    trcno: "trcNo", "trc number": "trcNo", "so trc": "trcNo",
+    trcissuedate: "trcIssueDate", "trc issue date": "trcIssueDate", "ngay cap trc": "trcIssueDate",
+    trcexpiry: "trcExpiry", "trc expiry": "trcExpiry", "trc expiry date": "trcExpiry", "han trc": "trcExpiry",
+    trcissuer: "trcIssuer", "trc issuer": "trcIssuer", "noi cap trc": "trcIssuer",
+    trcfileid: "trcFileId", "trc file id": "trcFileId",
+    trcfileurl: "trcFileUrl", "trc file url": "trcFileUrl", "trc url": "trcFileUrl", "file trc": "trcFileUrl", "anh trc": "trcFileUrl",
+    trcstatus: "trcStatus", "trc status": "trcStatus",
+
+    wpno: "wpNo", "work permit no": "wpNo", "work permit number": "wpNo", "so work permit": "wpNo", "so wp": "wpNo", "giay phep lao dong": "wpNo",
+    wpissuedate: "wpIssueDate", "work permit issue date": "wpIssueDate", "ngay cap wp": "wpIssueDate", "ngay cap work permit": "wpIssueDate",
+    wpexpiry: "wpExpiry", "work permit expiry": "wpExpiry", "work permit expiry date": "wpExpiry", "han wp": "wpExpiry", "han work permit": "wpExpiry",
+    wpissuer: "wpIssuer", "work permit issuer": "wpIssuer", "noi cap wp": "wpIssuer",
+    wpfileid: "wpFileId", "work permit file id": "wpFileId",
+    wpfileurl: "wpFileUrl", "work permit file url": "wpFileUrl", "work permit url": "wpFileUrl", "file wp": "wpFileUrl", "file work permit": "wpFileUrl",
+    wpstatus: "wpStatus", "work permit status": "wpStatus", "wp status": "wpStatus",
+
+    contractno: "contractNo", "contract number": "contractNo", "so hop dong": "contractNo", "so hop dong lao dong": "contractNo",
+    contracttype: "contractType", "contract type": "contractType", "loai hop dong": "contractType",
+    contractstartdate: "contractStartDate", "contract start date": "contractStartDate", "start date": "contractStartDate", "ngay bat dau hd": "contractStartDate", "ngay bat dau hop dong": "contractStartDate",
+    contractexpiry: "contractExpiry", "contract end date": "contractExpiry", "end date": "contractExpiry", "ngay het han hd": "contractExpiry", "han hop dong": "contractExpiry",
+    salary: "salary", "basic salary": "salary", "luong": "salary", "luong co ban": "salary", "muc luong co ban": "salary",
+    allowance: "allowance", "allowances": "allowance", "phu cap": "allowance",
+    allowancesjson: "allowancesJson", "allowances json": "allowancesJson",
+    contractstatus: "contractStatus", "contract status": "contractStatus", "trang thai hop dong": "contractStatus",
+    contractfileid: "contractFileId", "contract file id": "contractFileId",
+    contractfileurl: "contractFileUrl", "contract file url": "contractFileUrl", "contract url": "contractFileUrl", "file hop dong": "contractFileUrl", "anh hop dong": "contractFileUrl",
+
+    appendixno: "appendixNo", "appendix number": "appendixNo", "so phu luc": "appendixNo", "so phu luc hop dong": "appendixNo",
+    appendixeffectivedate: "appendixEffectiveDate", "appendix effective date": "appendixEffectiveDate", "ngay hieu luc phu luc": "appendixEffectiveDate",
+    appendixenddate: "appendixEndDate", "appendix end date": "appendixEndDate", "ngay ket thuc phu luc": "appendixEndDate",
+    appendixedsalary: "appendixSalary", "appendix salary": "appendixSalary", "luong phu luc": "appendixSalary",
+    appendixallowance: "appendixAllowance", "appendix allowance": "appendixAllowance", "phu cap phu luc": "appendixAllowance",
+    appendixallowancesjson: "appendixAllowancesJson", "appendix allowances json": "appendixAllowancesJson",
+    appendixcontent: "appendixContent", "appendix content": "appendixContent", "noi dung phu luc": "appendixContent",
+    appendixfileid: "appendixFileId", "appendix file id": "appendixFileId",
+    appendixfileurl: "appendixFileUrl", "appendix file url": "appendixFileUrl", "appendix url": "appendixFileUrl", "file phu luc": "appendixFileUrl"
+  };
+
+  function convertToPreviewUrl(rawUrl, isPdf = false) {
+  if (!rawUrl || rawUrl.includes("Chưa có file")) return "";
+  
+  // Trích xuất File ID từ bất kỳ định dạng link Google Drive nào
+  const match = rawUrl.match(/(?:\/d\/|id=)([\w-]+)/);
+  if (match && match[1]) {
+    const fileId = match[1];
+    return isPdf 
+      ? `https://google.com{fileId}/preview`
+      : `https://google.com{fileId}`;
+  }
+  return rawUrl;
+}
+
+// Cách áp dụng khi render dữ liệu nhân viên từ API Profile:
+// document.getElementById("img-passport").src = convertToPreviewUrl(profile.passportImg, false);
+// document.getElementById("iframe-contract").src = convertToPreviewUrl(profile.contractImg, true);
+  
+  function normalizeExcelHeader(v) {
+    return String(v ?? "").trim().toLowerCase()
+      .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+      .replace(/[._-]+/g, " ").replace(/\s+/g, " ");
+  }
+
+  function excelCellDate(v) {
+    if (v instanceof Date && !isNaN(v.getTime())) return v.toISOString().slice(0, 10);
+    if (typeof v === "number" && window.XLSX?.SSF) {
+      const d = XLSX.SSF.parse_date_code(v);
+      if (d && d.y) return `${d.y}-${String(d.m).padStart(2, "0")}-${String(d.d).padStart(2, "0")}`;
+    }
+    const s = String(v ?? "").trim();
+    if (!s) return "";
+    const ymd = s.match(/^(\d{4})[\/.\-](\d{1,2})[\/.\-](\d{1,2})$/);
+    if (ymd) return `${ymd[1]}-${ymd[2].padStart(2, "0")}-${ymd[3].padStart(2, "0")}`;
+    const dmy = s.match(/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{4})$/);
+    if (dmy) return `${dmy[3]}-${dmy[2].padStart(2, "0")}-${dmy[1].padStart(2, "0")}`;
+    return s;
+  }
+
+  function excelCellValue(key, raw) {
+    const dateKeys = ["dob", "passportIssueDate", "passportExpiry", "trcIssueDate", "trcExpiry", "wpIssueDate", "wpExpiry", "contractStartDate", "contractExpiry", "appendixEffectiveDate", "appendixEndDate"];
+    return dateKeys.includes(key) ? excelCellDate(raw) : String(raw ?? "").trim();
+  }
+
+  function mapExcelEmployeeRows(rows) {
+    if (!Array.isArray(rows) || rows.length < 2) throw new Error("File Excel không có dữ liệu.");
+    const headers = rows[0].map(normalizeExcelHeader);
+    const mapped = headers.map(h => EMPLOYEE_EXCEL_HEADERS[h] || null);
+    if (!mapped.includes("employeeId") || !mapped.includes("fullName")) {
+      throw new Error("Excel bắt buộc có cột Mã Nhân Viên và Họ và Tên.");
+    }
+    return rows.slice(1).map((row, index) => {
+      const obj = {};
+      mapped.forEach((key, i) => {
+        if (!key) return;
+        obj[key] = excelCellValue(key, row[i]);
+      });
+      obj._excelRow = index + 2;
+      return obj;
+    }).filter(r => r.employeeId || r.fullName);
+  }
+
+
+  const MOVEMENT_HEADERS = {
+    movementtype:'movementType', module:'movementType', type:'type', employeeid:'employeeId', 'employee id':'employeeId', 'ma nhan vien':'employeeId', 'ma nv':'employeeId', employeeids:'employeeIds',
+    planneddatetime:'plannedDateTime','planned date/time':'plannedDateTime','ngay du kien':'plannedDateTime', eventdate:'plannedDateTime', datetime:'plannedDateTime', entryplanneddatetime:'entryPlannedDateTime', exitplanneddatetime:'exitPlannedDateTime', entryactualdatetime:'entryActualDateTime', exitactualdatetime:'exitActualDateTime', entryairport:'entryAirport', exitairport:'exitAirport', entryflightno:'entryFlightNo', exitflightno:'exitFlightNo', entrydestination:'entryDestination', exitdestination:'exitDestination',
+    actualdatetime:'actualDateTime','actual date/time':'actualDateTime','ngay thuc te':'actualDateTime', actualdate:'actualDateTime',
+    airport:'airport','port name':'airport','san bay':'airport','cua khau':'airport', flightno:'flightNo','flight number':'flightNo', destination:'destination', purpose:'purpose',
+    fromdate:'fromDate','start date':'fromDate','tu ngay':'fromDate', todate:'toDate','end date':'toDate','den ngay':'toDate',
+    fromlocation:'fromLocation','from location':'fromLocation','tu dau':'fromLocation', tolocation:'toLocation','to location':'toLocation','den dau':'toLocation'
+  };
+  function mapMovementRows(rows) {
+    if (!rows?.length) throw new Error('Excel không có dữ liệu.');
+    const headers = rows[0].map(normalizeExcelHeader);
+    const mapped = headers.map(h => MOVEMENT_HEADERS[h] || null);
+    if (!mapped.includes('employeeId') && !mapped.includes('employeeIds')) throw new Error('Excel bắt buộc có EmployeeID hoặc EmployeeIDs.');
+    return rows.slice(1).map((row,i)=>{ const o={}; mapped.forEach((k,j)=>{if(k)o[k]=excelCellDate(row[j]);}); o._excelRow=i+2; return o; }).filter(r=>r.employeeId||r.employeeIds);
+  }
+  async function importMovementRows(list) {
+    if (!isBatchAdmin()) return toast('Bạn không có quyền import hàng loạt.');
+    if (!list.length) return toast('Không có dòng dữ liệu.');
+    const r = await apiPost('BATCH_IMPORT_MOVEMENT', {rows:list});
+    document.getElementById('movementImportResult').textContent = r.message || '';
+    if (r.status === 'SUCCESS') { await loadDashboard(); await loadEntryExit(); await loadTravel(); }
+    if (r.errors?.length) alert((r.message||'Import completed')+'\n\n'+r.errors.slice(0,50).map(e=>`Row ${e.row} ${e.employeeId||''}: ${e.message}`).join('\n'));
+    else toast(r.message || 'Import completed.');
+  }
+  async function importMovementExcelFile(input) {
+    const file=input.files?.[0]; input.value=''; if(!file)return;
+    try {
+      const wb=XLSX.read(await file.arrayBuffer(),{type:'array',cellDates:true,raw:true});
+      let combined=[];
+      wb.SheetNames.forEach(name=>{ const ws=wb.Sheets[name]; const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:true}); if(rows.length>1) combined.push(...mapMovementRows(rows)); });
+      await importMovementRows(combined);
+    } catch(e){toast(e.message||'Không thể đọc Excel.');}
+  }
+  async function importMovementPaste() {
+    const text=document.getElementById('movementPasteArea').value.trim(); if(!text)return toast('Hãy paste dữ liệu Excel trước.');
+    try { const rows=text.split(/\r?\n/).map(line=>line.split('\t')); await importMovementRows(mapMovementRows(rows)); } catch(e){toast(e.message||'Dữ liệu paste không hợp lệ.');}
+  }
+  function downloadMovementTemplate() {
+    const headers=['MovementType','EmployeeID','Type','PlannedDateTime','ActualDateTime','Airport','FlightNo','Destination','Purpose','EntryPlannedDateTime','EntryActualDateTime','EntryAirport','EntryFlightNo','EntryDestination','ExitPlannedDateTime','ExitActualDateTime','ExitAirport','ExitFlightNo','ExitDestination','FromDate','ToDate','FromLocation','ToLocation'];
+    const examples=[
+      ['ENTRY_EXIT','EMP-001','','','','','','','Business trip','2026-08-25 09:00','2026-08-25 09:15','Tan Son Nhat','VN123','Vietnam','2026-08-30 18:45','2026-08-30 19:00','Tan Son Nhat','VN456','Korea','','','',''],
+      ['ENTRY_EXIT','EMP-002','','','','','','','Home leave','2026-09-01 10:00','','Tan Son Nhat','VN125','Vietnam','2026-09-10 20:00','','Tan Son Nhat','VN126','Korea','','','',''],
+      ['TRAVEL','EMP-001','','','','','','','Business trip','','','','','','','','','','','2026-08-26','2026-08-27','Ho Chi Minh City','Binh Duong'],
+      ['TRAVEL','EMP-002','','','','','','','Training','','','','','','','','','','','2026-08-26','2026-08-28','Ho Chi Minh City','Da Nang']
+    ];
+    const ws=XLSX.utils.aoa_to_sheet([headers,...examples]); const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'MovementImport'); XLSX.writeFile(wb,'EntryExit_Travel_Batch_Import.xlsx');
+  }
+
+  async function importEmployeesExcel(input) {
+    const file = input.files?.[0];
+    input.value = "";
+    if (!file) return;
+    if (!/\.(xlsx|xls|csv)$/i.test(file.name)) return toast("Chỉ hỗ trợ Excel .xlsx, .xls hoặc .csv.");
+    if (file.size > 5 * 1024 * 1024) return toast("File Excel tối đa 5 MB.");
+    if (!isHR()) return toast("Chỉ HR/ADMIN mới được import danh sách.");
+
+    try {
+      toast("Đang đọc và tự map Excel...");
+      const buffer = await file.arrayBuffer();
+      const wb = XLSX.read(buffer, { type: "array", cellDates: true, raw: true });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      if (!ws) throw new Error("Không tìm thấy sheet dữ liệu trong file Excel.");
+      const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "", raw: true });
+      const list = mapExcelEmployeeRows(rows);
+
+      let total = 0, created = 0, updated = 0, skipped = 0;
+      let documentsCreated = 0, documentsUpdated = 0, contractsCreated = 0, contractsUpdated = 0, appendicesCreated = 0, appendicesUpdated = 0;
+      const errors = [];
+      for (let i = 0; i < list.length; i += EMPLOYEE_IMPORT_BATCH_SIZE) {
+        const batch = list.slice(i, i + EMPLOYEE_IMPORT_BATCH_SIZE);
+        toast(`Đang import ${Math.min(i + batch.length, list.length)}/${list.length}...`);
+        const res = await apiPost("IMPORT_EMPLOYEES_EXCEL", { fileName: file.name, rows: batch });
+        if (res.status !== "SUCCESS") throw new Error(res.message || "Import thất bại.");
+        total += Number(res.total || 0); created += Number(res.created || 0); updated += Number(res.updated || 0); skipped += Number(res.skipped || 0);
+        documentsCreated += Number(res.documentsCreated || 0); documentsUpdated += Number(res.documentsUpdated || 0);
+        contractsCreated += Number(res.contractsCreated || 0); contractsUpdated += Number(res.contractsUpdated || 0);
+        appendicesCreated += Number(res.appendicesCreated || 0); appendicesUpdated += Number(res.appendicesUpdated || 0);
+        if (Array.isArray(res.errors)) errors.push(...res.errors);
+      }
+
+      await loadDashboard();
+      const msg = `Import xong: ${total} NV | thêm ${created} | cập nhật ${updated} | bỏ qua ${skipped}\n` +
+        `Documents: thêm ${documentsCreated}, cập nhật ${documentsUpdated}\n` +
+        `Contracts: thêm ${contractsCreated}, cập nhật ${contractsUpdated}\n` +
+        `Phụ lục: thêm ${appendicesCreated}, cập nhật ${appendicesUpdated}`;
+      toast(errors.length ? `Import xong nhưng có ${errors.length} dòng lỗi.` : `Đã import ${total} nhân viên + hồ sơ pháp lý/hợp đồng.`);
+      if (errors.length) alert(msg + "\n\n" + errors.slice(0, 30).map(e => `Dòng ${e.row}: ${e.message}`).join("\n"));
+      else alert(msg);
+    } catch (e) {
+      console.error(e);
+      toast(e.message || "Không thể import Excel.");
+    }
+  }
+
+  function downloadEmployeeTemplate() {
+    const headers = [
+      "EmployeeID", "FullName", "Nationality", "DOB", "Position", "Department", "Phone", "Email", "CurrentStatus", "CurrentLocation", "ActiveStatus",
+      "PassportNo", "PassportIssueDate", "PassportExpiry", "PassportIssuer", "PassportFileId", "PassportFileUrl", "PassportStatus",
+      "TRCNo", "TRCIssueDate", "TRCExpiry", "TRCIssuer", "TRCFileId", "TRCFileUrl", "TRCStatus",
+      "WPNo", "WPIssueDate", "WPExpiry", "WPIssuer", "WPFileId", "WPFileUrl", "WPStatus",
+      "ContractNo", "ContractType", "ContractStartDate", "ContractExpiry", "Salary", "Allowance", "AllowancesJson", "ContractStatus", "ContractFileId", "ContractFileUrl",
+      "AppendixNo", "AppendixEffectiveDate", "AppendixEndDate", "AppendixSalary", "AppendixAllowance", "AppendixAllowancesJson", "AppendixContent", "AppendixFileId", "AppendixFileUrl"
+    ];
+    const example = [
+      "EMP-001", "Nguyen Example", "Korea", "1990-01-15", "Manager", "HR", "0900000000", "example@company.com", "Exited", "Overseas", "ACTIVE",
+      "M1234567", "2024-01-01", "2034-01-01", "Passport Authority", "", "https://drive.google.com/...", "VALID",
+      "TRC123", "2025-01-01", "2027-01-01", "Immigration", "", "https://drive.google.com/...", "VALID",
+      "WP123", "2025-01-01", "2027-01-01", "DOLISA", "", "https://drive.google.com/...", "VALID",
+      "HD-001", "DEFINITE", "2025-01-01", "2027-01-01", 30000000, 5000000, "", "VALID", "", "https://drive.google.com/...",
+      "PL-001", "2025-06-01", "2027-01-01", 35000000, 5000000, "", "Cập nhật lương", "", "https://drive.google.com/..."
+    ];
+    const ws = XLSX.utils.aoa_to_sheet([headers, example]);
+    ws["A1"].s = { font: { bold: true } };
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "ForeignEmployees");
+    XLSX.writeFile(wb, "ForeignEmployees_Full_Import_Template.xlsx");
+  }
+
+  async function handleSaveEmployee(e) {
+    e.preventDefault();
+    const payload = {
+      employeeId: document.getElementById("f_empId").value.trim(),
+      fullName: document.getElementById("f_fullName").value.trim(),
+      nationality: document.getElementById("f_nationality").value.trim(),
+      dob: document.getElementById("f_dob").value,
+      position: document.getElementById("f_position")?.value.trim() || "",
+      department: document.getElementById("f_department")?.value.trim() || "",
+      phone: document.getElementById("f_phone")?.value.trim() || "",
+      email: document.getElementById("f_email")?.value.trim() || "",
+      passportNo: document.getElementById("f_passportNo").value.trim(),
+      passportExpiry: document.getElementById("f_passportExpiry").value,
+      passportImg: document.getElementById("f_passportImg").value.startsWith("PENDING:") ? "" : document.getElementById("f_passportImg").value,
+      passportFileId: document.getElementById("f_passportFileId").value,
+      trcNo: document.getElementById("f_trcNo").value.trim(),
+      trcExpiry: document.getElementById("f_trcExpiry").value,
+      trcImg: document.getElementById("f_trcImg").value.startsWith("PENDING:") ? "" : document.getElementById("f_trcImg").value,
+      trcFileId: document.getElementById("f_trcFileId").value,
+      wpNo: document.getElementById("f_wpNo").value.trim(),
+      wpExpiry: document.getElementById("f_wpExpiry").value,
+      wpImg: document.getElementById("f_wpImg").value.startsWith("PENDING:") ? "" : document.getElementById("f_wpImg").value,
+      wpFileId: document.getElementById("f_wpFileId").value,
+      contractNo: document.getElementById("f_contractNo").value.trim(),
+      appendixNo: document.getElementById("f_appendixNo").value.trim(),
+      salary: document.getElementById("f_salary").value,
+      allowance: document.getElementById("f_allowance").value,
+      contractStartDate: document.getElementById("f_contractStartDate").value,
+      contractExpiry: document.getElementById("f_contractExpiry").value,
+      contractImg: document.getElementById("f_contractImg").value.startsWith("PENDING:") ? "" : document.getElementById("f_contractImg").value,
+      contractFileId: document.getElementById("f_contractFileId").value
+    };
+
+    try {
+      const res = await apiPost("SAVE_PROFILE", payload);
+      if (res.status !== "SUCCESS") return toast(res.message);
+
+      const pending = Object.values(pendingUploads).filter(x => x && String(x.employeeId) === String(payload.employeeId));
+      const uploaded = {};
+      for (const item of pending) {
+        toast(`Đang upload ${item.fileName}...`);
+        const up = await apiPost("UPLOAD_FILE", {
+          base64Data: item.base64Data,
+          fileName: item.fileName,
+          mimeType: item.mimeType,
+          employeeId: payload.employeeId,
+          subFolderType: item.subFolder
+        });
+        if (up.status !== "SUCCESS") throw new Error(up.message || `Upload ${item.fileName} thất bại.`);
+        uploaded[item.targetInputId] = up;
+        if (item.targetInputId === "f_passportImg") { payload.passportImg = up.fileUrl; payload.passportFileId = up.fileId || ""; }
+        if (item.targetInputId === "f_trcImg") { payload.trcImg = up.fileUrl; payload.trcFileId = up.fileId || ""; }
+        if (item.targetInputId === "f_wpImg") { payload.wpImg = up.fileUrl; payload.wpFileId = up.fileId || ""; }
+        if (item.targetInputId === "f_contractImg") { payload.contractImg = up.fileUrl; payload.contractFileId = up.fileId || ""; }
+      }
+
+      if (pending.length) {
+        const second = await apiPost("SAVE_PROFILE", payload);
+        if (second.status !== "SUCCESS") throw new Error(second.message || "Đã upload file nhưng chưa cập nhật hồ sơ.");
+      }
+
+      Object.keys(pendingUploads).forEach(k => delete pendingUploads[k]);
+
+      // Đọc lại từ server ngay sau khi lưu để tránh trường hợp UI báo thành công
+      // nhưng dữ liệu thực tế trên Google Sheets chưa được cập nhật.
+      const verify = await apiGet("GET_PROFILE", { employeeId: payload.employeeId });
+      if (verify.status !== "SUCCESS") throw new Error(verify.message || "Không xác minh được dữ liệu sau khi lưu.");
+
+      toast(pending.length ? "Đã lưu và xác minh dữ liệu thành công!" : "Đã cập nhật và xác minh dữ liệu thành công!");
+      closeModal();
+      await loadDashboard();
+    } catch (err) {
+      toast(err.message || "Không thể lưu hồ sơ.");
+    }
+  }
+
+  async function deleteEmployee(encoded) {
+    if (!confirm("Bạn có chắc chắn muốn chuyển trạng thái nhân viên này sang INACTIVE và khóa tài khoản?")) return;
+    try {
+      const res = await apiPost("DELETE_EMPLOYEE", { employeeId: decodeURIComponent(encoded) });
+      if (res.status === "SUCCESS") {
+        toast(res.message);
+        loadDashboard();
+      } else {
+        toast(res.message);
+      }
+    } catch (e) {
+      toast(e.message);
+    }
+  }
+
+  async function loadAccounts() {
+    if (!isAccountAdmin()) return toast("Bạn không có quyền quản lý tài khoản.");
+    try {
+      const r = await apiGet("GET_ACCOUNT_USERS");
+      if (r.status !== "SUCCESS") return toast(r.message || "Không tải được tài khoản.");
+      accountUsers = r.users || [];
+      renderAccounts();
+    } catch (e) { toast(e.message || "Không tải được tài khoản."); }
+  }
+
+  function renderAccounts() {
+    const tb = document.getElementById("accountTable");
+    if (!tb) return;
+    tb.innerHTML = accountUsers.length ? accountUsers.map(u => {
+      const active = String(u.status).toUpperCase() === "ACTIVE";
+      const locked = !active;
+      const employeeInactive = String(u.employeeActiveStatus).toUpperCase() === "INACTIVE";
+      let action = "";
+      if (isSuperAdmin() && String(u.userId) !== String(currentUser.userId)) {
+        action += `<button onclick="openAdminReset('${encodeURIComponent(u.userId)}','${encodeURIComponent(u.fullName || u.email)}')" class="text-indigo-600 hover:text-indigo-800 mr-3" title="Reset mật khẩu"><i class="fa-solid fa-key"></i></button>`;
+      }
+      if (["ADMIN", "HR ADMIN"].includes(String(currentUser.role || "").toUpperCase()) && String(u.userId) !== String(currentUser.userId)) {
+        action += active
+          ? `<button onclick="changeAccountStatus('${encodeURIComponent(u.userId)}','INACTIVE')" class="text-red-600 hover:text-red-800" title="Khóa tài khoản"><i class="fa-solid fa-lock"></i></button>`
+          : `<button onclick="changeAccountStatus('${encodeURIComponent(u.userId)}','ACTIVE')" class="text-emerald-600 hover:text-emerald-800" title="Mở tài khoản"><i class="fa-solid fa-lock-open"></i></button>`;
+      }
+      const statusHtml = active
+        ? '<span class="badge bg-emerald-100 text-emerald-700">ACTIVE</span>'
+        : '<span class="badge bg-red-100 text-red-700">LOCKED</span>';
+      return `<tr class="border-b hover:bg-slate-50">
+        <td class="p-3"><div class="font-semibold">${escapeHTML(u.fullName)}</div><div class="text-xs text-slate-400">${escapeHTML(u.employeeId || "")}</div>${employeeInactive ? '<div class="text-xs text-red-500">Hồ sơ nhân viên INACTIVE</div>' : ''}</td>
+        <td class="p-3">${escapeHTML(u.email || "")}</td>
+        <td class="p-3 text-center">${escapeHTML(u.role || "")}</td>
+        <td class="p-3 text-center">${statusHtml}</td>
+        <td class="p-3 text-center">${action || '<span class="text-slate-300">—</span>'}</td>
+      </tr>`;
+    }).join("") : '<tr><td colspan="5" class="p-6 text-center text-slate-400">Chưa có tài khoản.</td></tr>';
+  }
+
+  function openChangePasswordModal() {
+    document.getElementById("passwordModalTitle").textContent = "🔐 Đổi mật khẩu";
+    document.getElementById("passwordTargetInfo").textContent = currentUser ? `Tài khoản: ${currentUser.email || currentUser.employeeId}` : "";
+    ["cpCurrent", "cpNew", "cpConfirm"].forEach(id => document.getElementById(id).value = "");
+    document.getElementById("passwordModal").classList.remove("hidden");
+    setTimeout(() => document.getElementById("cpCurrent").focus(), 50);
+  }
+
+  function closePasswordModal() { document.getElementById("passwordModal").classList.add("hidden"); }
+
+  async function submitChangePassword() {
+    const currentPassword = document.getElementById("cpCurrent").value;
+    const newPassword = document.getElementById("cpNew").value;
+    const confirmPassword = document.getElementById("cpConfirm").value;
+    if (!currentPassword || !newPassword || !confirmPassword) return toast("Vui lòng nhập đầy đủ mật khẩu.");
+    if (newPassword !== confirmPassword) return toast("Mật khẩu mới không trùng nhau.");
+    const btn = document.getElementById("changePasswordBtn");
+    btn.disabled = true;
+    try {
+      const r = await apiPost("CHANGE_PASSWORD", { currentPassword, newPassword, confirmPassword });
+      if (r.status === "SUCCESS") { toast(r.message); closePasswordModal(); }
+      else toast(r.message || "Đổi mật khẩu thất bại.");
+    } catch (e) { toast(e.message); }
+    finally { btn.disabled = false; }
+  }
+
+  function openAdminReset(encodedUserId, encodedName) {
+    if (!isSuperAdmin()) return toast("Chỉ ADMIN mới có quyền reset mật khẩu.");
+    document.getElementById("resetUserId").value = decodeURIComponent(encodedUserId);
+    document.getElementById("resetTargetInfo").textContent = "Tài khoản: " + decodeURIComponent(encodedName);
+    document.getElementById("resetNewPassword").value = "";
+    document.getElementById("resetConfirmPassword").value = "";
+    document.getElementById("resetPasswordModal").classList.remove("hidden");
+    setTimeout(() => document.getElementById("resetNewPassword").focus(), 50);
+  }
+
+  function closeResetPasswordModal() { document.getElementById("resetPasswordModal").classList.add("hidden"); }
+
+  async function submitAdminResetPassword() {
+    const userId = document.getElementById("resetUserId").value;
+    const newPassword = document.getElementById("resetNewPassword").value;
+    const confirmPassword = document.getElementById("resetConfirmPassword").value;
+    if (!newPassword || !confirmPassword) return toast("Vui lòng nhập mật khẩu mới.");
+    if (newPassword !== confirmPassword) return toast("Mật khẩu mới không trùng nhau.");
+    const btn = document.getElementById("resetPasswordBtn");
+    btn.disabled = true;
+    try {
+      const r = await apiPost("ADMIN_RESET_PASSWORD", { userId, newPassword });
+      if (r.status === "SUCCESS") { toast(r.message); closeResetPasswordModal(); loadAccounts(); }
+      else toast(r.message || "Reset mật khẩu thất bại.");
+    } catch (e) { toast(e.message); }
+    finally { btn.disabled = false; }
+  }
+
+  async function changeAccountStatus(encodedUserId, status) {
+    const userId = decodeURIComponent(encodedUserId);
+    const text = status === "ACTIVE" ? "mở lại" : "khóa";
+    if (!confirm(`Bạn có chắc muốn ${text} tài khoản này?`)) return;
+    try {
+      const r = await apiPost("SET_ACCOUNT_STATUS", { userId, status });
+      toast(r.message || (r.status === "SUCCESS" ? "Đã cập nhật." : "Có lỗi."));
+      if (r.status === "SUCCESS") loadAccounts();
+    } catch (e) { toast(e.message); }
+  }
+
+  function closeModal() {
+    document.getElementById("employeeModal").classList.add("hidden");
+  }
+</script>
+</body>
+</html>
