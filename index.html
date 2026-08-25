@@ -1014,7 +1014,7 @@
         <div><label class="text-xs font-semibold">Số Passport</label><input id="f_passportNo" class="input mt-1" value="${escapeHTML(emp.passportNo || "")}"></div>
         <div><label class="text-xs font-semibold">Ngày hết hạn Passport</label><input id="f_passportExpiry" type="date" class="input mt-1" value="${emp.passportExpiry || ""}"></div>
         <div class="md:col-span-2">
-          <label class="text-xs font-semibold">File Ảnh Passport</label>
+          <label class="text-xs font-semibold">File Passport</label>
           <input type="file" onchange="handleFileUpload(this, 'f_passportImg', 'Passport', 'f_passportFileId')" class="input mt-1">
           <input id="f_passportImg" type="hidden" value="${escapeHTML(emp.passportImg || "")}">
           <input id="f_passportFileId" type="hidden" value="${escapeHTML(emp.passportFileId || "")}">
@@ -1033,7 +1033,7 @@
         <div><label class="text-xs font-semibold">Số Giấy Phép Lao Động (WP)</label><input id="f_wpNo" class="input mt-1" value="${escapeHTML(emp.wpNo || "")}"></div>
         <div><label class="text-xs font-semibold">Ngày hết hạn WP</label><input id="f_wpExpiry" type="date" class="input mt-1" value="${emp.wpExpiry || ""}"></div>
         <div class="md:col-span-2">
-          <label class="text-xs font-semibold">File Ảnh WP</label>
+          <label class="text-xs font-semibold">File Work Permit</label>
           <input type="file" onchange="handleFileUpload(this, 'f_wpImg', 'Work Permit', 'f_wpFileId')" class="input mt-1">
           <input id="f_wpImg" type="hidden" value="${escapeHTML(emp.wpImg || "")}">
           <input id="f_wpFileId" type="hidden" value="${escapeHTML(emp.wpFileId || "")}">
