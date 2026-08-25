@@ -410,7 +410,7 @@
 
   const I18N = {
     en: {
-      "FOREIGN EMPLOYEE SYSTEM":"FOREIGN EMPLOYEE SYSTEM", "Immigration & Contract Management":"Immigration & Contract Management", "🛬 Entry":"🛬 Entry", "🛫 Exit":"🛫 Exit",
+      "FOREIGN EMPLOYEE SYSTEM":"FOREIGN EMPLOYEE SYSTEM", "Immigration & Contract Management":"Immigration & Contract Management", "🛬 Entry":"🛬 Entry", "🛫 Exit":"🛫 Exit", "Not yet":"Not yet",
       "Dashboard":"Dashboard", "My Profile":"My Profile", "Immigration":"Immigration", "Domestic Travel":"Domestic Travel", "Foreign Employees":"Foreign Employees",
       "Change Password":"Change Password", "Accounts":"Accounts", "LOGIN":"LOGIN", "Foreign Employee Management":"Foreign Employee Management",
       "EmpID / Email":"EmpID / Email", "Password":"Password", "Logout":"Logout", "Full Name":"Full Name", "Nationality":"Nationality", "Date of Birth":"Date of Birth",
@@ -426,7 +426,7 @@
       "👤 My Profile":"👤 My Profile", "✈️ Entry / Exit Declaration":"✈️ Entry / Exit Declaration", "🚗 Domestic Travel Registration":"🚗 Domestic Travel Registration", "Planned Entry/Exit Date":"Planned Entry/Exit Date", "Actual Entry/Exit Date":"Actual Entry/Exit Date", "📥 Batch Import Entry / Exit + Travel":"📥 Batch Import Entry / Exit + Travel", "Template Excel":"Excel Template", "Import pasted Excel":"Import pasted Excel", "Clear":"Clear"
     },
     zh: {
-      "FOREIGN EMPLOYEE SYSTEM":"外籍员工管理系统", "Immigration & Contract Management":"出入境与合同管理", "Dashboard":"仪表盘", "My Profile":"我的资料", "🛬 Entry":"🛬 入境", "🛫 Exit":"🛫 出境",
+      "FOREIGN EMPLOYEE SYSTEM":"外籍员工管理系统", "Immigration & Contract Management":"出入境与合同管理", "Dashboard":"仪表盘", "My Profile":"我的资料", "🛬 Entry":"🛬 入境", "🛫 Exit":"🛫 出境", "Not yet":"没有",
       "Immigration":"出入境", "Domestic Travel":"国内出行", "Foreign Employees":"外籍员工", "Change Password":"修改密码", "Accounts":"账户管理",
       "LOGIN":"登录", "Foreign Employee Management":"外籍员工管理", "EmpID / Email":"员工编号 / 邮箱", "Password":"密码", "Logout":"退出",
       "Full Name":"姓名", "Nationality":"国籍", "Date of Birth":"出生日期", "Passport No.":"护照号码", "Passport Expiry":"护照有效期", "TRC Expiry":"TRC有效期",
@@ -442,9 +442,9 @@
   };
 
   I18N.vi = {
-    "FOREIGN EMPLOYEE SYSTEM":"HỆ THỐNG QUẢN LÝ NHÂN VIÊN NƯỚC NGOÀI", "Immigration & Contract Management":"Quản lý Xuất nhập cảnh & Hợp đồng", "🛬 Entry":"🛬 Nhập cảnh", "🛫 Exit":"🛫 Xuất cảnh",
+    "FOREIGN EMPLOYEE SYSTEM":"HỆ THỐNG QUẢN LÝ NHÂN VIÊN NƯỚC NGOÀI", "Immigration & Contract Management":"Quản lý Xuất nhập cảnh & Hợp đồng", "🛬 Entry":"🛬 Nhập cảnh", "🛫 Exit":"🛫 Xuất cảnh", "Not yet":"Không có",
     "Dashboard":"Tổng quan", "My Profile":"Hồ sơ của tôi", "Immigration":"Xuất nhập cảnh", "Domestic Travel":"Đi lại trong nước", "Foreign Employees":"Nhân viên nước ngoài",
-    "Change Password":"Đổi mật khẩu", "Accounts":"Tài khoản", "LOGIN":"ĐĂNG NHẬP", "Foreign Employee Management":"Quản lý nhân viên nước ngoài",
+    "Change Password":"Đổi mật khẩu", "Accounts":"Tài khoản", "LOGIN":"ĐĂNG NHẬP", "Foreign Employee Management":"Quản lý nhân viên nước ngoài", 
     "EmpID / Email":"Mã NV / Email", "Password":"Mật khẩu", "Logout":"Đăng xuất", "Full Name":"Họ tên", "Nationality":"Quốc tịch", "Date of Birth":"Ngày sinh",
     "Passport No.":"Số hộ chiếu", "Passport Expiry":"Hạn Passport", "TRC Expiry":"Hạn TRC", "Work Permit Expiry":"Hạn Work Permit", "Contract No.":"Số Hợp đồng",
     "Appendix No.":"Số Phụ lục", "Base Salary":"Mức lương cơ bản", "Allowance":"Phụ cấp", "Status":"Trạng thái", "Position":"Chức vụ", "Department":"Phòng ban",
@@ -1168,13 +1168,13 @@
       const nextEntryExitHtml = ee
         ? `<div class="text-xs font-semibold ${ee.type === "ENTRY" ? "text-emerald-700" : "text-red-600"}">${ee.type === "ENTRY" ? "🛬 Entry" : "🛫 Exit"}</div>
            <div class="${ee.type === "EXIT" ? "text-red-600" : "text-slate-600"} font-medium" style="font-size:11px">${escapeHTML(ee.dateTime || "")}</div>`
-        : `<span class="text-slate-400 text-xs">Không có</span>`;
+        : `<span class="text-slate-400 text-xs">Not yet</span>`;
 
       const tr = e.nextTravel;
       const nextTravelHtml = tr
         ? `<div class="text-xs font-semibold text-slate-700">${escapeHTML(tr.fromLocation)} → ${escapeHTML(tr.toLocation)}</div>
            <div class="text-slate-500" style="font-size:10px">${escapeHTML(tr.fromDate)} ~ ${escapeHTML(tr.toDate)}</div>`
-        : `<span class="text-slate-400 text-xs">Không có</span>`;
+        : `<span class="text-slate-400 text-xs">Not yet</span>`;
 
       return `
         <tr class="border-b hover:bg-slate-50 transition-colors">
