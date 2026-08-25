@@ -95,8 +95,8 @@
     <button onclick="showPage('immigration')" class="menuBtn"><i class="fa-solid fa-plane text-blue-600"></i>Immigration</button>
     <button onclick="showPage('travel')" class="menuBtn"><i class="fa-solid fa-car text-blue-600"></i>Domestic Travel</button>
     <button id="employeeMenu" onclick="showPage('employees')" class="menuBtn hidden"><i class="fa-solid fa-users text-blue-600"></i>Foreign Employees</button>
-    <button id="accountMenu" onclick="showPage('accounts'); loadAccounts()" class="menuBtn hidden"><i class="fa-solid fa-user-lock text-indigo-600"></i>Tài khoản</button>
-    <button onclick="openChangePasswordModal()" class="menuBtn"><i class="fa-solid fa-key text-amber-600"></i>Đổi mật khẩu</button>
+    <button id="accountMenu" onclick="showPage('accounts'); loadAccounts()" class="menuBtn hidden"><i class="fa-solid fa-user-lock text-indigo-600"></i>Accounts</button>
+    <button onclick="openChangePasswordModal()" class="menuBtn"><i class="fa-solid fa-key text-amber-600"></i>Change Password</button>
   </div>
 
   <!-- Page: Dashboard -->
@@ -110,15 +110,15 @@
       <div class="kpi bg-rose-50 border-rose-200"><div class="text-xs text-rose-600 font-bold">📄 EXP CONTRACT</div><div id="kpiExpContract" class="text-3xl font-bold text-rose-700 mt-1">0</div></div>
     </div>
     <div class="bg-white rounded-xl shadow-sm border p-6">
-      <h2 class="font-bold text-lg mb-4">⚠ Cảnh báo Giấy tờ & Hợp đồng Hết hạn</h2>
+      <h2 class="font-bold text-lg mb-4">⚠ Expiring Documents & Contracts</h2>
       <div class="overflow-x-auto">
         <table class="w-full text-sm">
           <thead>
             <tr class="border-b bg-slate-50">
               <th class="p-3 text-left">Employee</th>
-              <th class="p-3">Loại giấy tờ / Hợp đồng</th>
-              <th class="p-3">Ngày hết hạn</th>
-              <th class="p-3">Trạng thái</th>
+              <th class="p-3">Document / Contract</th>
+              <th class="p-3">Expiry Date</th>
+              <th class="p-3">Status</th>
             </tr>
           </thead>
           <tbody id="warningTable"></tbody>
@@ -130,7 +130,7 @@
   <!-- Page: Profile -->
   <section id="page-profile" class="page hidden">
     <div class="bg-white rounded-xl shadow-sm border p-6">
-      <h2 class="font-bold text-xl mb-6">👤 Hồ sơ của tôi</h2>
+      <h2 class="font-bold text-xl mb-6">👤 My Profile</h2>
       <div id="profileContent">Đang tải...</div>
     </div>
   </section>
@@ -261,7 +261,7 @@
     </div>
     <div class="grid md:grid-cols-2 gap-6">
       <div class="bg-white rounded-xl shadow-sm border p-6">
-        <h2 class="font-bold text-lg mb-5">🚗 Đăng ký đi lại trong Việt Nam</h2>
+        <h2 class="font-bold text-lg mb-5">🚗 Domestic Travel Registration</h2>
         <input id="travelEditId" type="hidden" value="">
         <label class="text-xs font-semibold">Từ ngày</label><input id="travelFromDate" type="date" class="input">
         <label class="text-xs font-semibold">Đến ngày</label><input id="travelToDate" type="date" class="input">
@@ -272,7 +272,7 @@
         <button id="travelCancelEditBtn" onclick="resetTravelForm()" type="button" class="hidden mt-2 w-full bg-slate-200 text-slate-700 font-bold p-3 rounded-lg">Hủy sửa</button>
       </div>
       <div class="bg-white rounded-xl shadow-sm border p-6">
-        <h2 class="font-bold text-lg mb-5">📋 Lịch sử đi lại</h2>
+        <h2 class="font-bold text-lg mb-5">📋 Travel History</h2>
         <div id="travelList">Đang tải...</div>
       </div>
     </div>
@@ -292,11 +292,11 @@
             <i class="fa-solid fa-download mr-1"></i> Template
           </button>
           <button onclick="openEmployeeForm()" class="bg-emerald-600 text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-emerald-700">
-            <i class="fa-solid fa-user-plus mr-1"></i> Thêm Nhân Viên
+            <i class="fa-solid fa-user-plus mr-1"></i> Add Employee
           </button>
         </div>
       </div>
-      <input id="employeeSearch" oninput="filterEmployees()" class="input" placeholder="Tìm tên / mã NV / quốc tịch...">
+      <input id="employeeSearch" oninput="filterEmployees()" class="input" placeholder="Search name / employee ID / nationality...">
       <div class="employees-table-wrap">
         <table class="employees-table w-full text-sm">
           <thead>
@@ -327,7 +327,7 @@
       <div class="overflow-x-auto">
         <table class="w-full text-sm">
           <thead><tr class="border-b bg-slate-50">
-            <th class="p-3 text-left">Nhân viên</th><th class="p-3">Email / Login</th><th class="p-3">Role</th><th class="p-3">Trạng thái</th><th class="p-3 text-center">Thao tác</th>
+            <th class="p-3 text-left">Nhân viên</th><th class="p-3">Email / Login</th><th class="p-3">Role</th><th class="p-3">Status</th><th class="p-3 text-center">Thao tác</th>
           </tr></thead>
           <tbody id="accountTable"></tbody>
         </table>
@@ -350,7 +350,7 @@
 <div id="passwordModal" class="hidden fixed inset-0 modal z-[60] p-4 overflow-y-auto">
   <div class="max-w-md mx-auto mt-20 bg-white rounded-2xl shadow-2xl overflow-hidden">
     <div class="p-5 bg-slate-900 text-white flex justify-between items-center">
-      <h2 id="passwordModalTitle" class="font-bold text-lg">🔐 Đổi mật khẩu</h2>
+      <h2 id="passwordModalTitle" class="font-bold text-lg">🔐 Change Password</h2>
       <button onclick="closePasswordModal()" class="text-xl font-bold">✕</button>
     </div>
     <div class="p-6">
@@ -361,7 +361,7 @@
       <input id="cpNew" type="password" class="input mt-1" autocomplete="new-password">
       <label class="text-xs font-semibold">Nhập lại mật khẩu mới</label>
       <input id="cpConfirm" type="password" class="input mt-1" autocomplete="new-password">
-      <button id="changePasswordBtn" onclick="submitChangePassword()" class="btn mt-2">Đổi mật khẩu</button>
+      <button id="changePasswordBtn" onclick="submitChangePassword()" class="btn mt-2">Change Password</button>
     </div>
   </div>
 </div>
@@ -412,32 +412,32 @@
     en: {
       "FOREIGN EMPLOYEE SYSTEM":"FOREIGN EMPLOYEE SYSTEM", "Immigration & Contract Management":"Immigration & Contract Management",
       "Dashboard":"Dashboard", "My Profile":"My Profile", "Immigration":"Immigration", "Domestic Travel":"Domestic Travel", "Foreign Employees":"Foreign Employees",
-      "Đổi mật khẩu":"Change Password", "Tài khoản":"Accounts", "LOGIN":"LOGIN", "Foreign Employee Management":"Foreign Employee Management",
-      "EmpID / Email":"EmpID / Email", "Password":"Password", "Đăng xuất":"Logout", "Họ tên":"Full Name", "Quốc tịch":"Nationality", "Ngày sinh":"Date of Birth",
-      "Số hộ chiếu":"Passport No.", "Hạn Passport":"Passport Expiry", "Hạn TRC":"TRC Expiry", "Hạn WP":"Work Permit Expiry", "Số Hợp Đồng":"Contract No.",
-      "Số Phụ Lục":"Appendix No.", "Mức Lương Cơ Bản":"Base Salary", "Phụ Cấp":"Allowance", "Trạng thái":"Status", "Chức vụ":"Position", "Phòng ban":"Department",
+      "Change Password":"Change Password", "Accounts":"Accounts", "LOGIN":"LOGIN", "Foreign Employee Management":"Foreign Employee Management",
+      "EmpID / Email":"EmpID / Email", "Password":"Password", "Logout":"Logout", "Full Name":"Full Name", "Nationality":"Nationality", "Date of Birth":"Date of Birth",
+      "Passport No.":"Passport No.", "Passport Expiry":"Passport Expiry", "TRC Expiry":"TRC Expiry", "Work Permit Expiry":"Work Permit Expiry", "Contract No.":"Contract No.",
+      "Appendix No.":"Appendix No.", "Base Salary":"Base Salary", "Allowance":"Allowance", "Status":"Status", "Position":"Position", "Department":"Department",
       "👥 Batch Entry / Exit Registration":"👥 Batch Entry / Exit Registration", "👥 Batch Domestic Travel Registration":"👥 Batch Domestic Travel Registration",
       "Select All":"Select All", "Clear":"Clear", "Save for Selected Employees":"Save for Selected Employees", "Entry to Vietnam":"Entry to Vietnam", "Exit from Vietnam":"Exit from Vietnam",
       "Airport / border gate":"Airport / border gate", "Flight number":"Flight number", "Destination":"Destination", "Purpose":"Purpose", "From date":"From date", "To date":"To date",
       "From location":"From location", "To location":"To location", "Name":"Name", "Status":"Status", "Entry/Exit":"Entry/Exit", "Domestic Travel":"Domestic Travel", "Action":"Action",
-      "Import Excel":"Import Excel", "Template":"Template", "Thêm Nhân Viên":"Add Employee", "Tìm tên / mã NV / quốc tịch...":"Search name / employee ID / nationality...",
-      "⚠ Cảnh báo Giấy tờ & Hợp đồng Hết hạn":"⚠ Expiring Documents & Contracts", "Employee":"Employee", "Loại giấy tờ / Hợp đồng":"Document / Contract", "Ngày hết hạn":"Expiry Date",
-      "Chưa có lịch sử.":"No history.", "Chưa có file":"No file", "Mở toàn bộ":"Open", "Lịch sử nhập / xuất cảnh":"Entry / Exit History", "Lịch sử đi lại":"Travel History",
-      "👤 Hồ sơ của tôi":"👤 My Profile", "✈️ Khai báo nhập / xuất cảnh":"✈️ Entry / Exit Declaration", "🚗 Đăng ký đi lại trong Việt Nam":"🚗 Domestic Travel Registration", "Planned Entry/Exit Date":"Planned Entry/Exit Date", "Actual Entry/Exit Date":"Actual Entry/Exit Date", "Ngày dự kiến nhập/xuất cảnh":"Planned Entry/Exit Date", "Ngày thực tế nhập/xuất cảnh":"Actual Entry/Exit Date", "📥 Batch Import Entry / Exit + Travel":"📥 Batch Import Entry / Exit + Travel", "Template Excel":"Excel Template", "Import pasted Excel":"Import pasted Excel", "Clear":"Clear"
+      "Import Excel":"Import Excel", "Template":"Template", "Add Employee":"Add Employee", "Search name / employee ID / nationality...":"Search name / employee ID / nationality...",
+      "⚠ Expiring Documents & Contracts":"⚠ Expiring Documents & Contracts", "Employee":"Employee", "Document / Contract":"Document / Contract", "Expiry Date":"Expiry Date",
+      "No history.":"No history.", "No file":"No file", "Open":"Open", "Entry / Exit History":"Entry / Exit History", "Travel History":"Travel History",
+      "👤 My Profile":"👤 My Profile", "✈️ Entry / Exit Declaration":"✈️ Entry / Exit Declaration", "🚗 Domestic Travel Registration":"🚗 Domestic Travel Registration", "Planned Entry/Exit Date":"Planned Entry/Exit Date", "Actual Entry/Exit Date":"Actual Entry/Exit Date", "📥 Batch Import Entry / Exit + Travel":"📥 Batch Import Entry / Exit + Travel", "Template Excel":"Excel Template", "Import pasted Excel":"Import pasted Excel", "Clear":"Clear"
     },
     zh: {
       "FOREIGN EMPLOYEE SYSTEM":"外籍员工管理系统", "Immigration & Contract Management":"出入境与合同管理", "Dashboard":"仪表盘", "My Profile":"我的资料",
-      "Immigration":"出入境", "Domestic Travel":"国内出行", "Foreign Employees":"外籍员工", "Đổi mật khẩu":"修改密码", "Tài khoản":"账户管理",
-      "LOGIN":"登录", "Foreign Employee Management":"外籍员工管理", "EmpID / Email":"员工编号 / 邮箱", "Password":"密码", "Đăng xuất":"退出",
-      "Họ tên":"姓名", "Quốc tịch":"国籍", "Ngày sinh":"出生日期", "Số hộ chiếu":"护照号码", "Hạn Passport":"护照有效期", "Hạn TRC":"TRC有效期",
-      "Hạn WP":"工作许可证有效期", "Số Hợp Đồng":"合同编号", "Số Phụ Lục":"合同附件编号", "Mức Lương Cơ Bản":"基本工资", "Phụ Cấp":"津贴", "Trạng thái":"状态",
-      "Chức vụ":"职位", "Phòng ban":"部门", "👥 Batch Entry / Exit Registration":"👥 批量登记出入境", "👥 Batch Domestic Travel Registration":"👥 批量登记国内出行",
+      "Immigration":"出入境", "Domestic Travel":"国内出行", "Foreign Employees":"外籍员工", "Change Password":"修改密码", "Accounts":"账户管理",
+      "LOGIN":"登录", "Foreign Employee Management":"外籍员工管理", "EmpID / Email":"员工编号 / 邮箱", "Password":"密码", "Logout":"退出",
+      "Full Name":"姓名", "Nationality":"国籍", "Date of Birth":"出生日期", "Passport No.":"护照号码", "Passport Expiry":"护照有效期", "TRC Expiry":"TRC有效期",
+      "Work Permit Expiry":"工作许可证有效期", "Contract No.":"合同编号", "Appendix No.":"合同附件编号", "Base Salary":"基本工资", "Allowance":"津贴", "Status":"状态",
+      "Position":"职位", "Department":"部门", "👥 Batch Entry / Exit Registration":"👥 批量登记出入境", "👥 Batch Domestic Travel Registration":"👥 批量登记国内出行",
       "Select All":"全选", "Clear":"清除", "Save for Selected Employees":"为选中员工保存", "Entry to Vietnam":"入境越南", "Exit from Vietnam":"出境越南",
       "Airport / border gate":"机场 / 口岸", "Flight number":"航班号", "Destination":"目的地", "Purpose":"目的", "From date":"开始日期", "To date":"结束日期",
-      "From location":"出发地", "To location":"目的地", "Name":"姓名", "Status":"状态", "Entry/Exit":"出入境", "Action":"操作", "Import Excel":"导入Excel", "Template":"模板", "Thêm Nhân Viên":"添加员工",
-      "Tìm tên / mã NV / quốc tịch...":"搜索姓名 / 员工编号 / 国籍...", "⚠ Cảnh báo Giấy tờ & Hợp đồng Hết hạn":"⚠ 证件与合同到期提醒", "Employee":"员工",
-      "Loại giấy tờ / Hợp đồng":"证件 / 合同", "Ngày hết hạn":"到期日期", "Chưa có lịch sử.":"暂无记录", "Chưa có file":"暂无文件", "Mở toàn bộ":"打开",
-      "Lịch sử nhập / xuất cảnh":"出入境记录", "Lịch sử đi lại":"出行记录", "👤 Hồ sơ của tôi":"👤 我的资料", "✈️ Khai báo nhập / xuất cảnh":"✈️ 出入境登记", "🚗 Đăng ký đi lại trong Việt Nam":"🚗 越南国内出行登记", "Planned Entry/Exit Date":"计划出入境日期", "Actual Entry/Exit Date":"实际出入境日期", "Ngày dự kiến nhập/xuất cảnh":"计划出入境日期", "Ngày thực tế nhập/xuất cảnh":"实际出入境日期", "📥 Batch Import Entry / Exit + Travel":"📥 批量导入出入境与国内出行", "Template Excel":"Excel模板", "Import pasted Excel":"导入粘贴的Excel", "Clear":"清除"
+      "From location":"出发地", "To location":"目的地", "Name":"姓名", "Status":"状态", "Entry/Exit":"出入境", "Action":"操作", "Import Excel":"导入Excel", "Template":"模板", "Add Employee":"添加员工",
+      "Search name / employee ID / nationality...":"搜索姓名 / 员工编号 / 国籍...", "⚠ Expiring Documents & Contracts":"⚠ 证件与合同到期提醒", "Employee":"员工",
+      "Document / Contract":"证件 / 合同", "Expiry Date":"到期日期", "No history.":"暂无记录", "No file":"暂无文件", "Open":"打开",
+      "Entry / Exit History":"出入境记录", "Travel History":"出行记录", "👤 My Profile":"👤 我的资料", "✈️ Entry / Exit Declaration":"✈️ 出入境登记", "🚗 Domestic Travel Registration":"🚗 越南国内出行登记", "Planned Entry/Exit Date":"计划出入境日期", "Actual Entry/Exit Date":"实际出入境日期", "📥 Batch Import Entry / Exit + Travel":"📥 批量导入出入境与国内出行", "Template Excel":"Excel模板", "Import pasted Excel":"导入粘贴的Excel", "Clear":"清除"
     }
   };
 
@@ -451,9 +451,9 @@
     "Select All":"Chọn tất cả", "Clear":"Xóa", "Save for Selected Employees":"Lưu cho nhân viên đã chọn", "Entry to Vietnam":"Nhập cảnh Việt Nam", "Exit from Vietnam":"Xuất cảnh Việt Nam",
     "Airport / border gate":"Sân bay / cửa khẩu", "Flight number":"Số chuyến bay", "Destination":"Điểm đến", "Purpose":"Mục đích", "From date":"Từ ngày", "To date":"Đến ngày",
     "From location":"Từ đâu", "To location":"Đến đâu", "Name":"Tên", "Entry/Exit":"Nhập/Xuất cảnh", "Action":"Thao tác", "Import Excel":"Import Excel", "Template":"Mẫu", "Add Employee":"Thêm nhân viên",
-    "Search name / employee ID / nationality...":"Tìm tên / mã NV / quốc tịch...", "Employee":"Nhân viên", "Document / Contract":"Giấy tờ / Hợp đồng", "Expiry Date":"Ngày hết hạn",
-    "No history.":"Chưa có lịch sử.", "No file":"Chưa có file", "Open":"Mở", "Entry / Exit History":"Lịch sử nhập / xuất cảnh", "Travel History":"Lịch sử đi lại",
-    "Planned Entry/Exit Date":"Ngày dự kiến nhập/xuất cảnh", "Actual Entry/Exit Date":"Ngày thực tế nhập/xuất cảnh", "Excel Template":"Template Excel", "Import pasted Excel":"Import Excel đã dán"
+    "Search name / employee ID / nationality...":"Tìm tên / mã NV / quốc tịch...", "⚠ Expiring Documents & Contracts":"⚠ Cảnh báo Giấy tờ & Hợp đồng Hết hạn", "Employee":"Nhân viên", "Document / Contract":"Giấy tờ / Hợp đồng", "Expiry Date":"Ngày hết hạn",
+    "No history.":"Chưa có lịch sử.", "No file":"Chưa có file", "Open":"Mở", "Entry / Exit History":"Lịch sử nhập / xuất cảnh", "Travel History":"Lịch sử đi lại", "👤 My Profile":"👤 Hồ sơ của tôi", "✈️ Entry / Exit Declaration":"✈️ Khai báo nhập / xuất cảnh", "🚗 Domestic Travel Registration":"🚗 Đăng ký đi lại trong Việt Nam", 
+    "Planned Entry/Exit Date":"Ngày dự kiến nhập/xuất cảnh", "Actual Entry/Exit Date":"Ngày thực tế nhập/xuất cảnh", "Excel Template":"Excel Mẫu", "Import pasted Excel":"Nhập Excel đã dán"
   };
 
   function setLanguage(lang) {
@@ -813,25 +813,25 @@
       const p = r.profile;
       document.getElementById("profileContent").innerHTML = `
         <div class="grid md:grid-cols-3 gap-4">
-          ${field("Họ tên", p.fullName)}
-          ${field("Quốc tịch", p.nationality)}
-          ${field("Ngày sinh", p.dob)}
-          ${field("Số hộ chiếu", p.passportNo)}
-          ${field("Hạn Passport", p.passportExpiry)}
+          ${field("Full Name", p.fullName)}
+          ${field("Nationality", p.nationality)}
+          ${field("Date of Birth", p.dob)}
+          ${field("Passport No.", p.passportNo)}
+          ${field("Passport Expiry", p.passportExpiry)}
           ${docPreview("Passport", p.passport)}
           ${field("TRC", p.trcNo)}
-          ${field("Hạn TRC", p.trcExpiry)}
+          ${field("TRC Expiry", p.trcExpiry)}
           ${docPreview("TRC", p.trc)}
           ${field("Work Permit", p.wpNo)}
-          ${field("Hạn WP", p.wpExpiry)}
+          ${field("Work Permit Expiry", p.wpExpiry)}
           ${docPreview("Work Permit", p.workPermit)}
-          ${field("Số Hợp Đồng", p.contractNo)}
-          ${field("Số Phụ Lục", p.appendixNo)}
+          ${field("Contract No.", p.contractNo)}
+          ${field("Appendix No.", p.appendixNo)}
           ${field("Hạn Hợp Đồng", p.contractExpiry)}
           ${docPreview("Hợp đồng", p.contract)}
-          ${field("Mức Lương Cơ Bản", Number(p.salary || 0).toLocaleString() + " USD")}
-          ${field("Phụ Cấp", Number(p.allowance || 0).toLocaleString() + " USD")}
-          ${field("Trạng thái", p.currentStatus)}
+          ${field("Base Salary", Number(p.salary || 0).toLocaleString() + " USD")}
+          ${field("Allowance", Number(p.allowance || 0).toLocaleString() + " USD")}
+          ${field("Status", p.currentStatus)}
         </div>
       `;
     } catch (e) { console.error(e); }
@@ -875,7 +875,7 @@
 
   function docPreview(label, doc) {
     const d = normalizeDocInfo(label, doc);
-    if (!d.id && !d.rawUrl) return `<div class="border rounded-lg p-3 bg-slate-50"><div class="text-xs text-slate-400 font-semibold">${escapeHTML(label)}</div><div class="font-semibold mt-1 text-slate-400">Chưa có file</div></div>`;
+    if (!d.id && !d.rawUrl) return `<div class="border rounded-lg p-3 bg-slate-50"><div class="text-xs text-slate-400 font-semibold">${escapeHTML(label)}</div><div class="font-semibold mt-1 text-slate-400">No file</div></div>`;
     const safePreview = escapeHTML(d.previewUrl || d.rawUrl);
     const safeOpen = escapeHTML(d.openUrl || d.rawUrl);
     const title = escapeHTML(d.fileName || label);
@@ -1028,7 +1028,7 @@
             </div>
           </div>
         </div>`).join("");
-      if (!records.length) b.innerHTML = '<div class="text-slate-400">Chưa có lịch sử.</div>';
+      if (!records.length) b.innerHTML = '<div class="text-slate-400">No history.</div>';
     } catch (e) { console.error(e); }
   }
 
@@ -1120,7 +1120,7 @@
             </div>
           </div>
         </div>`).join("");
-      if (!records.length) b.innerHTML = '<div class="text-slate-400">Chưa có lịch sử.</div>';
+      if (!records.length) b.innerHTML = '<div class="text-slate-400">No history.</div>';
     } catch (e) { console.error(e); }
   }
 
@@ -1219,7 +1219,7 @@
               <div class="font-bold text-slate-800">${escapeHTML(x.title)}</div>
               <div class="text-xs text-blue-600 font-semibold">${escapeHTML(x.date)} ${x.endDate ? " → " + escapeHTML(x.endDate) : ""}</div>
               <div class="text-xs text-slate-500 mt-1">${escapeHTML(x.location || "")}</div>
-              ${x.status ? `<div class="text-xs font-semibold mt-1">Trạng thái: ${escapeHTML(x.status)}</div>` : ""}
+              ${x.status ? `<div class="text-xs font-semibold mt-1">Status: ${escapeHTML(x.status)}</div>` : ""}
               ${x.purpose ? `<div class="text-xs italic text-slate-500 mt-1">Mục đích: ${escapeHTML(x.purpose)}</div>` : ""}
             </div>
           `).join("") || '<div class="text-slate-400 py-4 text-center">Chưa có lịch sử di chuyển.</div>'}
@@ -1241,24 +1241,24 @@
       document.getElementById("modalBody").innerHTML = `
         <div class="grid md:grid-cols-3 gap-3">
           ${field("Mã Nhân Viên", prof.employeeId)}
-          ${field("Quốc tịch", prof.nationality)}
-          ${field("Chức vụ", prof.position)}
-          ${field("Phòng ban", prof.department)}
-          ${field("Số hộ chiếu", prof.passportNo)}
-          ${field("Hạn Passport", prof.passportExpiry)}
+          ${field("Nationality", prof.nationality)}
+          ${field("Position", prof.position)}
+          ${field("Department", prof.department)}
+          ${field("Passport No.", prof.passportNo)}
+          ${field("Passport Expiry", prof.passportExpiry)}
           ${docPreview("Passport", prof.passport)}
           ${field("Số TRC", prof.trcNo)}
-          ${field("Hạn TRC", prof.trcExpiry)}
+          ${field("TRC Expiry", prof.trcExpiry)}
           ${docPreview("TRC", prof.trc)}
           ${field("Số Work Permit", prof.wpNo)}
-          ${field("Hạn WP", prof.wpExpiry)}
+          ${field("Work Permit Expiry", prof.wpExpiry)}
           ${docPreview("Work Permit", prof.workPermit)}
-          ${field("Số Hợp Đồng", prof.contractNo)}
-          ${field("Số Phụ Lục", prof.appendixNo)}
+          ${field("Contract No.", prof.contractNo)}
+          ${field("Appendix No.", prof.appendixNo)}
           ${field("Hạn Hợp Đồng", prof.contractExpiry)}
           ${docPreview("Hợp đồng", prof.contract)}
-          ${field("Mức Lương Cơ Bản", Number(prof.salary || 0).toLocaleString() + " USD")}
-          ${field("Phụ Cấp", Number(prof.allowance || 0).toLocaleString() + " USD")}
+          ${field("Base Salary", Number(prof.salary || 0).toLocaleString() + " USD")}
+          ${field("Allowance", Number(prof.allowance || 0).toLocaleString() + " USD")}
         </div>
         <hr class="my-6">
         <h3 class="font-bold mb-3">🕒 Lịch trình di chuyển & Công tác</h3>
@@ -1281,16 +1281,16 @@
       if (r.status === "SUCCESS") emp = r.profile;
     }
 
-    document.getElementById("modalTitle").textContent = encoded ? "Sửa/Cập Nhật Hồ Sơ Nhân Viên" : "Thêm Nhân Viên Mới";
+    document.getElementById("modalTitle").textContent = encoded ? "Sửa/Cập Nhật Hồ Sơ Nhân Viên" : "Add Employee";
     document.getElementById("modalBody").innerHTML = `
       <form id="empForm" class="grid md:grid-cols-2 gap-4" onsubmit="handleSaveEmployee(event)">
         <input id="f_isNewEmployee" type="hidden" value="${encoded ? "0" : "1"}">
         <div><label class="text-xs font-semibold">Mã Nhân Viên (*)</label><input id="f_empId" class="input mt-1" value="${escapeHTML(emp.employeeId || "")}" ${encoded ? "readonly bg-slate-100" : ""} required></div>
         <div><label class="text-xs font-semibold">Họ và Tên (*)</label><input id="f_fullName" class="input mt-1" value="${escapeHTML(emp.fullName || "")}" required></div>
-        <div><label class="text-xs font-semibold">Quốc tịch</label><input id="f_nationality" class="input mt-1" value="${escapeHTML(emp.nationality || "")}"></div>
-        <div><label class="text-xs font-semibold">Ngày sinh</label><input id="f_dob" type="date" class="input mt-1" value="${emp.dob || ""}"></div>
-        <div><label class="text-xs font-semibold">Chức vụ</label><input id="f_position" class="input mt-1" value="${escapeHTML(emp.position || "")}"></div>
-        <div><label class="text-xs font-semibold">Phòng ban</label><input id="f_department" class="input mt-1" value="${escapeHTML(emp.department || "")}"></div>
+        <div><label class="text-xs font-semibold">Nationality</label><input id="f_nationality" class="input mt-1" value="${escapeHTML(emp.nationality || "")}"></div>
+        <div><label class="text-xs font-semibold">Date of Birth</label><input id="f_dob" type="date" class="input mt-1" value="${emp.dob || ""}"></div>
+        <div><label class="text-xs font-semibold">Position</label><input id="f_position" class="input mt-1" value="${escapeHTML(emp.position || "")}"></div>
+        <div><label class="text-xs font-semibold">Department</label><input id="f_department" class="input mt-1" value="${escapeHTML(emp.department || "")}"></div>
         <div><label class="text-xs font-semibold">Điện thoại</label><input id="f_phone" class="input mt-1" value="${escapeHTML(emp.phone || "")}"></div>
         <div><label class="text-xs font-semibold">Email</label><input id="f_email" type="email" class="input mt-1" value="${escapeHTML(emp.email || "")}"></div>
 
@@ -1324,10 +1324,10 @@
         </div>
 
         <div class="md:col-span-2 font-bold border-b pb-1 text-blue-600 mt-2">Hợp Đồng Lao Động & Lương</div>
-        <div><label class="text-xs font-semibold">Số Hợp Đồng</label><input id="f_contractNo" class="input mt-1" value="${escapeHTML(emp.contractNo || "")}"></div>
+        <div><label class="text-xs font-semibold">Contract No.</label><input id="f_contractNo" class="input mt-1" value="${escapeHTML(emp.contractNo || "")}"></div>
         <div><label class="text-xs font-semibold">Số Phụ Lục Hợp Đồng</label><input id="f_appendixNo" class="input mt-1" value="${escapeHTML(emp.appendixNo || "")}"></div>
-        <div><label class="text-xs font-semibold">Mức Lương Cơ Bản (USD)</label><input id="f_salary" type="number" class="input mt-1" value="${emp.salary || 0}"></div>
-        <div><label class="text-xs font-semibold">Phụ Cấp (USD)</label><input id="f_allowance" type="number" class="input mt-1" value="${emp.allowance || 0}"></div>
+        <div><label class="text-xs font-semibold">Base Salary (USD)</label><input id="f_salary" type="number" class="input mt-1" value="${emp.salary || 0}"></div>
+        <div><label class="text-xs font-semibold">Allowance (USD)</label><input id="f_allowance" type="number" class="input mt-1" value="${emp.allowance || 0}"></div>
         <div><label class="text-xs font-semibold">Ngày bắt đầu HĐ</label><input id="f_contractStartDate" type="date" class="input mt-1" value="${emp.contractStartDate || ""}"></div>
         <div><label class="text-xs font-semibold">Ngày hết hạn HĐ</label><input id="f_contractExpiry" type="date" class="input mt-1" value="${emp.contractExpiry || ""}"></div>
         <div class="md:col-span-2">
@@ -1409,7 +1409,7 @@
   };
 
   function convertToPreviewUrl(rawUrl, isPdf = false) {
-  if (!rawUrl || rawUrl.includes("Chưa có file")) return "";
+  if (!rawUrl || rawUrl.includes("No file")) return "";
   
   // Trích xuất File ID từ bất kỳ định dạng link Google Drive nào
   const match = rawUrl.match(/(?:\/d\/|id=)([\w-]+)/);
@@ -1720,8 +1720,8 @@
   }
 
   function openChangePasswordModal() {
-    document.getElementById("passwordModalTitle").textContent = "🔐 Đổi mật khẩu";
-    document.getElementById("passwordTargetInfo").textContent = currentUser ? `Tài khoản: ${currentUser.email || currentUser.employeeId}` : "";
+    document.getElementById("passwordModalTitle").textContent = "🔐 Change Password";
+    document.getElementById("passwordTargetInfo").textContent = currentUser ? `Accounts: ${currentUser.email || currentUser.employeeId}` : "";
     ["cpCurrent", "cpNew", "cpConfirm"].forEach(id => document.getElementById(id).value = "");
     document.getElementById("passwordModal").classList.remove("hidden");
     setTimeout(() => document.getElementById("cpCurrent").focus(), 50);
@@ -1748,7 +1748,7 @@
   function openAdminReset(encodedUserId, encodedName) {
     if (!isSuperAdmin()) return toast("Chỉ ADMIN mới có quyền reset mật khẩu.");
     document.getElementById("resetUserId").value = decodeURIComponent(encodedUserId);
-    document.getElementById("resetTargetInfo").textContent = "Tài khoản: " + decodeURIComponent(encodedName);
+    document.getElementById("resetTargetInfo").textContent = "Accounts: " + decodeURIComponent(encodedName);
     document.getElementById("resetNewPassword").value = "";
     document.getElementById("resetConfirmPassword").value = "";
     document.getElementById("resetPasswordModal").classList.remove("hidden");
