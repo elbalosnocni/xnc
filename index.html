@@ -785,27 +785,27 @@
     const wb = XLSX.utils.book_new();
     
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([
-      { EmployeeID: "EMP001", FullName: "John Doe", Nationality: "USA", Position: "Expert", Department: "IT", CurrentStatus: "In Vietnam" }
+      { EmployeeID: "EMP001", FullName: "John Doe", Nationality: "USA", DOB: "1990-01-15", Position: "Expert", Department: "IT", Phone: "0900000000", Email: "example@company.com", CurrentStatus: "In Vietnam", CurrentLocation: "Vietnam", ActiveStatus: "ACTIVE", FolderId: "" }
     ]), "Employees");
 
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([
-      { EmployeeID: "EMP001", DocumentType: "Passport", DocumentNumber: "B12345678", ExpiryDate: "2028-12-31" }
+      { DocID: "", EmployeeID: "EMP001", DocType: "Passport", DocNo: "B12345678", IssueDate: "2026-12-01", ExpiryDate: "2028-12-31", Issuer: "Immigration", FileId: "", FileUrl: "", IsCurrent: "TRUE", Status: "" }
     ]), "Documents");
 
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([
-      { EmployeeID: "EMP001", ContractNo: "CTR-2026-01", StartDate: "2026-01-01", ExpiryDate: "2028-01-01", BaseSalary: 5000 }
+      { ContractID: "", EmployeeID: "EMP001", ContractNo: "CTR-2026-01", ContractType: "", StartDate: "2026-01-01", EndDate: "2028-01-01", Salary: 5000, AllowancesJson: "", Status: "VALID", IsCurrent: "TRUE", FileId: "", FileUrl: "" }
     ]), "Contracts");
 
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([
-      { EmployeeID: "EMP001", ContractNo: "CTR-2026-01", AppendixNo: "APP-01", EffectiveDate: "2026-06-01" }
+      { AppendixID: "", ContractID: "", EmployeeID: "EMP001", ContractNo: "CTR-2026-01", AppendixNo: "APP-01", EffectiveDate: "2026-06-01", NewSalary: "", AllowancesJson: "", Content: "", FileId: "", FileUrl: "" }
     ]), "ContractAppendices");
 
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([
-      { EmployeeID: "EMP001", TripID: "TRIP-001", Type: "ENTRY", PlannedDateTime: "2026-03-01 10:00", Airport: "Tan Son Nhat", FlightNo: "VN123" }
+      { LogID: "", EmployeeID: "EMP001", Type: "ENTRY", EventDate: "2026-03-01 10:00", PortName: "Tan Son Nhat", FlightNo: "VN123", Destination: "HCM", Purpose: "", TripID: "TRIP-001" }
     ]), "EntryExit");
 
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([
-      { EmployeeID: "EMP001", FromDate: "2026-04-01", ToDate: "2026-04-05", FromLocation: "Ho Chi Minh", ToLocation: "Da Nang", Purpose: "Audit" }
+      { TravelID: "", EmployeeID: "EMP001", FromLocation: "Ho Chi Minh", ToLocation: "Da Nang", FromDate: "2026-04-01", ToDate: "2026-04-05", Status: "APPROVED", TicketFileId: "", TicketUrl: "", Purpose: "Audit" }
     ]), "DomesticTravel");
 
     XLSX.writeFile(wb, "Master_Employee_Template.xlsx");
