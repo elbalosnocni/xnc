@@ -851,12 +851,25 @@
       const p = r.profile;
       document.getElementById("profileContent").innerHTML = `
         <div class="grid md:grid-cols-3 gap-4 text-sm">
-          <div class="p-3 bg-slate-50 rounded border"><b>Full Name:</b> ${p.fullName}</div>
-          <div class="p-3 bg-slate-50 rounded border"><b>Employee ID:</b> ${p.employeeId}</div>
-          <div class="p-3 bg-slate-50 rounded border"><b>Nationality:</b> ${p.nationality}</div>
-          <div class="p-3 bg-slate-50 rounded border"><b>Passport:</b> ${p.passportNo || "-"}</div>
-          <div class="p-3 bg-slate-50 rounded border"><b>TRC:</b> ${p.trcNo || "-"}</div>
-          <div class="p-3 bg-slate-50 rounded border"><b>Work Permit:</b> ${p.wpNo || "-"}</div>
+          ${field("Full Name", p.fullName)}
+          ${field("Nationality", p.nationality)}
+          ${field("Date of Birth", p.dob)}
+          ${field("Passport No.", p.passportNo)}
+          ${field("Passport Expiry", p.passportExpiry)}
+          ${docPreview("Passport", p.passport)}
+          ${field("TRC", p.trcNo)}
+          ${field("TRC Expiry", p.trcExpiry)}
+          ${docPreview("TRC", p.trc)}
+          ${field("Work Permit", p.wpNo)}
+          ${field("Work Permit Expiry", p.wpExpiry)}
+          ${docPreview("Work Permit", p.workPermit)}
+          ${field("Contract No.", p.contractNo)}
+          ${field("Appendix No.", p.appendixNo)}
+          ${field("Hạn Hợp Đồng", p.contractExpiry)}
+          ${docPreview("Hợp đồng", p.contract)}
+          ${field("Base Salary", Number(p.salary || 0).toLocaleString() + " USD")}
+          ${field("Allowance", Number(p.allowance || 0).toLocaleString() + " USD")}
+          ${field("Status", p.currentStatus)}
         </div>
       `;
     } catch (e) { console.error(e); }
