@@ -1,4 +1,4 @@
-Code.gs
+//Code.gs
 // ==========================================
 // A. DATA STRUCTURE & CONSTANTS
 // ==========================================
@@ -2225,7 +2225,7 @@ function setupSystem() {
     [TABLES.CONTRACTS]: ['ContractID', 'EmployeeID', 'ContractNo', 'ContractType', 'StartDate', 'EndDate', 'Salary', 'AllowancesJson', 'Status', 'IsCurrent', 'FileId', 'FileUrl', 'CreatedAt', 'CreatedBy'],
     [TABLES.APPENDICES]: ['AppendixID', 'ContractID', 'EmployeeID', 'AppendixNo', 'EffectiveDate', 'EndDate', 'NewSalary', 'AllowancesJson', 'Content', 'FileId', 'FileUrl', 'CreatedAt', 'CreatedBy'],
     [TABLES.ENTRY_EXIT]: ['LogID', 'EmployeeID', 'Type', 'EventDate', 'PortName', 'FlightNo', 'Destination', 'Purpose', 'CreatedAt', 'CreatedBy', 'PlannedDateTime', 'ActualDateTime', 'TripID'],
-    [TABLES.TRAVEL]: ['TravelID', 'EmployeeID', 'FromLocation', 'ToLocation', 'StartDate', 'EndDate', 'Status', 'TicketFileId', 'TicketUrl', 'CreatedAt', 'CreatedBy', 'Purpose'],
+    [TABLES.TRAVEL]: ['TravelID', 'EmployeeID', 'FromLocation', 'ToLocation', 'FromDate', 'ToDate', 'Status', 'TicketFileId', 'TicketUrl', 'CreatedAt', 'CreatedBy', 'Purpose'],
     [TABLES.AUDIT]: ['AuditID', 'UserID', 'Action', 'Module', 'TargetID', 'OldValue', 'NewValue', 'Timestamp', 'IPAddress'],
     [TABLES.CONFIG]: ['Key', 'Value', 'UpdatedAt']
   };
