@@ -635,7 +635,7 @@
     loadTravel();
   }
 
-  function logout(notify = true) {
+  async function logout(notify = true) {
     try {
       if (sessionToken) await callBackend("LOGOUT");
     } catch (e) {}
