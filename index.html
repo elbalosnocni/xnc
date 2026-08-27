@@ -361,7 +361,9 @@
 
 <script>
   let currentUser = null, sessionToken = null, employees = [];
+  let accountUsers = [];
   let parsedMasterPayload = null;
+  const pendingUploads = {};
   const API_TIMEOUT_MS = 30000;
   const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxe9MyaYTOMQQq82Tyzo1T6x2UAjm4TlML-tXtxICmQpGhuGqtgJK5Q8n3jE8Lgociwxg/exec";
 
@@ -491,6 +493,22 @@
     });
   }
 
+  function isHR() {
+    return currentUser && ["HR", "HR ADMIN", "DIRECTOR", "ADMIN"].includes(String(currentUser.role || "").toUpperCase());
+  }
+
+  function isAccountAdmin() {
+    return currentUser && ["ADMIN", "HR ADMIN"].includes(String(currentUser.role || "").toUpperCase());
+  }
+
+  function isSuperAdmin() {
+    return currentUser && String(currentUser.role || "").toUpperCase() === "ADMIN";
+  }
+
+  function escapeHTML(v) {
+    return String(v ?? "").replace(/[&<>"']/g, m => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[m]));
+  }
+  
   function toast(msg) {
     const t = document.getElementById("toast");
     document.getElementById("toastText").textContent = msg;
@@ -498,6 +516,11 @@
     setTimeout(() => t.classList.add("hidden"), 2500);
   }
 
+  function showPage(page) {
+    document.querySelectorAll(".page").forEach(x => x.classList.add("hidden"));
+    document.getElementById("page-" + page)?.classList.remove("hidden");
+  }
+  
   function showGlobalLoader(text = "Loading data...") {
     document.getElementById("globalLoaderText").textContent = text;
     document.getElementById("globalLoader").classList.remove("hidden");
@@ -530,13 +553,33 @@
     });
   }
 
-  async function apiGet(action, params = {}) { return await callBackend(action, {}, params); }
-  async function apiPost(action, data = {}) { return await callBackend(action, data, {}); }
+  async function apiGet(action, params = {}) {
+    const res = await callBackend(action, {}, params);
+    if (res.status === "ERROR" && /phiên|đăng nhập/i.test(res.message || "")) {
+      await logout(false);
+      throw new Error(res.message);
+    }
+    return res;
+  }
+
+  async function apiPost(action, data = {}) {
+    const res = await callBackend(action, data, {});
+    if (res.status === "ERROR" && /session|login/i.test(res.message || "")) {
+      await logout(false);
+      throw new Error(res.message);
+    }
+    return res;
+  }
 
   async function doLogin() {
     const u = document.getElementById("loginUser").value.trim();
     const p = document.getElementById("loginPass").value;
     if (!u || !p) return toast("Please enter username and password.");
+
+    const b = document.getElementById("loginBtn");
+    b.disabled = true;
+    b.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Logining...';
+    
     try {
       const res = await callBackend("LOGIN", { username: u, password: p });
       if (res.status !== "SUCCESS") return toast(res.message || "Login Failed");
@@ -544,10 +587,21 @@
       sessionToken = res.token;
       sessionStorage.setItem("sessionToken", sessionToken);
       sessionStorage.setItem("currentUser", JSON.stringify(currentUser));
-      initSessionUI();
-    } catch (e) { toast("Server connection failed."); }
-  }
 
+      // Reset login info
+      document.getElementById("loginUser").value = "";
+      document.getElementById("loginPass").value = "";
+      
+      initSessionUI();
+    } catch (e) {
+      console.error(e);
+      toast(e.message || "Server connection failed.");
+    } finally {
+      b.disabled = false;
+      b.innerHTML = '<i class="fa-solid fa-right-to-bracket mr-2"></i> Login';
+    }
+  }  
+    
   function restoreSession() {
     translatePage();
     sessionToken = sessionStorage.getItem("sessionToken");
@@ -556,7 +610,7 @@
     try {
       currentUser = JSON.parse(raw);
       initSessionUI();
-    } catch (e) { logout(); }
+    } catch (e) { logout(false); }
   }
 
   function initSessionUI() {
@@ -581,16 +635,26 @@
     loadTravel();
   }
 
-  function logout() {
+  function logout(notify = true) {
+    try {
+      if (sessionToken) await callBackend("LOGOUT");
+    } catch (e) {}
+  
+    // Clear temp. DOM
+    currentUser = null;
+    sessionToken = null;
+    employees = [];
+    accountUsers = [];
     sessionStorage.clear();
-    location.reload();
-  }
+    document.getElementById("app").classList.add("hidden");
+    document.getElementById("userNav").classList.add("hidden");
+    document.getElementById("loginSection").classList.remove("hidden");
+    if (notify) toast("Logged out.");
 
-  function showPage(page) {
-    document.querySelectorAll(".page").forEach(x => x.classList.add("hidden"));
-    document.getElementById("page-" + page)?.classList.remove("hidden");
+    // Reload web to clear old info in DOM
+  window.location.reload();
   }
-
+  
   function toggleEntryExitMode() {
     const mode = document.getElementById("eeMode").value;
     document.getElementById("eeRoundTripFields").classList.toggle("hidden", mode !== "ROUND_TRIP");
@@ -812,6 +876,7 @@
   }
 
   async function loadDashboard() {
+    if (!isHR()) return;
     try {
       const r = await apiGet("GET_DASHBOARD_DATA");
       if (r.status !== "SUCCESS") return;
@@ -824,7 +889,25 @@
       
       employees = r.employees || [];
       renderEmployees();
+      renderWarnings(r.expiryWarnings || []);
     } catch (e) { console.error(e); }
+  }
+
+  function renderWarnings(list) {
+    const tb = document.getElementById("warningTable");
+    if (!list.length) {
+      tb.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-emerald-600">✓ No expired document / Contract.</td></tr>';
+      return;
+    }
+    tb.innerHTML = list.slice().sort((a, b) => a.daysRemaining - b.daysRemaining).map(x => `
+      <tr class="border-b">
+        <td class="p-3 font-semibold">${escapeHTML(x.fullName)}<div class="text-xs text-slate-400">${escapeHTML(x.employeeId)}</div></td>
+        <td class="p-3 text-center">${escapeHTML(x.document)}</td>
+        <td class="p-3 text-center">${escapeHTML(x.expiryDate)}</td>
+        <td class="p-3 text-center">${x.severity === 'EXPIRED'
+          ? '<span class="badge bg-red-100 text-red-700">HẾT HẠN</span>'
+          : '<span class="badge bg-amber-100 text-amber-700">Còn ' + escapeHTML(x.daysRemaining) + ' ngày</span>'}</td>
+      </tr>`).join("");
   }
 
   function renderEmployees() {
@@ -865,9 +948,9 @@
           ${docPreview("Work Permit", p.workPermit)}
           ${field("Contract No.", p.contractNo)}
           ${field("Appendix No.", p.appendixNo)}
-          ${field("Hạn Hợp Đồng", p.contractExpiry)}
-          ${docPreview("Hợp đồng", p.contract)}
-          ${field("Base Salary", Number(p.salary || 0).toLocaleString() + " USD")}
+          ${field("Contract Expiry", p.contractExpiry)}
+          ${docPreview("Contract", p.contract)}
+          ${field("Salary", Number(p.salary || 0).toLocaleString() + " USD")}
           ${field("Allowance", Number(p.allowance || 0).toLocaleString() + " USD")}
           ${field("Status", p.currentStatus)}
         </div>
@@ -875,6 +958,111 @@
     } catch (e) { console.error(e); }
   }
 
+  function field(l, v) {
+    return `<div class="border rounded-lg p-3 bg-slate-50"><div class="text-xs text-slate-400 font-semibold">${escapeHTML(l)}</div><div class="font-semibold mt-1">${escapeHTML(v || "-")}</div></div>`;
+  }
+
+  function extractDriveFileId(raw) {
+    const s = String(raw || "").trim();
+    if (!s) return "";
+    const patterns = [/\/file\/d\/([a-zA-Z0-9_-]+)/, /\/d\/([a-zA-Z0-9_-]+)/, /[?&]id=([a-zA-Z0-9_-]+)/, /^([a-zA-Z0-9_-]{20,})$/];
+    for (const re of patterns) {
+      const m = s.match(re);
+      if (m && m[1]) return m[1];
+    }
+    return "";
+  }
+
+  function normalizeDocInfo(label, urlOrInfo, fileId = "", mimeType = "") {
+    const info = (urlOrInfo && typeof urlOrInfo === "object") ? urlOrInfo : {
+      fileUrl: urlOrInfo || "", fileId: fileId || "", mimeType: mimeType || ""
+    };
+    const id = String(info.fileId || "").trim() || extractDriveFileId(info.fileUrl || info.previewUrl || "");
+    const rawUrl = String(info.fileUrl || info.previewUrl || "").trim();
+    const mt = String(info.mimeType || "").toLowerCase();
+    let previewUrl = String(info.previewUrl || "").trim();
+    let openUrl = rawUrl;
+    if (id) {
+      previewUrl = `https://drive.google.com/file/d/${encodeURIComponent(id)}/preview`;
+      openUrl = `https://drive.google.com/file/d/${encodeURIComponent(id)}/view`;
+    }
+    return {
+      label, id, rawUrl, previewUrl, openUrl, mimeType: mt,
+      isPdf: mt === "application/pdf" || /\.pdf(?:[?#]|$)/i.test(rawUrl),
+      isImage: mt.startsWith("image/") || /\.(jpe?g|png|webp|gif)(?:[?#]|$)/i.test(rawUrl),
+      fileName: info.fileName || ""
+    };
+  }
+
+  function docPreview(label, doc) {
+    const d = normalizeDocInfo(label, doc);
+    if (!d.id && !d.rawUrl) return `<div class="border rounded-lg p-3 bg-slate-50"><div class="text-xs text-slate-400 font-semibold">${escapeHTML(label)}</div><div class="font-semibold mt-1 text-slate-400">No file</div></div>`;
+    const safePreview = escapeHTML(d.previewUrl || d.rawUrl);
+    const safeOpen = escapeHTML(d.openUrl || d.rawUrl);
+    const title = escapeHTML(d.fileName || label);
+    const media = d.isImage && !d.isPdf
+      ? `<img src="${safePreview}" alt="${title}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.classList.remove('hidden');"><div class="hidden p-6 text-center text-sm text-slate-500">Cannot see picture directly. Please open the file.</div>`
+      : `<iframe src="${safePreview}" title="${title}" loading="lazy" allow="autoplay; fullscreen"></iframe>`;
+    return `<div class="border rounded-lg p-3 bg-slate-50">
+      <div class="text-xs text-slate-400 font-semibold">${escapeHTML(label)}</div>
+      <div class="doc-preview">
+        ${media}
+        <div class="doc-preview-actions">
+          <span class="text-xs text-slate-500"><i class="fa-solid ${d.isPdf ? "fa-file-pdf" : "fa-file-image"} mr-1"></i>${d.isPdf ? "PDF" : "Document"}</span>
+          <a href="${safeOpen}" target="_blank" rel="noopener noreferrer"><i class="fa-solid fa-up-right-from-square mr-1"></i>Open all</a>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  function docField(l, urlOrInfo, fileId = "", mimeType = "") {
+    return docPreview(l, { fileUrl: urlOrInfo, fileId, mimeType });
+  }
+
+  async function handleFileUpload(inputElem, targetInputId, subFolder, fileIdInputId) {
+    const file = inputElem.files[0];
+    if (!file) return;
+    const allowed = ["application/pdf", "image/jpeg", "image/png", "image/webp"];
+    if (!allowed.includes(file.type)) {
+      inputElem.value = "";
+      return toast("Support PDF, JPG, PNG or WEBP only.");
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      inputElem.value = "";
+      return toast("File tối đa 10 MB.");
+    }
+
+    const employeeId = document.getElementById("f_empId")?.value.trim();
+    const isNew = document.getElementById("f_isNewEmployee")?.value === "1";
+    const reader = new FileReader();
+    reader.onload = async function (e) {
+      const base64Data = e.target.result;
+      if (isNew) {
+        pendingUploads[targetInputId] = { base64Data, fileName: file.name, mimeType: file.type, employeeId, subFolder, fileIdInputId };
+        document.getElementById(targetInputId).value = "PENDING:" + file.name;
+        if (fileIdInputId) document.getElementById(fileIdInputId).value = "";
+        toast(`Đã chọn ${file.name}. File will be uploaded after profile saved.`);
+        return;
+      }
+
+      toast("Uploading to Drive...");
+      try {
+        const res = await apiPost("UPLOAD_FILE", {
+          base64Data, fileName: file.name, mimeType: file.type,
+          employeeId, subFolderType: subFolder
+        });
+        if (res.status === "SUCCESS") {
+          document.getElementById(targetInputId).value = res.fileUrl;
+          if (fileIdInputId) document.getElementById(fileIdInputId).value = res.fileId || "";
+          toast("Upload successful!");
+        } else toast(res.message);
+      } catch (err) {
+        toast(err.message || "Upload failed!");
+      }
+    };
+    reader.readAsDataURL(file);
+  }
+  
   async function saveDomesticTravel() {
     const d = {
       employeeId: currentUser.employeeId,
