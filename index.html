@@ -521,13 +521,21 @@
     document.getElementById("page-" + page)?.classList.remove("hidden");
   }
   
-  function showGlobalLoader(text = "Loading data...") {
-    document.getElementById("globalLoaderText").textContent = text;
-    document.getElementById("globalLoader").classList.remove("hidden");
-  }
-  function hideGlobalLoader() {
+  let pendingRequests = 0;
+
+function showGlobalLoader(text = "Loading data...") {
+  pendingRequests++;
+  document.getElementById("globalLoaderText").textContent = text;
+  document.getElementById("globalLoader").classList.remove("hidden");
+}
+
+function hideGlobalLoader() {
+  pendingRequests = Math.max(0, pendingRequests - 1);
+
+  if (pendingRequests === 0) {
     document.getElementById("globalLoader").classList.add("hidden");
   }
+}
 
   function callBackend(action, data = {}, params = {}) {
     const token = sessionToken || sessionStorage.getItem("sessionToken") || "";
@@ -626,13 +634,20 @@
       document.getElementById("employeeMenu").classList.remove("hidden");
       if (["ADMIN", "HR ADMIN"].includes(role)) document.getElementById("accountMenu").classList.remove("hidden");
       showPage("dashboard");
-      loadDashboard();
+      await Promise.allSettled([
+      loadDashboard(),
+      loadProfile(),
+      loadEntryExit(),
+      loadTravel()
+    ]);
     } else {
       showPage("profile");
     }
-    loadProfile();
-    loadEntryExit();
-    loadTravel();
+    await Promise.allSettled([
+    loadProfile(),
+    loadEntryExit(),
+    loadTravel()
+  ]);
   }
 
   async function logout(notify = true) {
@@ -825,18 +840,32 @@
     const tableBody = document.getElementById("masterImportPreviewTable");
     tableBody.innerHTML = "";
 
+    let validRows = 0;
+    let errorRows = 0;
+    
     const addPreviewRows = (items, typeLabel) => {
-      items.forEach((row, idx) => {
+      items.forEach(row => {
         totalRows++;
-        const empId = row.EmployeeID || row.employeeId || row["Mã NV"] || "-";
-        const isValid = !!empId && empId !== "-";
+    
+        const empId = row.EmployeeID || row.employeeId || row["EmpID"] || "";
+        const isValid = Boolean(String(empId).trim());
+    
+        if (isValid) {
+          validRows++;
+        } else {
+          errorRows++;
+        }
+    
+        ...
+      });
+    };
         
         const tr = document.createElement("tr");
         tr.className = "border-b hover:bg-slate-50";
         tr.innerHTML = `
-          <td class="p-3 font-semibold text-blue-600">${typeLabel}</td>
-          <td class="p-3 font-mono">${empId}</td>
-          <td class="p-3 text-slate-600 text-xs">${JSON.stringify(row).substring(0, 80)}...</td>
+          <td class="p-3 font-semibold text-blue-600">${escapeHTML(typeLabel)}</td>
+          <td class="p-3 font-mono">${escapeHTML(empId)}</td>
+          <td class="p-3 text-slate-600 text-xs">${escapeHTML(JSON.stringify(row).substring(0, 80))}...</td>
           <td class="p-3 text-center">${isValid ? '<span class="badge bg-emerald-100 text-emerald-700">VALID</span>' : '<span class="badge bg-rose-100 text-rose-700">INVALID</span>'}</td>
           <td class="p-3 text-xs text-slate-500">${isValid ? 'Ready for synchronization' : 'Missing EmployeeID'}</td>
         `;
@@ -852,7 +881,12 @@
     addPreviewRows(parsedMasterPayload.domesticTravel, "DomesticTravel");
 
     document.getElementById("importStatRows").textContent = totalRows;
-    document.getElementById("importStatValid").textContent = totalRows;
+    importStatRows.textContent = totalRows;
+    importStatValid.textContent = validRows;
+    importStatError.textContent = errorRows;
+    
+    masterImportConfirmBtn.disabled =
+      totalRows === 0 || errorRows > 0;
     document.getElementById("importStatEmployee").textContent = parsedMasterPayload.employees.length;
     document.getElementById("importStatMovement").textContent = parsedMasterPayload.entryExit.length + parsedMasterPayload.domesticTravel.length;
     document.getElementById("importStatDocs").textContent = parsedMasterPayload.documents.length + parsedMasterPayload.contracts.length + parsedMasterPayload.appendices.length;
@@ -1294,6 +1328,16 @@
     if (r.status === "SUCCESS") { toast("Travel request submitted."); loadTravel(); }
   }
 
+    const editId = document.getElementById("travelEditId").value.trim();
+  
+    const r = await apiPost(
+      editId ? "UPDATE_DOMESTIC_TRAVEL" : "ADD_DOMESTIC_TRAVEL",
+      {
+        ...d,
+        travelId: editId
+      }
+    );
+
   function resetTravelForm() {
     document.getElementById("travelEditId").value = "";
     document.getElementById("travelFromDate").value = "";
@@ -1345,21 +1389,165 @@
       const b = document.getElementById("travelList");
       b.innerHTML = (r.records || []).map(x => `
         <div class="border-b py-2 text-xs">
-          <div class="font-bold">${x.fromLocation} → ${x.toLocation}</div>
-          <div class="text-slate-500">${x.fromDate} to ${x.toDate}</div>
+          <div class="font-bold">
+            ${escapeHTML(x.fromLocation)} → ${escapeHTML(x.toLocation)}
+          </div>
+          
+          <div class="text-slate-500">
+            ${escapeHTML(x.fromDate)} → ${escapeHTML(x.toDate)}
+          </div>
+
+          <div class="text-xs font-semibold ${statusClass}">
+          ${escapeHTML(x.status)}
+        </div>
           <div class="text-xs font-semibold ${x.status === 'APPROVED' ? 'text-emerald-600' : x.status === 'CANCELLED' ? 'text-red-600' : 'text-amber-600'}">${escapeHTML(x.status)}</div>
           <div class="text-xs italic text-slate-500">Mục đích: ${escapeHTML(x.purpose || "-")}</div>
         </div>
         <div class="flex gap-2 shrink-0">
               ${x.status !== 'CANCELLED' ? `<button onclick="editDomesticTravel('${encodeURIComponent(x.travelId)}')" class="text-amber-600 hover:text-amber-800" title="Sửa"><i class="fa-solid fa-pen-to-square"></i></button>
               <button onclick="cancelDomesticTravel('${encodeURIComponent(x.travelId)}')" class="text-red-600 hover:text-red-800" title="Hủy"><i class="fa-solid fa-ban"></i></button>` : ""}
-            </div>
           </div>
       `).join("") || `<div class="text-slate-400 py-2">${I18N[uiLang]["common.noData"]}</div>`;
     } catch (e) { console.error(e); }
   }
 
-  function openChangePasswordModal() { document.getElementById("passwordModal").classList.remove("hidden"); }
+  async function handleSaveEmployee(e) {
+    e.preventDefault();
+    const payload = {
+      employeeId: document.getElementById("f_empId").value.trim(),
+      fullName: document.getElementById("f_fullName").value.trim(),
+      nationality: document.getElementById("f_nationality").value.trim(),
+      dob: document.getElementById("f_dob").value,
+      position: document.getElementById("f_position")?.value.trim() || "",
+      department: document.getElementById("f_department")?.value.trim() || "",
+      phone: document.getElementById("f_phone")?.value.trim() || "",
+      email: document.getElementById("f_email")?.value.trim() || "",
+      passportNo: document.getElementById("f_passportNo").value.trim(),
+      passportExpiry: document.getElementById("f_passportExpiry").value,
+      passportImg: document.getElementById("f_passportImg").value.startsWith("PENDING:") ? "" : document.getElementById("f_passportImg").value,
+      passportFileId: document.getElementById("f_passportFileId").value,
+      trcNo: document.getElementById("f_trcNo").value.trim(),
+      trcExpiry: document.getElementById("f_trcExpiry").value,
+      trcImg: document.getElementById("f_trcImg").value.startsWith("PENDING:") ? "" : document.getElementById("f_trcImg").value,
+      trcFileId: document.getElementById("f_trcFileId").value,
+      wpNo: document.getElementById("f_wpNo").value.trim(),
+      wpExpiry: document.getElementById("f_wpExpiry").value,
+      wpImg: document.getElementById("f_wpImg").value.startsWith("PENDING:") ? "" : document.getElementById("f_wpImg").value,
+      wpFileId: document.getElementById("f_wpFileId").value,
+      contractNo: document.getElementById("f_contractNo").value.trim(),
+      appendixNo: document.getElementById("f_appendixNo").value.trim(),
+      salary: document.getElementById("f_salary").value,
+      allowance: document.getElementById("f_allowance").value,
+      contractStartDate: document.getElementById("f_contractStartDate").value,
+      contractExpiry: document.getElementById("f_contractExpiry").value,
+      contractImg: document.getElementById("f_contractImg").value.startsWith("PENDING:") ? "" : document.getElementById("f_contractImg").value,
+      contractFileId: document.getElementById("f_contractFileId").value
+    };
+
+    try {
+      const res = await apiPost("SAVE_PROFILE", payload);
+      if (res.status !== "SUCCESS") return toast(res.message);
+
+      const pending = Object.values(pendingUploads).filter(x => x && String(x.employeeId) === String(payload.employeeId));
+      const uploaded = {};
+      for (const item of pending) {
+        toast(`Đang upload ${item.fileName}...`);
+        const up = await apiPost("UPLOAD_FILE", {
+          base64Data: item.base64Data,
+          fileName: item.fileName,
+          mimeType: item.mimeType,
+          employeeId: payload.employeeId,
+          subFolderType: item.subFolder
+        });
+        if (up.status !== "SUCCESS") throw new Error(up.message || `Upload ${item.fileName} thất bại.`);
+        uploaded[item.targetInputId] = up;
+        if (item.targetInputId === "f_passportImg") { payload.passportImg = up.fileUrl; payload.passportFileId = up.fileId || ""; }
+        if (item.targetInputId === "f_trcImg") { payload.trcImg = up.fileUrl; payload.trcFileId = up.fileId || ""; }
+        if (item.targetInputId === "f_wpImg") { payload.wpImg = up.fileUrl; payload.wpFileId = up.fileId || ""; }
+        if (item.targetInputId === "f_contractImg") { payload.contractImg = up.fileUrl; payload.contractFileId = up.fileId || ""; }
+      }
+
+      if (pending.length) {
+        const second = await apiPost("SAVE_PROFILE", payload);
+        if (second.status !== "SUCCESS") throw new Error(second.message || "Đã upload file nhưng chưa cập nhật hồ sơ.");
+      }
+
+      Object.keys(pendingUploads).forEach(k => delete pendingUploads[k]);
+
+      // Đọc lại từ server ngay sau khi lưu để tránh trường hợp UI báo thành công
+      // nhưng dữ liệu thực tế trên Google Sheets chưa được cập nhật.
+      const verify = await apiGet("GET_PROFILE", { employeeId: payload.employeeId });
+      if (verify.status !== "SUCCESS") throw new Error(verify.message || "Không xác minh được dữ liệu sau khi lưu.");
+
+      toast(pending.length ? "Đã lưu và xác minh dữ liệu thành công!" : "Đã cập nhật và xác minh dữ liệu thành công!");
+      closeModal();
+      await loadDashboard();
+    } catch (err) {
+      toast(err.message || "Không thể lưu hồ sơ.");
+    }
+  }
+
+  async function deleteEmployee(encoded) {
+    if (!confirm("Bạn có chắc chắn muốn chuyển trạng thái nhân viên này sang INACTIVE và khóa tài khoản?")) return;
+    try {
+      const res = await apiPost("DELETE_EMPLOYEE", { employeeId: decodeURIComponent(encoded) });
+      if (res.status === "SUCCESS") {
+        toast(res.message);
+        loadDashboard();
+      } else {
+        toast(res.message);
+      }
+    } catch (e) {
+      toast(e.message);
+    }
+  }
+
+  async function loadAccounts() {
+    if (!isAccountAdmin()) return toast("Bạn không có quyền quản lý tài khoản.");
+    try {
+      const r = await apiGet("GET_ACCOUNT_USERS");
+      if (r.status !== "SUCCESS") return toast(r.message || "Không tải được tài khoản.");
+      accountUsers = r.users || [];
+      renderAccounts();
+    } catch (e) { toast(e.message || "Không tải được tài khoản."); }
+  }
+
+  function renderAccounts() {
+    const tb = document.getElementById("accountTable");
+    if (!tb) return;
+    tb.innerHTML = accountUsers.length ? accountUsers.map(u => {
+      const active = String(u.status).toUpperCase() === "ACTIVE";
+      const locked = !active;
+      const employeeInactive = String(u.employeeActiveStatus).toUpperCase() === "INACTIVE";
+      let action = "";
+      if (isSuperAdmin() && String(u.userId) !== String(currentUser.userId)) {
+        action += `<button onclick="openAdminReset('${encodeURIComponent(u.userId)}','${encodeURIComponent(u.fullName || u.email)}')" class="text-indigo-600 hover:text-indigo-800 mr-3" title="Reset mật khẩu"><i class="fa-solid fa-key"></i></button>`;
+      }
+      if (["ADMIN", "HR ADMIN"].includes(String(currentUser.role || "").toUpperCase()) && String(u.userId) !== String(currentUser.userId)) {
+        action += active
+          ? `<button onclick="changeAccountStatus('${encodeURIComponent(u.userId)}','INACTIVE')" class="text-red-600 hover:text-red-800" title="Khóa tài khoản"><i class="fa-solid fa-lock"></i></button>`
+          : `<button onclick="changeAccountStatus('${encodeURIComponent(u.userId)}','ACTIVE')" class="text-emerald-600 hover:text-emerald-800" title="Mở tài khoản"><i class="fa-solid fa-lock-open"></i></button>`;
+      }
+      const statusHtml = active
+        ? '<span class="badge bg-emerald-100 text-emerald-700">ACTIVE</span>'
+        : '<span class="badge bg-red-100 text-red-700">LOCKED</span>';
+      return `<tr class="border-b hover:bg-slate-50">
+        <td class="p-3"><div class="font-semibold">${escapeHTML(u.fullName)}</div><div class="text-xs text-slate-400">${escapeHTML(u.employeeId || "")}</div>${employeeInactive ? '<div class="text-xs text-red-500">Hồ sơ nhân viên INACTIVE</div>' : ''}</td>
+        <td class="p-3">${escapeHTML(u.email || "")}</td>
+        <td class="p-3 text-center">${escapeHTML(u.role || "")}</td>
+        <td class="p-3 text-center">${statusHtml}</td>
+        <td class="p-3 text-center">${action || '<span class="text-slate-300">—</span>'}</td>
+      </tr>`;
+    }).join("") : '<tr><td colspan="5" class="p-6 text-center text-slate-400">No account.</td></tr>';
+  }
+  
+  function openChangePasswordModal() {
+    document.getElementById("passwordModalTitle").textContent = "🔐 Change Password";
+    document.getElementById("passwordTargetInfo").textContent = currentUser ? `Account: ${currentUser.email || currentUser.employeeId}` : "";
+    ["cpCurrent", "cpNew", "cpConfirm"].forEach(id => document.getElementById(id).value = "");
+    document.getElementById("passwordModal").classList.remove("hidden");
+    setTimeout(() => document.getElementById("cpCurrent").focus(), 50);
+  }
   function closePasswordModal() { document.getElementById("passwordModal").classList.add("hidden"); }
   async function submitChangePassword() {
     const cp = document.getElementById("cpCurrent").value;
@@ -1368,6 +1556,50 @@
     const r = await apiPost("CHANGE_PASSWORD", { currentPassword: cp, newPassword: np });
     if (r.status === "SUCCESS") { toast("Password updated."); closePasswordModal(); }
   }
+
+  function openAdminReset(encodedUserId, encodedName) {
+    if (!isSuperAdmin()) return toast("Password reset by ADMIN only.");
+    document.getElementById("resetUserId").value = decodeURIComponent(encodedUserId);
+    document.getElementById("resetTargetInfo").textContent = "Tài khoản: " + decodeURIComponent(encodedName);
+    document.getElementById("resetNewPassword").value = "";
+    document.getElementById("resetConfirmPassword").value = "";
+    document.getElementById("resetPasswordModal").classList.remove("hidden");
+    setTimeout(() => document.getElementById("resetNewPassword").focus(), 50);
+  }
+
+  function closeResetPasswordModal() { document.getElementById("resetPasswordModal").classList.add("hidden"); }
+
+  async function submitAdminResetPassword() {
+    const userId = document.getElementById("resetUserId").value;
+    const newPassword = document.getElementById("resetNewPassword").value;
+    const confirmPassword = document.getElementById("resetConfirmPassword").value;
+    if (!newPassword || !confirmPassword) return toast("Input new password.");
+    if (newPassword !== confirmPassword) return toast("New passwords mismatch.");
+    const btn = document.getElementById("resetPasswordBtn");
+    btn.disabled = true;
+    try {
+      const r = await apiPost("ADMIN_RESET_PASSWORD", { userId, newPassword });
+      if (r.status === "SUCCESS") { toast(r.message); closeResetPasswordModal(); loadAccounts(); }
+      else toast(r.message || "Password Reset failed.");
+    } catch (e) { toast(e.message); }
+    finally { btn.disabled = false; }
+  }
+
+  async function changeAccountStatus(encodedUserId, status) {
+    const userId = decodeURIComponent(encodedUserId);
+    const text = status === "ACTIVE" ? "Reactive" : "Locked";
+    if (!confirm(`Do you want ${text} this account?`)) return;
+    try {
+      const r = await apiPost("SET_ACCOUNT_STATUS", { userId, status });
+      toast(r.message || (r.status === "SUCCESS" ? "Updated." : "Error."));
+      if (r.status === "SUCCESS") loadAccounts();
+    } catch (e) { toast(e.message); }
+  }
+  
+  function closeModal() {
+    document.getElementById("employeeModal").classList.add("hidden");
+  }
+  
 </script>
 </body>
 </html>
