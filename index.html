@@ -8,6 +8,43 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
+
+  /* THANH NAV TABS MỚI */
+        .nav-tabs{
+            display:flex;
+            justify-content:center;
+            gap:12px;
+            flex-wrap:wrap;
+            margin:20px auto;
+        }
+        
+        .nav-tab{
+            display:flex;
+            align-items:center;
+            gap:8px;
+            padding:12px 22px;
+            border-radius:30px;
+            background:#fff;
+            color:#334155;
+            font-weight:600;
+            text-decoration:none;
+            border:1px solid #e5e7eb;
+            transition:.25s;
+        }
+        
+        .nav-tab:hover{
+            transform:translateY(-2px);
+            box-shadow:0 8px 18px rgba(0,0,0,.12);
+            color:#2563eb;
+        }
+        
+        .nav-tab.active{
+            background:linear-gradient(135deg,#2563eb,#1e40af);
+            color:#fff;
+            border:none;
+        }
+
+  
   .menuBtn{padding:.5rem 1rem;border-radius:.5rem;background:#fff;border:1px solid #e2e8f0;font-weight:600;font-size:.875rem;display:inline-flex;align-items:center;gap:.5rem;transition:.2s}
   .menuBtn:hover{background:#f8fafc;border-color:#cbd5e1}.input{width:100%;border:1px solid #cbd5e1;border-radius:.5rem;padding:.625rem;margin-bottom:.75rem;font-size:.875rem}.input:focus{outline:2px solid #3b82f6}.btn{width:100%;background:#2563eb;color:#fff;font-weight:700;padding:.75rem;border-radius:.5rem}.btn:hover{background:#1d4ed8}.btn:disabled{opacity:.6;cursor:not-allowed}.kpi{background:#fff;padding:1rem;border-radius:.75rem;border:1px solid #e2e8f0}
   .modal{background:rgba(15,23,42,.55)}
@@ -30,6 +67,17 @@
 </head>
 <body class="bg-slate-100 text-slate-800" onload="restoreSession()">
 
+<div class="nav-tabs">
+        <a href="https://thongbao-lww.pages.dev" target="_blank" class="nav-tab">📢 Thông báo</a>
+        <a href="https://bangchamcong.pages.dev" target="_blank" class="nav-tab">📋 Chấm Công</a>
+        <a href="https://phepnam.pages.dev" target="_blank" class="nav-tab">📅 Phép Năm</a>
+        <a href="#" class="nav-tab active">📜 Lỗi cơm</a>
+        <a href="https://phucap.pages.dev" target="_blank" class="nav-tab">🥛 Phụ cấp sữa</a>
+        <a href="https://noikhambenh.pages.dev" target="_blank" class="nav-tab">🏥 BHXH</a>
+        <a href="https://antoan.pages.dev" target="_blank" class="nav-tab">🛡️ An Toàn</a>
+        <a href="https://xnc-immigration.pages.dev" target="_blank" class="nav-tab">🛂 Immigration</a>
+    </div> 
+  
 <nav class="bg-slate-900 text-white px-6 py-4 flex justify-between items-center shadow-lg">
   <div class="flex items-center gap-3">
     <i class="fa-solid fa-globe text-blue-400 text-2xl"></i>
