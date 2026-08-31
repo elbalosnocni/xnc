@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Foreign Employee Management System</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+
+  /* THANH NAV TABS MỚI */
+        .nav-tabs{
+            display:flex;
+            justify-content:center;
+            gap:12px;
+            flex-wrap:wrap;
+            margin:20px auto;
+        }
+        
+        .nav-tab{
+            display:flex;
+            align-items:center;
+            gap:8px;
+            padding:12px 22px;
+            border-radius:30px;
+            background:#fff;
+            color:#334155;
+            font-weight:600;
+            text-decoration:none;
+            border:1px solid #e5e7eb;
+            transition:.25s;
+        }
+        
+        .nav-tab:hover{
+            transform:translateY(-2px);
+            box-shadow:0 8px 18px rgba(0,0,0,.12);
+            color:#2563eb;
+        }
+        
+        .nav-tab.active{
+            background:linear-gradient(135deg,#2563eb,#1e40af);
+            color:#fff;
+            border:none;
+        }
+
+  
+  .menuBtn{padding:.5rem 1rem;border-radius:.5rem;background:#fff;border:1px solid #e2e8f0;font-weight:600;font-size:.875rem;display:inline-flex;align-items:center;gap:.5rem;transition:.2s}
+  .menuBtn:hover{background:#f8fafc;border-color:#cbd5e1}.input{width:100%;border:1px solid #cbd5e1;border-radius:.5rem;padding:.625rem;margin-bottom:.75rem;font-size:.875rem}.input:focus{outline:2px solid #3b82f6}.btn{width:100%;background:#2563eb;color:#fff;font-weight:700;padding:.75rem;border-radius:.5rem}.btn:hover{background:#1d4ed8}.btn:disabled{opacity:.6;cursor:not-allowed}.kpi{background:#fff;padding:1rem;border-radius:.75rem;border:1px solid #e2e8f0}
+  .modal{background:rgba(15,23,42,.55)}
+  .toast{position:fixed;right:20px;bottom:20px;z-index:100}
+  #globalLoader{position:fixed;inset:0;background:rgba(15,23,42,.35);backdrop-filter:blur(2px);z-index:9999;display:flex;align-items:center;justify-content:center}
+  #globalLoader.hidden{display:none}
+  .loaderCard{background:#fff;border-radius:1rem;padding:1.25rem 1.5rem;box-shadow:0 20px 50px rgba(0,0,0,.2);display:flex;align-items:center;gap:.8rem;font-weight:700}
+  .loaderSpinner{width:28px;height:28px;border:4px solid #cbd5e1;border-top-color:#2563eb;border-radius:50%;animation:spin .8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
+  .badge{display:inline-flex;padding:.25rem .625rem;border-radius:999px;font-size:.75rem;font-weight:700}
+  .employees-table-wrap{max-height:calc(100vh - 280px);min-height:260px;overflow:auto;position:relative;border:1px solid #e2e8f0;border-radius:.75rem}
+  .employees-table{min-width:760px;width:100%;border-collapse:separate;border-spacing:0}
+  .employees-table thead th{position:sticky;top:0;z-index:20;background:#f8fafc;box-shadow:0 1px 0 #cbd5e1;padding:.75rem;font-size:.75rem;text-transform:uppercase;color:#64748b;font-weight:700}
+  .employees-table td{padding:.75rem;border-bottom:1px solid #f1f5f9;vertical-align:middle}
+  .doc-preview{margin-top:.75rem;border:1px solid #cbd5e1;border-radius:.75rem;background:#fff;overflow:hidden}
+  .doc-preview iframe{display:block;width:100%;height:380px;border:0;background:#f8fafc}
+  .doc-preview img{display:block;max-width:100%;height:380px;margin:auto;object-fit:contain;background:#f8fafc}
+  .doc-preview-actions{display:flex;justify-content:space-between;align-items:center;gap:.5rem;padding:.6rem .75rem;background:#f8fafc;border-top:1px solid #e2e8f0}
+  .doc-preview-actions a{font-size:.75rem;font-weight:700;color:#2563eb}
+</style>
+</head>
+<body class="bg-slate-100 text-slate-800" onload="restoreSession()">
+
+<div class="nav-tabs">
+        <a href="https://thongbao-lww.pages.dev" target="_blank" class="nav-tab">📢 Thông báo</a>
+        <a href="https://bangchamcong.pages.dev" target="_blank" class="nav-tab">📋 Chấm Công</a>
+        <a href="https://phepnam.pages.dev" target="_blank" class="nav-tab">📅 Phép Năm</a>
+        <a href="https://noiquy.pages.dev" target="_blank" class="nav-tab">📜 Lỗi cơm</a>
+        <a href="https://phucap.pages.dev" target="_blank" class="nav-tab">🥛 Phụ cấp sữa</a>
+        <a href="https://noikhambenh.pages.dev" target="_blank" class="nav-tab">🏥 BHXH</a>
+        <a href="https://antoan.pages.dev" target="_blank" class="nav-tab">🛡️ An Toàn</a>
+        <a href="#" class="nav-tab active">🛂 Immigration</a>
+    </div> 
+  
+<nav class="bg-slate-900 text-white px-6 py-4 flex justify-between items-center shadow-lg">
+  <div class="flex items-center gap-3">
+    <i class="fa-solid fa-globe text-blue-400 text-2xl"></i>
+    <div>
+      <div class="font-bold text-lg" data-i18n="appTitle">FOREIGN EMPLOYEE SYSTEM</div>
+      <div class="text-xs text-slate-400" data-i18n="appSubtitle">Immigration & Contract Management</div>
+    </div>
+  </div>
+  <div class="flex items-center gap-3">
+    <select id="languageSelect" onchange="setLanguage(this.value)" class="text-slate-900 bg-white rounded-lg px-2 py-1 text-sm font-semibold border border-slate-300">
+      <option value="auto">🌐 Auto</option>
+      <option value="vi">Tiếng Việt</option>
+      <option value="en">English</option>
+      <option value="zh">中文</option>
+    </select>
+    <div id="userNav" class="hidden items-center gap-4">
+      <span id="userName" class="font-semibold"></span>
+      <span id="roleBadge" class="bg-blue-600 px-3 py-1 rounded-full text-xs font-bold"></span>
+      <button onclick="logout()" class="text-slate-300 hover:text-white" data-i18n-title="nav.logout"><i class="fa-solid fa-right-from-bracket text-lg"></i></button>
+    </div>
+  </div>
+</nav>
+
+<!-- Login Section -->
+<section id="loginSection" class="max-w-md mx-auto mt-16 px-4">
+  <div class="bg-white rounded-2xl shadow-xl border p-8">
+    <div class="text-center mb-8">
+      <div class="w-16 h-16 mx-auto bg-blue-100 rounded-full flex items-center justify-center">
+        <i class="fa-solid fa-user-shield text-blue-600 text-2xl"></i>
+      </div>
+      <h2 class="text-2xl font-bold mt-4" data-i18n="login.title">LOGIN</h2>
+      <p class="text-sm text-slate-500" data-i18n="appSubtitle">Foreign Employee Management</p>
+    </div>
+    <label class="text-sm font-semibold" data-i18n="login.username">EmpID / Email</label>
+    <input id="loginUser" class="input mt-1" autocomplete="username">
+    <label class="text-sm font-semibold" data-i18n="login.password">Password</label>
+    <input id="loginPass" type="password" class="input mt-1 mb-6" autocomplete="current-password" onkeydown="if(event.key==='Enter') doLogin()">
+    <button id="loginBtn" onclick="doLogin()" class="btn"><i class="fa-solid fa-right-to-bracket mr-2"></i> <span data-i18n="login.button">Login</span></button>
+  </div>
+</section>
+
+<!-- Main App -->
+<div id="app" class="hidden max-w-7xl mx-auto p-6">
+  <div class="flex flex-wrap gap-2 mb-6">
+    <button id="dashboardMenu" data-permission-page="dashboard" onclick="showPage('dashboard')" class="menuBtn hidden"><i class="fa-solid fa-chart-line text-blue-600"></i><span data-i18n="nav.dashboard">Dashboard</span></button>
+    <button data-permission-page="profile" onclick="showPage('profile')" class="menuBtn"><i class="fa-solid fa-user text-blue-600"></i><span data-i18n="nav.profile">My Profile</span></button>
+    <button data-permission-page="immigration" onclick="showPage('immigration')" class="menuBtn"><i class="fa-solid fa-plane text-blue-600"></i><span data-i18n="nav.immigration">Entry / Exit</span></button>
+    <button data-permission-page="travel" onclick="showPage('travel')" class="menuBtn"><i class="fa-solid fa-car text-blue-600"></i><span data-i18n="nav.travel">Domestic Travel</span></button>
+    <button id="employeeMenu" data-permission-page="employees" onclick="showPage('employees')" class="menuBtn hidden"><i class="fa-solid fa-users text-blue-600"></i><span data-i18n="nav.employees">Employees</span></button>
+    <button id="accountMenu" data-permission-page="accounts" onclick="showPage('accounts'); loadAccounts()" class="menuBtn hidden"><i class="fa-solid fa-user-lock text-indigo-600"></i><span data-i18n="nav.accounts">Accounts</span></button>
+    <button id="changePasswordMenu" onclick="openChangePasswordModal()" class="menuBtn"><i class="fa-solid fa-key text-amber-600"></i><span data-i18n="nav.changePassword">Change Password</span></button>
+  </div>
+
+  <!-- Dashboard Page -->
+  <section id="page-dashboard" class="page hidden space-y-6">
+    <div class="grid grid-cols-2 md:grid-cols-6 gap-4">
+      <div class="kpi"><div class="text-xs text-slate-400 font-bold" data-i18n="kpi.total">TOTAL FOREIGNERS</div><div id="kpiTotal" class="text-3xl font-bold mt-1">0</div></div>
+      <div class="kpi bg-emerald-50 border-emerald-200"><div class="text-xs text-emerald-600 font-bold" data-i18n="kpi.inVN">🟢 IN VIETNAM</div><div id="kpiInVN" class="text-3xl font-bold text-emerald-700 mt-1">0</div></div>
+      <div class="kpi bg-blue-50 border-blue-200"><div class="text-xs text-blue-600 font-bold" data-i18n="kpi.traveling">✈️ TRAVELING</div><div id="kpiBusiness" class="text-3xl font-bold text-blue-700 mt-1">0</div></div>
+      <div class="kpi"><div class="text-xs text-slate-400 font-bold" data-i18n="kpi.exited">🔴 EXITED</div><div id="kpiExited" class="text-3xl font-bold mt-1">0</div></div>
+      <div class="kpi bg-amber-50 border-amber-200"><div class="text-xs text-amber-600 font-bold" data-i18n="kpi.warningDocs">⚠ WARNING DOCS</div><div id="kpiWarning" class="text-3xl font-bold text-amber-700 mt-1">0</div></div>
+      <div class="kpi bg-rose-50 border-rose-200"><div class="text-xs text-rose-600 font-bold" data-i18n="kpi.expContracts">📄 EXP CONTRACT</div><div id="kpiExpContract" class="text-3xl font-bold text-rose-700 mt-1">0</div></div>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm border p-6">
+      <h2 class="font-bold text-lg mb-4" data-i18n="dashboard.warningsTitle">⚠ Expiring Documents & Contracts</h2>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b bg-slate-50">
+              <th class="p-3 text-left" data-i18n="table.employee">Employee</th>
+              <th class="p-3 text-center" data-i18n="table.document">Document / Contract</th>
+              <th class="p-3 text-center" data-i18n="table.expiryDate">Expiry Date</th>
+              <th class="p-3 text-center" data-i18n="table.status">Status</th>
+            </tr>
+          </thead>
+          <tbody id="warningTable"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- Profile Page -->
+  <section id="page-profile" class="page hidden">
+    <div class="bg-white rounded-xl shadow-sm border p-6">
+      <h2 class="font-bold text-xl mb-6" data-i18n="profile.title">👤 My Profile</h2>
+      <div id="profileContent"></div>
+    </div>
+  </section>
+
+  <!-- Entry / Exit Page -->
+  <section id="page-immigration" class="page hidden space-y-6">
+    <div class="bg-white rounded-xl shadow-sm border p-6">
+      <div class="flex flex-wrap items-start justify-between gap-4 mb-5">
+        <div>
+          <h2 class="font-bold text-xl" data-i18n="entryExit.title">Entry / Exit</h2>
+          <p class="text-sm text-slate-500 mt-1" data-i18n="entryExit.subtitle">Record Entry, Exit, or a complete round trip in one form.</p>
+        </div>
+        <span id="eeFormModeBadge" class="badge bg-blue-100 text-blue-700" data-i18n="entryExit.new">New record</span>
+      </div>
+      <input id="eeEditId" type="hidden" value=""><input id="eeTripId" type="hidden" value="">
+      <div class="grid md:grid-cols-3 gap-4 mb-5">
+        <div>
+          <label class="text-xs font-semibold" data-i18n="entryExit.mode">Movement type</label>
+          <select id="eeMode" class="input mt-1" onchange="toggleEntryExitMode()">
+            <option value="ROUND_TRIP" data-i18n="entryExit.roundTrip">Round Trip</option>
+            <option value="ENTRY_ONLY" data-i18n="entryExit.entryOnly">Entry Only</option>
+            <option value="EXIT_ONLY" data-i18n="entryExit.exitOnly">Exit Only</option>
+          </select>
+        </div>
+        <div class="md:col-span-2">
+          <label class="text-xs font-semibold" data-i18n="entryExit.purpose">Purpose</label>
+          <input id="eePurpose" class="input mt-1" data-i18n-placeholder="entryExit.purposePlaceholder" placeholder="Purpose">
+        </div>
+      </div>
+      
+      <div id="eeRoundTripFields" class="grid lg:grid-cols-2 gap-5">
+        <div class="border rounded-2xl p-5 bg-emerald-50/40">
+          <div class="font-bold text-emerald-700 mb-4">🛬 <span data-i18n="entryExit.entry">Entry</span></div>
+          <div class="grid md:grid-cols-2 gap-3">
+            <div><label class="text-xs font-semibold" data-i18n="entryExit.planned">Planned date & time</label><input id="eeEntryPlanned" type="datetime-local" class="input mt-1"></div>
+            <div><label class="text-xs font-semibold" data-i18n="entryExit.actual">Actual date & time</label><input id="eeEntryActual" type="datetime-local" class="input mt-1"></div>
+            <div><label class="text-xs font-semibold" data-i18n="entryExit.port">Airport / border gate</label><input id="eeEntryAirport" class="input mt-1" data-i18n-placeholder="entryExit.portPlaceholder"></div>
+            <div><label class="text-xs font-semibold" data-i18n="entryExit.flight">Flight number</label><input id="eeEntryFlight" class="input mt-1" data-i18n-placeholder="entryExit.flightPlaceholder"></div>
+            <div class="md:col-span-2"><label class="text-xs font-semibold" data-i18n="entryExit.destination">Destination</label><input id="eeEntryDestination" class="input mt-1" data-i18n-placeholder="entryExit.destinationPlaceholder"></div>
+          </div>
+        </div>
+        <div class="border rounded-2xl p-5 bg-rose-50/40">
+          <div class="font-bold text-rose-700 mb-4">🛫 <span data-i18n="entryExit.exit">Exit</span></div>
+          <div class="grid md:grid-cols-2 gap-3">
+            <div><label class="text-xs font-semibold" data-i18n="entryExit.planned">Planned date & time</label><input id="eeExitPlanned" type="datetime-local" class="input mt-1"></div>
+            <div><label class="text-xs font-semibold" data-i18n="entryExit.actual">Actual date & time</label><input id="eeExitActual" type="datetime-local" class="input mt-1"></div>
+            <div><label class="text-xs font-semibold" data-i18n="entryExit.port">Airport / border gate</label><input id="eeExitAirport" class="input mt-1" data-i18n-placeholder="entryExit.portPlaceholder"></div>
+            <div><label class="text-xs font-semibold" data-i18n="entryExit.flight">Flight number</label><input id="eeExitFlight" class="input mt-1" data-i18n-placeholder="entryExit.flightPlaceholder"></div>
+            <div class="md:col-span-2"><label class="text-xs font-semibold" data-i18n="entryExit.destination">Destination</label><input id="eeExitDestination" class="input mt-1" data-i18n-placeholder="entryExit.destinationPlaceholder"></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="eeSingleFields" class="hidden border rounded-2xl p-5 bg-slate-50 mt-5">
+        <div class="grid md:grid-cols-2 gap-3">
+          <div><label class="text-xs font-semibold" data-i18n="entryExit.type">Type</label><select id="eeType" class="input mt-1"><option value="ENTRY" data-i18n="entryExit.entry">Entry</option><option value="EXIT" data-i18n="entryExit.exit">Exit</option></select></div>
+          <div><label class="text-xs font-semibold" data-i18n="entryExit.planned">Planned date & time</label><input id="eePlannedDate" type="datetime-local" class="input mt-1"></div>
+          <div><label class="text-xs font-semibold" data-i18n="entryExit.actual">Actual date & time</label><input id="eeActualDate" type="datetime-local" class="input mt-1"></div>
+          <div><label class="text-xs font-semibold" data-i18n="entryExit.port">Airport / border gate</label><input id="eeAirport" class="input mt-1" data-i18n-placeholder="entryExit.portPlaceholder"></div>
+          <div><label class="text-xs font-semibold" data-i18n="entryExit.flight">Flight number</label><input id="eeFlight" class="input mt-1" data-i18n-placeholder="entryExit.flightPlaceholder"></div>
+          <div><label class="text-xs font-semibold" data-i18n="entryExit.destination">Destination</label><input id="eeDestination" class="input mt-1" data-i18n-placeholder="entryExit.destinationPlaceholder"></div>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap gap-2 mt-5">
+        <button id="eeBtn" onclick="saveEntryExit()" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-lg font-bold"><i class="fa-solid fa-floppy-disk mr-2"></i><span data-i18n="common.save">Save</span></button>
+        <button id="eeCancelEditBtn" onclick="resetEntryExitForm()" type="button" class="hidden bg-slate-200 text-slate-700 px-5 py-3 rounded-lg font-bold"><span data-i18n="common.cancel">Cancel</span></button>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border p-6">
+      <div class="flex flex-wrap justify-between items-center gap-3 mb-5">
+        <div>
+          <h2 class="font-bold text-lg" data-i18n="entryExit.history">Entry / Exit History</h2>
+          <p class="text-sm text-slate-500" data-i18n="entryExit.historySubtitle">Round trips are grouped by Trip ID.</p>
+        </div>
+        <button onclick="loadEntryExit()" class="bg-slate-100 text-slate-700 px-3 py-2 rounded-lg font-bold"><i class="fa-solid fa-rotate mr-1"></i><span data-i18n="common.refresh">Refresh</span></button>
+      </div>
+      <div id="entryExitList"></div>
+    </div>
+  </section>
+
+  <!-- Travel Page -->
+  <section id="page-travel" class="page hidden">
+    <div class="grid md:grid-cols-2 gap-6">
+      <div class="bg-white rounded-xl shadow-sm border p-6">
+        <h2 class="font-bold text-lg mb-5" data-i18n="travel.title">Domestic Travel Registration</h2>
+        <input id="travelEditId" type="hidden" value="">
+        <label class="text-xs font-semibold" data-i18n="travel.fromDate">From Date</label><input id="travelFromDate" type="date" class="input">
+        <label class="text-xs font-semibold" data-i18n="travel.toDate">To Date</label><input id="travelToDate" type="date" class="input">
+        <label class="text-xs font-semibold" data-i18n="travel.from">From Location</label><input id="travelFrom" class="input">
+        <label class="text-xs font-semibold" data-i18n="travel.to">To Location</label><input id="travelTo" class="input">
+        <label class="text-xs font-semibold" data-i18n="entryExit.purpose">Purpose</label><input id="travelPurpose" class="input">
+        <button id="travelBtn" onclick="saveDomesticTravel()" class="btn" data-i18n="travel.submit">Submit Travel Request</button>
+        <button id="travelCancelEditBtn" onclick="resetTravelForm()" type="button" class="hidden mt-2 w-full bg-slate-200 text-slate-700 font-bold p-3 rounded-lg" data-i18n="common.cancel">Cancel</button>
+      </div>
+      <div class="bg-white rounded-xl shadow-sm border p-6">
+        <h2 class="font-bold text-lg mb-5" data-i18n="travel.history">Travel History</h2>
+        <div id="travelList"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Employees Page -->
+  <section id="page-employees" class="page hidden">
+    <div class="bg-white rounded-xl shadow-sm border p-6">
+      <div class="flex justify-between items-center mb-5 flex-wrap gap-3">
+        <h2 class="font-bold text-xl" data-i18n="nav.employees">Foreign Employees</h2>
+        <div class="flex flex-wrap gap-2">
+          <label id="masterImportLabel" data-permission-page="employees" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-blue-700 cursor-pointer inline-flex items-center">
+            <i class="fa-solid fa-file-excel mr-2"></i>
+            <span data-i18n="import.master">Import / Sync Master Excel</span>
+            <input id="masterExcelInput" type="file" accept=".xlsx,.xls" class="hidden" onchange="importMasterWorkbook(this)">
+          </label>
+          <button id="masterTemplateBtn" onclick="downloadMasterTemplate()" class="bg-slate-700 text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-slate-800">
+            <i class="fa-solid fa-download mr-1"></i> <span data-i18n="import.template">Excel Template</span>
+          </button>
+          <button id="addEmployeeBtn" onclick="openEmployeeForm()" class="bg-emerald-600 text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-emerald-700">
+            <i class="fa-solid fa-user-plus mr-1"></i> <span data-i18n="employees.add">Add Employee</span>
+          </button>
+        </div>
+      </div>
+      <input id="employeeSearch" oninput="filterEmployees()" class="input" placeholder="Search name / employee ID / nationality...">
+      <div class="employees-table-wrap">
+        <table class="employees-table">
+          <thead>
+            <tr>
+              <th class="text-left" data-i18n="table.employee">Name</th>
+              <th class="text-center" data-i18n="table.status">Status</th>
+              <th class="text-center" data-i18n="table.entryExit">Entry / Exit</th>
+              <th class="text-center" data-i18n="table.domesticTravel">Domestic Travel</th>
+              <th class="text-center" data-i18n="table.action">Action</th>
+            </tr>
+          </thead>
+          <tbody id="employeeTable"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- Accounts Page -->
+  <section id="page-accounts" class="page hidden">
+    <div class="bg-white rounded-xl shadow-sm border p-6">
+      <div class="flex justify-between items-center mb-5">
+        <div>
+          <h2 class="font-bold text-xl" data-i18n="accounts.title">Account Management</h2>
+        </div>
+        <button onclick="loadAccounts()" class="bg-slate-700 text-white px-4 py-2 rounded-lg font-bold text-sm"><i class="fa-solid fa-rotate mr-1"></i><span data-i18n="common.refresh">Refresh</span></button>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b bg-slate-50">
+              <th class="p-3 text-left" data-i18n="table.employee">Employee</th>
+              <th class="p-3 text-left" data-i18n="login.username">Email / Login</th>
+              <th class="p-3 text-center">Role</th>
+              <th class="p-3 text-center" data-i18n="table.status">Status</th>
+              <th class="p-3 text-center" data-i18n="table.action">Action</th>
+            </tr>
+          </thead>
+          <tbody id="accountTable"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- Employee Modal -->
+<div id="employeeModal" class="hidden fixed inset-0 modal z-50 p-4 overflow-y-auto">
+  <div class="max-w-6xl mx-auto mt-6 bg-white rounded-2xl shadow-2xl overflow-hidden">
+    <div class="p-5 bg-slate-900 text-white flex justify-between items-center">
+      <h2 id="modalTitle" class="font-bold text-xl">Employee Info</h2>
+      <button onclick="closeModal()" class="text-xl font-bold hover:text-slate-300">✕</button>
+    </div>
+    <div id="modalBody" class="p-6 max-h-[80vh] overflow-y-auto"></div>
+  </div>
+</div>
+
+<!-- Master Excel Import Preview Modal -->
+<div id="masterImportModal" class="hidden fixed inset-0 modal z-[70] p-4 overflow-y-auto">
+  <div class="max-w-7xl mx-auto mt-4 bg-white rounded-2xl shadow-2xl overflow-hidden">
+    <div class="p-5 bg-slate-900 text-white flex justify-between items-center">
+      <div>
+        <h2 class="font-bold text-xl" data-i18n="import.previewTitle">Master Excel Import Preview</h2>
+        <p id="masterImportFileName" class="text-xs text-slate-300 mt-1"></p>
+      </div>
+      <button onclick="closeMasterImportPreview()" class="text-xl font-bold hover:text-slate-300">✕</button>
+    </div>
+    <div class="p-5 space-y-5">
+      <div class="grid grid-cols-2 md:grid-cols-6 gap-3">
+        <div class="kpi"><div class="text-xs text-slate-400 font-bold">TOTAL ROWS</div><div id="importStatRows" class="text-2xl font-bold">0</div></div>
+        <div class="kpi bg-emerald-50 border-emerald-200"><div class="text-xs text-emerald-600 font-bold">VALID</div><div id="importStatValid" class="text-2xl font-bold text-emerald-700">0</div></div>
+        <div class="kpi bg-rose-50 border-rose-200"><div class="text-xs text-rose-600 font-bold">ERRORS</div><div id="importStatError" class="text-2xl font-bold text-rose-700">0</div></div>
+        <div class="kpi bg-blue-50 border-blue-200"><div class="text-xs text-blue-600 font-bold">EMPLOYEES</div><div id="importStatEmployee" class="text-2xl font-bold text-blue-700">0</div></div>
+        <div class="kpi bg-amber-50 border-amber-200"><div class="text-xs text-amber-600 font-bold">MOVEMENTS</div><div id="importStatMovement" class="text-2xl font-bold text-amber-700">0</div></div>
+        <div class="kpi"><div class="text-xs text-slate-400 font-bold">DOCS/CONTRACTS</div><div id="importStatDocs" class="text-2xl font-bold">0</div></div>
+      </div>
+      <div id="masterImportSummary" class="rounded-lg border p-4 text-sm bg-slate-50"></div>
+      <div class="overflow-auto border rounded-xl max-h-[48vh]">
+        <table class="w-full text-sm">
+          <thead class="sticky top-0 bg-slate-100 z-10">
+            <tr class="border-b">
+              <th class="p-3 text-left">Target Tab</th>
+              <th class="p-3 text-left">Employee ID</th>
+              <th class="p-3 text-left">Record Detail</th>
+              <th class="p-3 text-center">Status</th>
+              <th class="p-3 text-left">Validation Notes</th>
+            </tr>
+          </thead>
+          <tbody id="masterImportPreviewTable"></tbody>
+        </table>
+      </div>
+      <div class="flex flex-wrap justify-end gap-2 pt-2">
+        <button onclick="closeMasterImportPreview()" class="px-5 py-3 rounded-lg bg-slate-200 text-slate-700 font-bold" data-i18n="common.cancel">Cancel</button>
+        <button id="masterImportConfirmBtn" onclick="confirmMasterImport()" class="px-5 py-3 rounded-lg bg-blue-600 text-white font-bold disabled:opacity-50" disabled>
+          <i class="fa-solid fa-cloud-arrow-up mr-1"></i> <span data-i18n="import.sync">Synchronize</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Password Change Modal -->
+<div id="passwordModal" class="hidden fixed inset-0 modal z-[60] p-4 overflow-y-auto">
+  <div class="max-w-md mx-auto mt-20 bg-white rounded-2xl shadow-2xl overflow-hidden">
+    <div class="p-5 bg-slate-900 text-white flex justify-between items-center">
+      <h2 class="font-bold text-lg" data-i18n="nav.changePassword">Change Password</h2>
+      <button onclick="closePasswordModal()" class="text-xl font-bold">✕</button>
+    </div>
+    <div class="p-6">
+      <label class="text-xs font-semibold">Current Password</label>
+      <input id="cpCurrent" type="password" class="input mt-1" autocomplete="current-password">
+      <label class="text-xs font-semibold">New Password (Min 8 chars)</label>
+      <input id="cpNew" type="password" class="input mt-1" autocomplete="new-password">
+      <label class="text-xs font-semibold">Confirm New Password</label>
+      <input id="cpConfirm" type="password" class="input mt-1" autocomplete="new-password">
+      <button id="changePasswordBtn" onclick="submitChangePassword()" class="btn mt-2" data-i18n="nav.changePassword">Change Password</button>
+    </div>
+  </div>
+</div>
+
+<div id="globalLoader" class="hidden" aria-live="polite"><div class="loaderCard"><span class="loaderSpinner"></span><span id="globalLoaderText">Loading data...</span></div></div>
+<div id="toast" class="toast hidden"><div id="toastText" class="bg-slate-900 text-white px-4 py-3 rounded-lg shadow-lg"></div></div>
+
+<script>
+  let currentUser=null, sessionToken=null, employees=[], accountUsers=[];
+  let parsedMasterPayload=null;
+  const pendingUploads={};
+  const WEB_APP_URL="https://script.google.com/macros/s/AKfycbxe9MyaYTOMQQq82Tyzo1T6x2UAjm4TlML-tXtxICmQpGhuGqtgJK5Q8n3jE8Lgociwxg/exec";
+  let loaderCount=0, toastTimer=null, activePage="";
+
+  function detectSystemLanguage(){
+    const langs=Array.isArray(navigator.languages)&&navigator.languages.length?navigator.languages:[navigator.language||"en"];
+    for(const raw of langs){const l=String(raw||"").toLowerCase();if(l.startsWith("vi"))return "vi";if(l.startsWith("zh"))return "zh";if(l.startsWith("en"))return "en";}
+    return "en";
+  }
+  const storedLangPreference=localStorage.getItem("fe_lang")||"auto";
+  let uiLang=storedLangPreference==="auto"?detectSystemLanguage():(['vi','en','zh'].includes(storedLangPreference)?storedLangPreference:detectSystemLanguage());
+
+  const I18N = {
+    en: {
+      "appTitle": "FOREIGN EMPLOYEE SYSTEM", "appSubtitle": "Immigration & Contract Management",
+      "nav.dashboard": "Dashboard", "nav.profile": "My Profile", "nav.immigration": "Entry / Exit",
+      "nav.travel": "Domestic Travel", "nav.employees": "Employees", "nav.accounts": "Accounts",
+      "nav.changePassword": "Change Password", "nav.logout": "Logout", "login.title": "LOGIN",
+      "login.username": "EmpID / Email", "login.password": "Password", "login.button": "Login",
+      "kpi.total": "TOTAL FOREIGNERS", "kpi.inVN": "🟢 IN VIETNAM", "kpi.traveling": "✈️ TRAVELING",
+      "kpi.exited": "🔴 EXITED", "kpi.warningDocs": "⚠ WARNING DOCS", "kpi.expContracts": "📄 EXP CONTRACT",
+      "dashboard.warningsTitle": "⚠ Expiring Documents & Contracts", "table.employee": "Employee",
+      "table.document": "Document / Contract", "table.expiryDate": "Expiry Date", "table.status": "Status",
+      "table.entryExit": "Entry / Exit", "table.domesticTravel": "Domestic Travel", "table.action": "Action",
+      "profile.title": "👤 My Profile", "entryExit.title": "Entry / Exit",
+      "entryExit.subtitle": "Record Entry, Exit, or a complete round trip in one form.",
+      "entryExit.new": "New record", "entryExit.edit": "Editing record", "entryExit.mode": "Movement type",
+      "entryExit.roundTrip": "Round Trip", "entryExit.entryOnly": "Entry Only", "entryExit.exitOnly": "Exit Only",
+      "entryExit.entry": "Entry", "entryExit.exit": "Exit", "entryExit.type": "Type",
+      "entryExit.planned": "Planned Date & Time", "entryExit.actual": "Actual Date & Time",
+      "entryExit.port": "Airport / Border Gate", "entryExit.flight": "Flight Number",
+      "entryExit.destination": "Destination", "entryExit.purpose": "Purpose",
+      "entryExit.purposePlaceholder": "Trip Purpose", "entryExit.portPlaceholder": "Port / Gate",
+      "entryExit.flightPlaceholder": "Flight No.", "entryExit.destinationPlaceholder": "Destination",
+      "entryExit.history": "Entry / Exit History", "entryExit.historySubtitle": "Trips are grouped by Trip ID.",
+      "travel.title": "Domestic Travel Registration", "travel.fromDate": "From Date", "travel.toDate": "To Date",
+      "travel.from": "From Location", "travel.to": "To Location", "travel.submit": "Submit Travel Request",
+      "travel.history": "Travel History", "employees.add": "Add Employee",
+      "import.master": "Import / Sync Master Excel", "import.template": "Excel Template",
+      "import.previewTitle": "Master Excel Import Preview", "import.sync": "Synchronize",
+      "accounts.title": "Account Management", "common.save": "Save", "common.cancel": "Cancel",
+      "common.refresh": "Refresh", "common.noData": "No data available."
+    },
+    vi: {
+      "appTitle": "HỆ THỐNG QUẢN LÝ NHÂN VIÊN NƯỚC NGOÀI", "appSubtitle": "Quản lý Xuất nhập cảnh & Hợp đồng",
+      "nav.dashboard": "Tổng quan", "nav.profile": "Hồ sơ của tôi", "nav.immigration": "Xuất nhập cảnh",
+      "nav.travel": "Đi lại trong nước", "nav.employees": "Nhân viên", "nav.accounts": "Tài khoản",
+      "nav.changePassword": "Đổi mật khẩu", "nav.logout": "Đăng xuất", "login.title": "ĐĂNG NHẬP",
+      "login.username": "Mã NV / Email", "login.password": "Mật khẩu", "login.button": "Đăng nhập",
+      "kpi.total": "TỔNG NƯỚC NGOÀI", "kpi.inVN": "🟢 ĐANG Ở VN", "kpi.traveling": "✈️ ĐANG CÔNG TÁC",
+      "kpi.exited": "🔴 ĐÃ XUẤT CẢNH", "kpi.warningDocs": "⚠ GIẤY TỜ SẮP HẾT HẠN", "kpi.expContracts": "📄 HĐ SẮP HẾT HẠN",
+      "dashboard.warningsTitle": "⚠ Giấy Tờ & Hợp Đồng Sắp Hết Hạn", "table.employee": "Nhân viên",
+      "table.document": "Giấy tờ / Hợp đồng", "table.expiryDate": "Ngày hết hạn", "table.status": "Trạng thái",
+      "table.entryExit": "Xuất nhập cảnh", "table.domesticTravel": "Đi lại trong nước", "table.action": "Thao tác",
+      "profile.title": "👤 Hồ sơ của tôi", "entryExit.title": "Nhập / Xuất cảnh",
+      "entryExit.subtitle": "Khai báo lượt Nhập cảnh, Xuất cảnh hoặc chuyến Khứ hồi.",
+      "entryExit.new": "Khai báo mới", "entryExit.edit": "Chỉnh sửa", "entryExit.mode": "Loại di chuyển",
+      "entryExit.roundTrip": "Khứ hồi", "entryExit.entryOnly": "Chỉ nhập cảnh", "entryExit.exitOnly": "Chỉ xuất cảnh",
+      "entryExit.entry": "Nhập cảnh", "entryExit.exit": "Xuất cảnh", "entryExit.type": "Loại",
+      "entryExit.planned": "Ngày giờ dự kiến", "entryExit.actual": "Ngày giờ thực tế",
+      "entryExit.port": "Sân bay / Cửa khẩu", "entryExit.flight": "Số chuyến bay",
+      "entryExit.destination": "Điểm đến", "entryExit.purpose": "Mục đích",
+      "entryExit.purposePlaceholder": "Mục đích chuyến đi", "entryExit.portPlaceholder": "Tên sân bay / cửa khẩu",
+      "entryExit.flightPlaceholder": "Mã chuyến bay", "entryExit.destinationPlaceholder": "Địa điểm đến",
+      "entryExit.history": "Lịch sử nhập / xuất cảnh", "entryExit.historySubtitle": "Chuyến đi được nhóm theo Trip ID.",
+      "travel.title": "Đăng ký đi lại trong nước", "travel.fromDate": "Từ ngày", "travel.toDate": "Đến ngày",
+      "travel.from": "Từ đâu", "travel.to": "Đến đâu", "travel.submit": "Gửi yêu cầu đi lại",
+      "travel.history": "Lịch sử đi lại", "employees.add": "Thêm nhân viên",
+      "import.master": "Import / Đồng bộ Master Excel", "import.template": "Mẫu Excel",
+      "import.previewTitle": "Xem trước dữ liệu Master Excel", "import.sync": "Đồng bộ",
+      "accounts.title": "Quản lý tài khoản", "common.save": "Lưu", "common.cancel": "Hủy",
+      "common.refresh": "Làm mới", "common.noData": "Chưa có dữ liệu."
+    },
+    zh: {
+      "appTitle": "外籍员工管理系统", "appSubtitle": "出入境与合同管理",
+      "nav.dashboard": "仪表盘", "nav.profile": "我的资料", "nav.immigration": "出入境",
+      "nav.travel": "国内出行", "nav.employees": "员工", "nav.accounts": "账户",
+      "nav.changePassword": "修改密码", "nav.logout": "退出", "login.title": "登录",
+      "login.username": "员工编号 / 邮箱", "login.password": "密码", "login.button": "登录",
+      "kpi.total": "外籍员工总数", "kpi.inVN": "🟢 在越南", "kpi.traveling": "✈️ 出差中",
+      "kpi.exited": "🔴 已出境", "kpi.warningDocs": "⚠ 证件预警", "kpi.expContracts": "📄 合同预警",
+      "dashboard.warningsTitle": "⚠ 即将到期的证件与合同", "table.employee": "员工",
+      "table.document": "证件 / 合同", "table.expiryDate": "到期日", "table.status": "状态",
+      "table.entryExit": "出入境", "table.domesticTravel": "国内出行", "table.action": "操作",
+      "profile.title": "👤 我的资料", "entryExit.title": "出入境",
+      "entryExit.subtitle": "在一个表单中记录入境、出境或往返行程。",
+      "entryExit.new": "新记录", "entryExit.edit": "编辑中", "entryExit.mode": "出行类型",
+      "entryExit.roundTrip": "往返", "entryExit.entryOnly": "仅入境", "entryExit.exitOnly": "仅出境",
+      "entryExit.entry": "入境", "entryExit.exit": "出境", "entryExit.type": "类型",
+      "entryExit.planned": "计划时间", "entryExit.actual": "实际时间",
+      "entryExit.port": "机场 / 口岸", "entryExit.flight": "航班号",
+      "entryExit.destination": "目的地", "entryExit.purpose": "目的",
+      "entryExit.purposePlaceholder": "行程目的", "entryExit.portPlaceholder": "机场或口岸",
+      "entryExit.flightPlaceholder": "航班号", "entryExit.destinationPlaceholder": "目的地",
+      "entryExit.history": "出入境记录", "entryExit.historySubtitle": "往返行程按 Trip ID 分组。",
+      "travel.title": "国内出行登记", "travel.fromDate": "开始日期", "travel.toDate": "结束日期",
+      "travel.from": "出发地", "travel.to": "目的地", "travel.submit": "提交出行申请",
+      "travel.history": "出行历史", "employees.add": "添加员工",
+      "import.master": "导入 / 同步 Master Excel", "import.template": "Excel 模板",
+      "import.previewTitle": "Master Excel 导入预览", "import.sync": "同步",
+      "accounts.title": "账户管理", "common.save": "保存", "common.cancel": "取消",
+      "common.refresh": "刷新", "common.noData": "暂无数据。"
+    }
+  };
+
+  function setLanguage(lang){
+    localStorage.setItem("fe_lang",lang);uiLang=lang==="auto"?detectSystemLanguage():lang;
+    const s=document.getElementById("languageSelect");if(s)s.value=lang;translatePage();
+  }
+  function translatePage(){
+    const dict=I18N[uiLang]||I18N.en;
+    document.querySelectorAll("[data-i18n]").forEach(el=>{const k=el.dataset.i18n;if(dict[k])el.textContent=dict[k];});
+    document.querySelectorAll("[data-i18n-placeholder]").forEach(el=>{const k=el.dataset.i18nPlaceholder;if(dict[k])el.placeholder=dict[k];});
+    document.querySelectorAll("[data-i18n-title]").forEach(el=>{const k=el.dataset.i18nTitle;if(dict[k])el.title=dict[k];});
+  }
+  /* ==================== CENTRALIZED PERMISSION MATRIX ====================
+     UI checks are defense-in-depth only. The Apps Script backend MUST enforce
+     the same permissions for every API action because client-side JS can be modified. */
+  const PERMISSION_MATRIX={
+    "ADMIN":{dashboard:"FULL",profile:"FULL",immigration:"FULL",travel:"FULL",employees:"FULL",accounts:"FULL",changePassword:"FULL"},
+    "HR ADMIN":{dashboard:"FULL",profile:"FULL",immigration:"FULL",travel:"FULL",employees:"FULL",accounts:"VIEW",changePassword:"FULL"},
+    "HR":{dashboard:"VIEW",profile:"VIEW",immigration:"VIEW",travel:"VIEW",employees:"VIEW",accounts:"NONE",changePassword:"NONE"},
+    "DIRECTOR":{dashboard:"VIEW",profile:"VIEW",immigration:"VIEW",travel:"VIEW",employees:"VIEW",accounts:"NONE",changePassword:"NONE"},
+    "USER":{dashboard:"NONE",profile:"VIEW",immigration:"FULL",travel:"FULL",employees:"NONE",accounts:"NONE",changePassword:"FULL"}
+  };
+  function role(){return String(currentUser?.role||"").trim().toUpperCase();}
+  function permission(page){return PERMISSION_MATRIX[role()]?.[page]||"NONE";}
+  function canView(page){return permission(page)==="VIEW"||permission(page)==="FULL";}
+  function canEdit(page){return permission(page)==="FULL";}
+  function isHR(){return ["HR","HR ADMIN","DIRECTOR","ADMIN"].includes(role());}
+  function isAccountAdmin(){return canView("accounts");}
+  function isSuperAdmin(){return role()==="ADMIN";}
+  function canManageAccounts(){return canEdit("accounts");}
+  function canChangePassword(){return canEdit("changePassword");}
+  function guard(page,action){if(canEdit(page)||canView(page)&&action==="view")return true;toast("You do not have permission to perform this action.");return false;}
+  function escapeHTML(v){return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));}
+  function toast(msg){const t=document.getElementById("toast");if(!t)return;document.getElementById("toastText").textContent=msg||"";t.classList.remove("hidden");clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.add("hidden"),3200);}
+  function showGlobalLoader(msg="Loading data..."){loaderCount++;const l=document.getElementById("globalLoader");if(l){document.getElementById("globalLoaderText").textContent=msg;l.classList.remove("hidden");}}
+  function hideGlobalLoader(){loaderCount=Math.max(0,loaderCount-1);if(loaderCount===0)document.getElementById("globalLoader")?.classList.add("hidden");}
+  function setButtonBusy(btn,busy,label){if(!btn)return;btn.disabled=busy;if(busy){btn.dataset.oldHtml=btn.innerHTML;btn.innerHTML='<i class="fa-solid fa-spinner fa-spin mr-2"></i>'+escapeHTML(label||"Working...");}else if(btn.dataset.oldHtml){btn.innerHTML=btn.dataset.oldHtml;delete btn.dataset.oldHtml;}}
+
+  function showPage(page){
+    if(!canView(page)){toast("You do not have permission to access this page.");return false;}
+    document.querySelectorAll(".page").forEach(x=>x.classList.add("hidden"));
+    const target=document.getElementById("page-"+page);if(!target)return false;
+    target.classList.remove("hidden");activePage=page;
+    if(page==="dashboard")loadDashboard();
+    if(page==="profile")loadProfile();
+    if(page==="immigration")loadEntryExit();
+    if(page==="travel")loadTravel();
+    if(page==="employees"&&!employees.length)loadDashboard();
+    if(page==="accounts")loadAccounts();
+    return true;
+  }
+
+  async function callBackend(action,data={},params={}){
+    const token=sessionToken||sessionStorage.getItem("sessionToken")||"";
+    showGlobalLoader(action==="LOGIN"?"Signing in...":"Loading data...");
+    try{
+      if(typeof google!=="undefined"&&google.script&&google.script.run){
+        return await new Promise((resolve,reject)=>{
+          google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).apiCall(action,token,data,params);
+        });
+      }
+      const payload={action,token,data,params};
+      if(action==="LOGIN"){payload.username=data.username;payload.password=data.password;}
+      const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),30000);
+      const response=await fetch(WEB_APP_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(payload),signal:controller.signal});
+      clearTimeout(timer);
+      if(!response.ok)throw new Error("Server HTTP "+response.status);
+      return await response.json();
+    }finally{hideGlobalLoader();}
+  }
+  async function apiGet(action,params={}){const r=await callBackend(action,{},params);if(r.status==="ERROR"&&/phiên|session|đăng nhập|login/i.test(r.message||"")){await logout(false);throw new Error(r.message);}return r;}
+  async function apiPost(action,data={}){const r=await callBackend(action,data,{});if(r.status==="ERROR"&&/phiên|session|đăng nhập|login/i.test(r.message||"")){await logout(false);throw new Error(r.message);}return r;}
+
+  async function doLogin(){
+    const u=document.getElementById("loginUser").value.trim(),p=document.getElementById("loginPass").value,btn=document.getElementById("loginBtn");
+    if(!u||!p)return toast("Please enter username and password.");
+    setButtonBusy(btn,true,"Signing in...");
+    try{const r=await callBackend("LOGIN",{username:u,password:p});if(r.status!=="SUCCESS")return toast(r.message||"Login failed.");currentUser=r.user;sessionToken=r.token;sessionStorage.setItem("sessionToken",sessionToken);sessionStorage.setItem("currentUser",JSON.stringify(currentUser));document.getElementById("loginUser").value="";document.getElementById("loginPass").value="";await initSessionUI();}
+    catch(e){toast(e.message||"Server connection failed.");}finally{setButtonBusy(btn,false);}
+  }
+  function restoreSession(){translatePage();const token=sessionStorage.getItem("sessionToken"),raw=sessionStorage.getItem("currentUser");if(!token||!raw)return;try{sessionToken=token;currentUser=JSON.parse(raw);initSessionUI();}catch(e){sessionStorage.clear();}}
+  async function initSessionUI(){
+    if(!currentUser)return;
+    document.getElementById("loginSection").classList.add("hidden");document.getElementById("app").classList.remove("hidden");document.getElementById("userNav").classList.replace("hidden","flex");
+    document.getElementById("userName").textContent=currentUser.name||currentUser.email||currentUser.employeeId||"";document.getElementById("roleBadge").textContent=currentUser.role||"USER";
+    const role=String(currentUser.role||"").toUpperCase();
+    document.getElementById("dashboardMenu").classList.toggle("hidden",!canView("dashboard"));
+    document.getElementById("employeeMenu").classList.toggle("hidden",!canView("employees"));
+    document.getElementById("accountMenu").classList.toggle("hidden",!canView("accounts"));
+    document.querySelectorAll("[data-permission-page]").forEach(el=>{const page=el.dataset.permissionPage;el.classList.toggle("hidden",!canView(page));});
+    const cp=document.getElementById("changePasswordMenu");if(cp)cp.classList.toggle("hidden",!canChangePassword());
+    applyPermissionUI();
+    if(canEdit("immigration")){document.getElementById("eeBtn")?.classList.remove("hidden");}
+    else{document.getElementById("eeBtn")?.classList.add("hidden");document.getElementById("eeCancelEditBtn")?.classList.add("hidden");}
+    if(canEdit("travel")){document.getElementById("travelBtn")?.classList.remove("hidden");}
+    else{document.getElementById("travelBtn")?.classList.add("hidden");document.getElementById("travelCancelEditBtn")?.classList.add("hidden");}
+    showPage(canView("dashboard")?"dashboard":"profile");
+    await Promise.allSettled([loadProfile(),loadEntryExit(),loadTravel(),canView("dashboard")?loadDashboard():Promise.resolve()]);
+  }
+
+  function applyPermissionUI(){
+    const set=(id,show)=>{const e=document.getElementById(id);if(e)e.classList.toggle("hidden",!show);};
+    set("masterImportLabel",canEdit("employees"));
+    set("masterTemplateBtn",canView("employees"));
+    set("addEmployeeBtn",canEdit("employees"));
+    set("eeBtn",canEdit("immigration"));
+    set("travelBtn",canEdit("travel"));
+    set("changePasswordMenu",canChangePassword());
+    document.querySelectorAll("#page-immigration input,#page-immigration select,#page-travel input,#page-travel select").forEach(e=>{e.disabled=!canEdit(e.closest("#page-immigration")?"immigration":"travel");});
+  }
+  async function logout(notify=true){
+    const token=sessionToken;try{if(token)await callBackend("LOGOUT");}catch(e){}
+    currentUser=null;sessionToken=null;employees=[];accountUsers=[];Object.keys(pendingUploads).forEach(k=>delete pendingUploads[k]);sessionStorage.clear();
+    document.getElementById("app").classList.add("hidden");document.getElementById("userNav").classList.replace("flex","hidden");document.getElementById("loginSection").classList.remove("hidden");
+    if(notify)toast("Logged out.");
+  }
+
+  // ---------------- Entry / Exit ----------------
+  function toggleEntryExitMode(){const mode=document.getElementById("eeMode").value;document.getElementById("eeRoundTripFields").classList.toggle("hidden",mode!=="ROUND_TRIP");document.getElementById("eeSingleFields").classList.toggle("hidden",mode==="ROUND_TRIP");}
+  function resetEntryExitForm(){
+    ["eeEditId","eeTripId","eeEntryPlanned","eeEntryActual","eeEntryAirport","eeEntryFlight","eeEntryDestination","eeExitPlanned","eeExitActual","eeExitAirport","eeExitFlight","eeExitDestination","eePlannedDate","eeActualDate","eeAirport","eeFlight","eeDestination","eePurpose"].forEach(id=>{const e=document.getElementById(id);if(e)e.value="";});
+    document.getElementById("eeMode").value="ROUND_TRIP";toggleEntryExitMode();document.getElementById("eeCancelEditBtn").classList.add("hidden");document.getElementById("eeFormModeBadge").textContent=(I18N[uiLang]||I18N.en)["entryExit.new"]||"New record";
+  }
+  function localDateTime(v){return String(v||"").replace(" ","T").slice(0,16);}
+  async function saveEntryExit(){if(!canEdit("immigration")){toast("View only: you cannot change Entry / Exit records.");return;} 
+    if(!currentUser?.employeeId)return toast("Missing Employee ID.");
+    const mode=document.getElementById("eeMode").value,purpose=document.getElementById("eePurpose").value.trim(),editId=document.getElementById("eeEditId").value.trim(),tripId=document.getElementById("eeTripId").value.trim()||("TRIP-"+Math.random().toString(36).slice(2,10).toUpperCase()),btn=document.getElementById("eeBtn");
+    setButtonBusy(btn,true,"Saving...");
+    try{
+      let r;
+      if(mode==="ROUND_TRIP"){
+        const entry={employeeId:currentUser.employeeId,tripId,type:"ENTRY",plannedDateTime:document.getElementById("eeEntryPlanned").value,actualDateTime:document.getElementById("eeEntryActual").value,airport:document.getElementById("eeEntryAirport").value.trim(),flightNo:document.getElementById("eeEntryFlight").value.trim(),destination:document.getElementById("eeEntryDestination").value.trim(),purpose};
+        const exit={employeeId:currentUser.employeeId,tripId,type:"EXIT",plannedDateTime:document.getElementById("eeExitPlanned").value,actualDateTime:document.getElementById("eeExitActual").value,airport:document.getElementById("eeExitAirport").value.trim(),flightNo:document.getElementById("eeExitFlight").value.trim(),destination:document.getElementById("eeExitDestination").value.trim(),purpose};
+        if(!entry.plannedDateTime||!entry.airport||!exit.plannedDateTime||!exit.airport)return toast("Please complete both Entry and Exit details.");
+        r=await apiPost(editId?"UPDATE_ENTRY_EXIT_TRIP":"ADD_ENTRY_EXIT_TRIP",{employeeId:currentUser.employeeId,tripId,entry,exit});
+      }else{
+        const single={employeeId:currentUser.employeeId,tripId,type:mode==="ENTRY_ONLY"?"ENTRY":"EXIT",plannedDateTime:document.getElementById("eePlannedDate").value,actualDateTime:document.getElementById("eeActualDate").value,airport:document.getElementById("eeAirport").value.trim(),flightNo:document.getElementById("eeFlight").value.trim(),destination:document.getElementById("eeDestination").value.trim(),purpose,entryExitId:editId};
+        if(!single.plannedDateTime||!single.airport)return toast("Please fill required movement details.");
+        r=await apiPost(editId?"UPDATE_ENTRY_EXIT":"ADD_ENTRY_EXIT",single);
+      }
+      if(r.status!=="SUCCESS")return toast(r.message||"Save failed.");
+      toast(r.message||"Saved successfully.");resetEntryExitForm();await loadEntryExit();await loadProfile();if(isHR())await loadDashboard();
+    }catch(e){toast(e.message||"Cannot save Entry/Exit.");}finally{setButtonBusy(btn,false);}
+  }
+  async function editEntryExit(encoded){if(!canEdit("immigration")){toast("View only: you cannot edit Entry / Exit records.");return;} 
+    try{const id=decodeURIComponent(encoded),r=await apiGet("GET_ENTRY_EXIT",{employeeId:currentUser.employeeId}),x=(r.records||[]).find(v=>String(v.entryExitId)===String(id));if(!x)return toast("No declaration found.");
+      const sameTrip=(r.records||[]).filter(v=>String(v.tripId)===String(x.tripId));
+      document.getElementById("eeEditId").value=x.entryExitId;document.getElementById("eeTripId").value=x.tripId||"";document.getElementById("eePurpose").value=x.purpose||"";
+      if(sameTrip.length>1&&sameTrip.some(v=>v.type==="ENTRY")&&sameTrip.some(v=>v.type==="EXIT")){
+        document.getElementById("eeMode").value="ROUND_TRIP";const en=sameTrip.find(v=>v.type==="ENTRY"),ex=sameTrip.find(v=>v.type==="EXIT");
+        [en,ex].forEach((v,isEntry)=>{const p=isEntry?"eeEntry":"eeExit";document.getElementById(p+"Planned").value=localDateTime(v.plannedDateTime);document.getElementById(p+"Actual").value=localDateTime(v.actualDateTime);document.getElementById(p+"Airport").value=v.airport||"";document.getElementById(p+"Flight").value=v.flightNo||"";document.getElementById(p+"Destination").value=v.destination||"";});
+      }else{document.getElementById("eeMode").value=x.type==="ENTRY"?"ENTRY_ONLY":"EXIT_ONLY";document.getElementById("eeType").value=x.type;document.getElementById("eePlannedDate").value=localDateTime(x.plannedDateTime);document.getElementById("eeActualDate").value=localDateTime(x.actualDateTime);document.getElementById("eeAirport").value=x.airport||"";document.getElementById("eeFlight").value=x.flightNo||"";document.getElementById("eeDestination").value=x.destination||"";}
+      toggleEntryExitMode();document.getElementById("eeCancelEditBtn").classList.remove("hidden");document.getElementById("eeFormModeBadge").textContent=(I18N[uiLang]||I18N.en)["entryExit.edit"]||"Editing";showPage("immigration");window.scrollTo({top:0,behavior:"smooth"});
+    }catch(e){toast(e.message||"Cannot load declaration.");}
+  }
+  async function deleteEntryExit(encoded){if(!canEdit("immigration")){toast("View only: you cannot delete Entry / Exit records.");return;} if(!confirm("Delete this entry/exit declaration?"))return;try{const r=await apiPost("DELETE_ENTRY_EXIT",{entryExitId:decodeURIComponent(encoded),employeeId:currentUser.employeeId});toast(r.message||"");if(r.status==="SUCCESS"){await loadEntryExit();await loadProfile();if(isHR())await loadDashboard();}}catch(e){toast(e.message);}}
+  async function loadEntryExit(){
+    if(!currentUser?.employeeId)return;const box=document.getElementById("entryExitList");if(!box)return;box.innerHTML='<div class="text-slate-400 py-4 text-center"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Loading...</div>';
+    try{const r=await apiGet("GET_ENTRY_EXIT",{employeeId:currentUser.employeeId}),records=r.records||[];if(!records.length){box.innerHTML=`<div class="text-slate-400 py-4 text-center">${escapeHTML((I18N[uiLang]||I18N.en)["common.noData"]||"No data")}</div>`;return;}
+      const groups=new Map();records.forEach(x=>{const k=x.tripId||x.entryExitId;if(!groups.has(k))groups.set(k,[]);groups.get(k).push(x);});
+      box.innerHTML=[...groups.entries()].map(([tripId,items])=>{const en=items.find(x=>x.type==="ENTRY"),ex=items.find(x=>x.type==="EXIT"),main=en||ex;const editId=(main||{}).entryExitId;return `<div class="border rounded-2xl p-4 mb-4"><div class="flex flex-wrap justify-between gap-2 mb-3"><div><div class="font-bold">Trip ID: ${escapeHTML(tripId)}</div><div class="text-xs text-slate-500">${escapeHTML(main?.purpose||"")}</div></div><div class="flex gap-3">${canEdit("immigration")?`<button onclick="editEntryExit('${encodeURIComponent(editId||"")}')" class="text-amber-600" title="Edit"><i class="fa-solid fa-pen-to-square"></i></button><button onclick="deleteEntryExit('${encodeURIComponent(editId||"")}')" class="text-red-600" title="Delete"><i class="fa-solid fa-trash"></i></button>`:""}</div></div><div class="grid md:grid-cols-2 gap-3 text-xs"><div class="bg-emerald-50 p-3 rounded-lg border border-emerald-100"><div class="font-bold text-emerald-700 mb-1">🛬 Entry</div><div>Planned: ${escapeHTML(en?.plannedDateTime||"-")}</div><div>Actual: ${escapeHTML(en?.actualDateTime||"-")}</div><div>Port: ${escapeHTML(en?.airport||"-")} | Flight: ${escapeHTML(en?.flightNo||"-")}</div><div>Destination: ${escapeHTML(en?.destination||"-")}</div></div><div class="bg-rose-50 p-3 rounded-lg border border-rose-100"><div class="font-bold text-rose-700 mb-1">🛫 Exit</div><div>Planned: ${escapeHTML(ex?.plannedDateTime||"-")}</div><div>Actual: ${escapeHTML(ex?.actualDateTime||"-")}</div><div>Port: ${escapeHTML(ex?.airport||"-")} | Flight: ${escapeHTML(ex?.flightNo||"-")}</div><div>Destination: ${escapeHTML(ex?.destination||"-")}</div></div></div></div>`;}).join("");
+    }catch(e){box.innerHTML='<div class="text-red-500 py-4">Unable to load Entry/Exit.</div>';}
+  }
+
+  // ---------------- Master Excel ----------------
+  async function importMasterWorkbook(input){if(!canEdit("employees")){toast("View only: you cannot import or synchronize employees.");input.value="";return;} const file=input.files?.[0];if(!file)return;showGlobalLoader("Reading Master Excel...");try{const data=await file.arrayBuffer(),wb=XLSX.read(new Uint8Array(data),{type:"array"});parsedMasterPayload={employees:[],documents:[],contracts:[],appendices:[],entryExit:[],domesticTravel:[]};wb.SheetNames.forEach(n=>{const key=n.toLowerCase().trim(),rows=XLSX.utils.sheet_to_json(wb.Sheets[n],{defval:""});if(key.includes("employee"))parsedMasterPayload.employees=rows;else if(key.includes("document"))parsedMasterPayload.documents=rows;else if(key.includes("appendix"))parsedMasterPayload.appendices=rows;else if(key.includes("contract"))parsedMasterPayload.contracts=rows;else if(key.includes("entry")||key.includes("exit"))parsedMasterPayload.entryExit=rows;else if(key.includes("travel"))parsedMasterPayload.domesticTravel=rows;});renderMasterImportPreview(file.name);}catch(e){toast("Failed to parse Excel: "+(e.message||e));}finally{hideGlobalLoader();input.value="";}}
+  function importEmpId(row){return row.EmployeeID||row.employeeId||row.EmpID||row["Emp ID"]||"";}
+  function renderMasterImportPreview(fileName){
+    const p=parsedMasterPayload||{employees:[],documents:[],contracts:[],appendices:[],entryExit:[],domesticTravel:[]};document.getElementById("masterImportFileName").textContent=fileName;const tb=document.getElementById("masterImportPreviewTable");tb.innerHTML="";let total=0,valid=0,error=0;
+    const add=(arr,label)=>arr.forEach(row=>{total++;const id=String(importEmpId(row)).trim(),ok=!!id;if(ok)valid++;else error++;const tr=document.createElement("tr");tr.className="border-b hover:bg-slate-50";tr.innerHTML=`<td class="p-3 font-semibold text-blue-600">${escapeHTML(label)}</td><td class="p-3 font-mono">${escapeHTML(id)}</td><td class="p-3 text-xs text-slate-600">${escapeHTML(JSON.stringify(row).slice(0,180))}${JSON.stringify(row).length>180?'...':''}</td><td class="p-3 text-center">${ok?'<span class="badge bg-emerald-100 text-emerald-700">VALID</span>':'<span class="badge bg-rose-100 text-rose-700">INVALID</span>'}</td><td class="p-3 text-xs text-slate-500">${ok?'Ready for synchronization':'Missing EmployeeID'}</td>`;tb.appendChild(tr);});
+    add(p.employees,"Employees");add(p.documents,"Documents");add(p.contracts,"Contracts");add(p.appendices,"ContractAppendices");add(p.entryExit,"EntryExit");add(p.domesticTravel,"DomesticTravel");
+    document.getElementById("importStatRows").textContent=total;document.getElementById("importStatValid").textContent=valid;document.getElementById("importStatError").textContent=error;document.getElementById("importStatEmployee").textContent=p.employees.length;document.getElementById("importStatMovement").textContent=p.entryExit.length+p.domesticTravel.length;document.getElementById("importStatDocs").textContent=p.documents.length+p.contracts.length+p.appendices.length;document.getElementById("masterImportSummary").textContent=error?`Có ${error} dòng lỗi. Vui lòng sửa Excel trước khi đồng bộ.`:`${total} dòng hợp lệ, sẵn sàng đồng bộ.`;document.getElementById("masterImportConfirmBtn").disabled=total===0||error>0;document.getElementById("masterImportModal").classList.remove("hidden");
+  }
+  function closeMasterImportPreview(){document.getElementById("masterImportModal").classList.add("hidden");}
+  async function confirmMasterImport(){if(!canEdit("employees")){toast("View only: you cannot synchronize Master Excel.");return;}if(!parsedMasterPayload)return;const btn=document.getElementById("masterImportConfirmBtn");setButtonBusy(btn,true,"Synchronizing...");try{const r=await apiPost("SYNC_MASTER_EXCEL",parsedMasterPayload);if(r.status!=="SUCCESS")return toast(r.message||"Synchronization failed.");toast(`Sync complete: ${r.employees?.created||0} created, ${r.employees?.updated||0} updated.`);closeMasterImportPreview();await loadDashboard();}catch(e){toast(e.message||"Synchronization failed.");}finally{setButtonBusy(btn,false);}}
+  function downloadMasterTemplate(){if(!canView("employees")){toast("You do not have permission to access Employees.");return;} const wb=XLSX.utils.book_new();const sheets={Employees:[{EmployeeID:"EMP001",FullName:"John Doe",Nationality:"USA",DOB:"1990-01-15",Position:"Expert",Department:"IT",Phone:"0900000000",Email:"example@company.com",CurrentStatus:"In Vietnam",CurrentLocation:"Vietnam",ActiveStatus:"ACTIVE"}],Documents:[{DocID:"",EmployeeID:"EMP001",DocType:"PASSPORT",DocNo:"B12345678",IssueDate:"2026-01-01",ExpiryDate:"2028-12-31",Issuer:"Immigration",FileId:"",FileUrl:""}],Contracts:[{ContractID:"",EmployeeID:"EMP001",ContractNo:"CTR-2026-01",ContractType:"DEFINITE",StartDate:"2026-01-01",EndDate:"2028-01-01",Salary:5000,Allowance:500}],ContractAppendices:[{AppendixID:"",ContractID:"",EmployeeID:"EMP001",AppendixNo:"APP-01",EffectiveDate:"2026-06-01",EndDate:"2028-01-01",NewSalary:5500}],EntryExit:[{LogID:"",EmployeeID:"EMP001",Type:"ENTRY",EventDate:"2026-03-01 10:00",PortName:"Tan Son Nhat",FlightNo:"VN123",Destination:"HCM",Purpose:"",TripID:"TRIP-001"}],DomesticTravel:[{TravelID:"",EmployeeID:"EMP001",FromLocation:"Ho Chi Minh",ToLocation:"Da Nang",FromDate:"2026-04-01",ToDate:"2026-04-05",Status:"APPROVED",Purpose:"Audit",TicketFileId:"",TicketUrl:""}]};Object.keys(sheets).forEach(n=>XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(sheets[n]),n));XLSX.writeFile(wb,"Master_Employee_Template.xlsx");}
+
+  // ---------------- Dashboard / Employees ----------------
+  async function loadDashboard(){if(!isHR())return;const tb=document.getElementById("employeeTable");if(tb)tb.innerHTML='<tr><td colspan="5" class="p-6 text-center text-slate-400"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Loading...</td></tr>';try{const r=await apiGet("GET_DASHBOARD_DATA");if(r.status!=="SUCCESS")return toast(r.message);document.getElementById("kpiTotal").textContent=r.kpi?.total||0;document.getElementById("kpiInVN").textContent=r.kpi?.inVN||0;document.getElementById("kpiBusiness").textContent=r.kpi?.business||0;document.getElementById("kpiExited").textContent=r.kpi?.exited||0;document.getElementById("kpiWarning").textContent=r.kpi?.warning||0;document.getElementById("kpiExpContract").textContent=r.kpi?.expContract||0;employees=r.employees||[];renderEmployees();renderWarnings(r.expiryWarnings||[]);}catch(e){console.error(e);}}
+  function renderWarnings(list){const tb=document.getElementById("warningTable");if(!tb)return;if(!list.length){tb.innerHTML='<tr><td colspan="4" class="p-4 text-center text-emerald-600">✓ No expired or expiring document/contract.</td></tr>';return;}tb.innerHTML=list.map(x=>`<tr class="border-b"><td class="p-3 font-semibold">${escapeHTML(x.fullName)}<div class="text-xs text-slate-400">${escapeHTML(x.employeeId)}</div></td><td class="p-3 text-center">${escapeHTML(x.document)}</td><td class="p-3 text-center">${escapeHTML(x.expiryDate)}</td><td class="p-3 text-center">${x.severity==='EXPIRED'?'<span class="badge bg-red-100 text-red-700">EXPIRED</span>':'<span class="badge bg-amber-100 text-amber-700">Remain '+escapeHTML(x.daysRemaining)+' days</span>'}</td></tr>`).join("");}
+  function statusBadge(s){const v=String(s||"-");let c="bg-slate-100 text-slate-600";if(v==="In Vietnam")c="bg-emerald-100 text-emerald-700";else if(v==="Traveling")c="bg-blue-100 text-blue-700";else if(v==="Exited")c="bg-slate-200 text-slate-700";return `<span class="badge ${c}">${escapeHTML(v)}</span>`;}
+  function renderEmployees(list=employees){const tb=document.getElementById("employeeTable");if(!tb)return;const q=(document.getElementById("employeeSearch")?.value||"").toLowerCase().trim(),filtered=list.filter(e=>[e.fullName,e.employeeId,e.nationality,e.contractNo].some(v=>String(v||"").toLowerCase().includes(q)));if(!filtered.length){tb.innerHTML='<tr><td colspan="5" class="p-6 text-center text-slate-400">No employee.</td></tr>';return;}tb.innerHTML=filtered.map(e=>{const id=encodeURIComponent(e.employeeId||""),ee=e.nextEntryExit,tr=e.nextTravel;return `<tr class="border-b hover:bg-slate-50"><td class="p-3"><div class="font-semibold">${escapeHTML(e.fullName)}</div><div class="text-xs text-slate-400">${escapeHTML(e.employeeId)}</div></td><td class="p-3 text-center">${statusBadge(e.currentStatus)}</td><td class="p-3 text-center">${ee?`<div class="text-xs font-semibold text-blue-700">${ee.type==='ENTRY'?'🛬 Entry':'🛫 Exit'}</div><div class="text-[11px]">${escapeHTML(ee.dateTime||"")}</div>`:'<span class="text-xs text-slate-400">No coming trip</span>'}</td><td class="p-3 text-center">${tr?`<div class="text-xs font-semibold">${escapeHTML(tr.fromLocation)} → ${escapeHTML(tr.toLocation)}</div><div class="text-[10px] text-slate-500">${escapeHTML(tr.fromDate)} ~ ${escapeHTML(tr.toDate)}</div>`:'<span class="text-xs text-slate-400">No coming trip</span>'}</td><td class="p-3 text-center"><div class="flex justify-center gap-3">
+        <button onclick="viewEmployee('${id}')" class="text-blue-600" title="Detail"><i class="fa-solid fa-eye"></i></button>
+        ${canEdit("employees")?`<button onclick="openEmployeeForm('${id}')" class="text-amber-600" title="Edit"><i class="fa-solid fa-pen-to-square"></i></button><button onclick="deleteEmployee('${id}')" class="text-red-600" title="Inactive"><i class="fa-solid fa-trash"></i></button>`:""}
+      </div></td></tr>`;}).join("");}
+  function filterEmployees(){renderEmployees(employees);}
+
+  // ---------------- Profile / Documents ----------------
+  function field(label,value){return `<div class="border rounded-lg p-3 bg-slate-50"><div class="text-xs text-slate-400 font-semibold">${escapeHTML(label)}</div><div class="font-semibold mt-1">${escapeHTML(value||"-")}</div></div>`;}
+  function extractDriveFileId(raw){const s=String(raw||"");const m=s.match(/\/file\/d\/([\w-]+)/)||s.match(/\/d\/([\w-]+)/)||s.match(/[?&]id=([\w-]+)/)||s.match(/^([\w-]{20,})$/);return m?m[1]:"";}
+  function normalizeDocInfo(label,info){const o=info&&typeof info==='object'?info:{fileUrl:info||""},id=String(o.fileId||extractDriveFileId(o.fileUrl||o.previewUrl)||""),raw=String(o.fileUrl||o.previewUrl||""),mime=String(o.mimeType||"").toLowerCase();return{label,id,rawUrl:raw,previewUrl:id?`https://drive.google.com/file/d/${encodeURIComponent(id)}/preview`:raw,openUrl:id?`https://drive.google.com/file/d/${encodeURIComponent(id)}/view`:raw,mimeType:mime,fileName:o.fileName||"",isPdf:mime==='application/pdf'||/\.pdf(?:[?#]|$)/i.test(raw),isImage:mime.startsWith('image/')||/\.(jpe?g|png|webp|gif)(?:[?#]|$)/i.test(raw)};}
+  function docPreview(label,info){const d=normalizeDocInfo(label,info);if(!d.id&&!d.rawUrl)return `<div class="border rounded-lg p-3 bg-slate-50"><div class="text-xs text-slate-400 font-semibold">${escapeHTML(label)}</div><div class="font-semibold mt-1 text-slate-400">No file</div></div>`;const p=escapeHTML(d.previewUrl),o=escapeHTML(d.openUrl),title=escapeHTML(d.fileName||label);const media=d.isImage&&!d.isPdf?`<img src="${p}" alt="${title}" loading="lazy" class="w-full h-[380px] object-contain bg-slate-50" onerror="this.style.display='none';this.nextElementSibling.classList.remove('hidden')"><div class="hidden p-6 text-center text-sm text-slate-500">Preview unavailable. Please open the file.</div>`:`<iframe src="${p}" title="${title}" loading="lazy" allow="autoplay; fullscreen"></iframe>`;return `<div class="border rounded-lg p-3 bg-slate-50"><div class="text-xs text-slate-400 font-semibold">${escapeHTML(label)}</div><div class="doc-preview">${media}<div class="doc-preview-actions"><span class="text-xs text-slate-500"><i class="fa-solid ${d.isPdf?'fa-file-pdf':'fa-file-image'} mr-1"></i>${d.isPdf?'PDF':'Document'}</span><a href="${o}" target="_blank" rel="noopener noreferrer">Open file ↗</a></div></div></div>`;}
+  async function loadProfile(){if(!currentUser?.employeeId)return;const box=document.getElementById("profileContent");if(!box)return;box.innerHTML='<div class="text-slate-400"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Loading...</div>';try{const r=await apiGet("GET_PROFILE",{employeeId:currentUser.employeeId});if(r.status!=="SUCCESS")return;const p=r.profile;box.innerHTML=`<div class="grid md:grid-cols-3 gap-4 text-sm">${field('Full Name',p.fullName)}${field('Nationality',p.nationality)}${field('Date of Birth',p.dob)}${field('Position',p.position)}${field('Department',p.department)}${field('Phone',p.phone)}${field('Email',p.email)}${field('Passport No.',p.passportNo)}${field('Passport Expiry',p.passportExpiry)}${docPreview('Passport',p.passport)}${field('TRC',p.trcNo)}${field('TRC Expiry',p.trcExpiry)}${docPreview('TRC',p.trc)}${field('Work Permit',p.wpNo)}${field('Work Permit Expiry',p.wpExpiry)}${docPreview('Work Permit',p.workPermit)}${field('Contract No.',p.contractNo)}${field('Appendix No.',p.appendixNo)}${field('Contract Start',p.contractStartDate)}${field('Contract Expiry',p.contractExpiry)}${docPreview('Contract',p.contract)}${field('Salary',Number(p.salary||0).toLocaleString()+' USD')}${field('Allowance',Number(p.allowance||0).toLocaleString()+' USD')}${field('Status',p.currentStatus)}${field('Location',p.currentLocation)}</div>`;}catch(e){console.error(e);}}
+  async function viewEmployee(encoded){if(!canView("employees")){toast("You do not have permission to view Employees.");return;} const id=decodeURIComponent(encoded);try{const[p,t]=await Promise.all([apiGet('GET_PROFILE',{employeeId:id}),apiGet('GET_TIMELINE',{employeeId:id})]);if(p.status!=='SUCCESS')return toast(p.message);const x=p.profile;document.getElementById('modalTitle').textContent='Employee: '+x.fullName;document.getElementById('modalBody').innerHTML=`<div class="grid md:grid-cols-3 gap-3">${field('Employee ID',x.employeeId)}${field('Nationality',x.nationality)}${field('Position',x.position)}${field('Department',x.department)}${field('Passport No.',x.passportNo)}${field('Passport Expiry',x.passportExpiry)}${docPreview('Passport',x.passport)}${field('TRC No.',x.trcNo)}${field('TRC Expiry',x.trcExpiry)}${docPreview('TRC',x.trc)}${field('Work Permit No.',x.wpNo)}${field('Work Permit Expiry',x.wpExpiry)}${docPreview('Work Permit',x.workPermit)}${field('Contract No.',x.contractNo)}${field('Appendix No.',x.appendixNo)}${field('Contract Expiry',x.contractExpiry)}${docPreview('Contract',x.contract)}${field('Salary',Number(x.salary||0).toLocaleString()+' USD')}${field('Allowance',Number(x.allowance||0).toLocaleString()+' USD')}</div><hr class="my-6"><h3 class="font-bold mb-3">🕒 Timeline</h3><div>${(t.timeline||[]).map(v=>`<div class="border-l-4 border-blue-300 pl-4 mb-4"><div class="font-bold">${escapeHTML(v.title)}</div><div class="text-sm">${escapeHTML(v.date||'')}${v.endDate?' → '+escapeHTML(v.endDate):''}</div><div class="text-sm text-slate-500">${escapeHTML(v.location||'')}</div>${v.purpose?`<div class="text-xs italic text-slate-500 mt-1">Purpose: ${escapeHTML(v.purpose)}</div>`:''}</div>`).join('')||'No history.'}</div>`;document.getElementById('employeeModal').classList.remove('hidden');}catch(e){toast(e.message||'Cannot load employee.');}}
+
+  // ---------------- Employee form + uploads ----------------
+  async function openEmployeeForm(encoded=""){if(!canEdit("employees")){toast("View only: you cannot add or edit employees.");return;} 
+    let emp={};if(encoded){const r=await apiGet('GET_PROFILE',{employeeId:decodeURIComponent(encoded)});if(r.status==='SUCCESS')emp=r.profile;}
+    document.getElementById('modalTitle').textContent=encoded?'Edit Employee':'Add New Employee';
+    document.getElementById('modalBody').innerHTML=`<form id="empForm" class="grid md:grid-cols-2 gap-4" onsubmit="handleSaveEmployee(event)"><input id="f_isNewEmployee" type="hidden" value="${encoded?'0':'1'}"><div><label class="text-xs font-semibold">Employee ID *</label><input id="f_empId" class="input mt-1" value="${escapeHTML(emp.employeeId||'')}" ${encoded?'readonly':''} required></div><div><label class="text-xs font-semibold">Full Name *</label><input id="f_fullName" class="input mt-1" value="${escapeHTML(emp.fullName||'')}" required></div><div><label class="text-xs font-semibold">Nationality</label><input id="f_nationality" class="input mt-1" value="${escapeHTML(emp.nationality||'')}"></div><div><label class="text-xs font-semibold">Date of Birth</label><input id="f_dob" type="date" class="input mt-1" value="${emp.dob||''}"></div><div><label class="text-xs font-semibold">Position</label><input id="f_position" class="input mt-1" value="${escapeHTML(emp.position||'')}"></div><div><label class="text-xs font-semibold">Department</label><input id="f_department" class="input mt-1" value="${escapeHTML(emp.department||'')}"></div><div><label class="text-xs font-semibold">Phone</label><input id="f_phone" class="input mt-1" value="${escapeHTML(emp.phone||'')}"></div><div><label class="text-xs font-semibold">Email</label><input id="f_email" type="email" class="input mt-1" value="${escapeHTML(emp.email||'')}"></div>
+      <div class="md:col-span-2 font-bold border-b pb-1 text-blue-600 mt-2">Legal Documents</div>
+      <div><label class="text-xs font-semibold">Passport No.</label><input id="f_passportNo" class="input mt-1" value="${escapeHTML(emp.passportNo||'')}"></div><div><label class="text-xs font-semibold">Passport Expiry</label><input id="f_passportExpiry" type="date" class="input mt-1" value="${emp.passportExpiry||''}"></div><div class="md:col-span-2"><label class="text-xs font-semibold">Passport File</label><input type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp" onchange="handleFileUpload(this,'f_passportImg','Passport','f_passportFileId')" class="input mt-1"><input id="f_passportImg" type="hidden" value="${escapeHTML(emp.passportImg||'')}"><input id="f_passportFileId" type="hidden" value="${escapeHTML(emp.passportFileId||'')}">${docPreview('Current Passport',emp.passport)}</div>
+      <div><label class="text-xs font-semibold">TRC No.</label><input id="f_trcNo" class="input mt-1" value="${escapeHTML(emp.trcNo||'')}"></div><div><label class="text-xs font-semibold">TRC Expiry</label><input id="f_trcExpiry" type="date" class="input mt-1" value="${emp.trcExpiry||''}"></div><div class="md:col-span-2"><label class="text-xs font-semibold">TRC File</label><input type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp" onchange="handleFileUpload(this,'f_trcImg','TRC','f_trcFileId')" class="input mt-1"><input id="f_trcImg" type="hidden" value="${escapeHTML(emp.trcImg||'')}"><input id="f_trcFileId" type="hidden" value="${escapeHTML(emp.trcFileId||'')}">${docPreview('Current TRC',emp.trc)}</div>
+      <div><label class="text-xs font-semibold">Work Permit No.</label><input id="f_wpNo" class="input mt-1" value="${escapeHTML(emp.wpNo||'')}"></div><div><label class="text-xs font-semibold">WP Expiry</label><input id="f_wpExpiry" type="date" class="input mt-1" value="${emp.wpExpiry||''}"></div><div class="md:col-span-2"><label class="text-xs font-semibold">Work Permit File</label><input type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp" onchange="handleFileUpload(this,'f_wpImg','Work Permit','f_wpFileId')" class="input mt-1"><input id="f_wpImg" type="hidden" value="${escapeHTML(emp.wpImg||'')}"><input id="f_wpFileId" type="hidden" value="${escapeHTML(emp.wpFileId||'')}">${docPreview('Current Work Permit',emp.workPermit)}</div>
+      <div class="md:col-span-2 font-bold border-b pb-1 text-blue-600 mt-2">Employment Contract & Salary</div><div><label class="text-xs font-semibold">Contract No.</label><input id="f_contractNo" class="input mt-1" value="${escapeHTML(emp.contractNo||'')}"></div><div><label class="text-xs font-semibold">Appendix No.</label><input id="f_appendixNo" class="input mt-1" value="${escapeHTML(emp.appendixNo||'')}"></div><div><label class="text-xs font-semibold">Basic Salary (USD)</label><input id="f_salary" type="number" class="input mt-1" value="${emp.salary||0}"></div><div><label class="text-xs font-semibold">Allowance (USD)</label><input id="f_allowance" type="number" class="input mt-1" value="${emp.allowance||0}"></div><div><label class="text-xs font-semibold">Contract Start</label><input id="f_contractStartDate" type="date" class="input mt-1" value="${emp.contractStartDate||''}"></div><div><label class="text-xs font-semibold">Contract Expiry</label><input id="f_contractExpiry" type="date" class="input mt-1" value="${emp.contractExpiry||''}"></div><div class="md:col-span-2"><label class="text-xs font-semibold">Contract File</label><input type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp" onchange="handleFileUpload(this,'f_contractImg','Contracts','f_contractFileId')" class="input mt-1"><input id="f_contractImg" type="hidden" value="${escapeHTML(emp.contractImg||'')}"><input id="f_contractFileId" type="hidden" value="${escapeHTML(emp.contractFileId||'')}">${docPreview('Current Contract',emp.contract)}</div><div class="md:col-span-2 mt-4"><button id="employeeSaveBtn" type="submit" class="btn"><i class="fa-solid fa-floppy-disk mr-2"></i> Save Employee</button></div></form>`;
+    document.getElementById('employeeModal').classList.remove('hidden');
+  }
+  async function handleFileUpload(input,target,subFolder,fileIdTarget){if(!canEdit("employees")){input.value="";toast("View only: file upload is disabled.");return;} const file=input.files?.[0];if(!file)return;const allowed=['application/pdf','image/jpeg','image/png','image/webp'];if(!allowed.includes(file.type)){input.value='';return toast('Support PDF, JPG, PNG or WEBP only.');}if(file.size>10*1024*1024){input.value='';return toast('File maximum is 10 MB.');}const employeeId=document.getElementById('f_empId')?.value.trim();const isNew=document.getElementById('f_isNewEmployee')?.value==='1';try{const base64=await new Promise((resolve,reject)=>{const fr=new FileReader();fr.onload=()=>resolve(fr.result);fr.onerror=reject;fr.readAsDataURL(file);});if(isNew){pendingUploads[target]={target,base64Data:base64,fileName:file.name,mimeType:file.type,employeeId,subFolder};document.getElementById(target).value='PENDING:'+file.name;document.getElementById(fileIdTarget).value='';toast('File selected. It will be uploaded after employee is saved.');return;}toast('Uploading to Drive...');const r=await apiPost('UPLOAD_FILE',{base64Data:base64,fileName:file.name,mimeType:file.type,employeeId,subFolderType:subFolder});if(r.status!=='SUCCESS')return toast(r.message);document.getElementById(target).value=r.fileUrl||'';document.getElementById(fileIdTarget).value=r.fileId||'';toast('Upload successful.');}catch(e){toast(e.message||'Upload failed.');}}
+  async function handleSaveEmployee(e){if(!canEdit("employees")){toast("View only: you cannot save employees.");return;} e.preventDefault();const btn=document.getElementById('employeeSaveBtn');setButtonBusy(btn,true,'Saving...');const payload={employeeId:document.getElementById('f_empId').value.trim(),fullName:document.getElementById('f_fullName').value.trim(),nationality:document.getElementById('f_nationality').value.trim(),dob:document.getElementById('f_dob').value,position:document.getElementById('f_position').value.trim(),department:document.getElementById('f_department').value.trim(),phone:document.getElementById('f_phone').value.trim(),email:document.getElementById('f_email').value.trim(),passportNo:document.getElementById('f_passportNo').value.trim(),passportExpiry:document.getElementById('f_passportExpiry').value,passportImg:document.getElementById('f_passportImg').value.startsWith('PENDING:')?'':document.getElementById('f_passportImg').value,passportFileId:document.getElementById('f_passportFileId').value,trcNo:document.getElementById('f_trcNo').value.trim(),trcExpiry:document.getElementById('f_trcExpiry').value,trcImg:document.getElementById('f_trcImg').value.startsWith('PENDING:')?'':document.getElementById('f_trcImg').value,trcFileId:document.getElementById('f_trcFileId').value,wpNo:document.getElementById('f_wpNo').value.trim(),wpExpiry:document.getElementById('f_wpExpiry').value,wpImg:document.getElementById('f_wpImg').value.startsWith('PENDING:')?'':document.getElementById('f_wpImg').value,wpFileId:document.getElementById('f_wpFileId').value,contractNo:document.getElementById('f_contractNo').value.trim(),appendixNo:document.getElementById('f_appendixNo').value.trim(),salary:document.getElementById('f_salary').value,allowance:document.getElementById('f_allowance').value,contractStartDate:document.getElementById('f_contractStartDate').value,contractExpiry:document.getElementById('f_contractExpiry').value,contractImg:document.getElementById('f_contractImg').value.startsWith('PENDING:')?'':document.getElementById('f_contractImg').value,contractFileId:document.getElementById('f_contractFileId').value};try{let r=await apiPost('SAVE_PROFILE',payload);if(r.status!=='SUCCESS')return toast(r.message);const pending=Object.values(pendingUploads).filter(x=>x&&String(x.employeeId)===payload.employeeId);for(const item of pending){toast('Uploading '+item.fileName+'...');const up=await apiPost('UPLOAD_FILE',{base64Data:item.base64Data,fileName:item.fileName,mimeType:item.mimeType,employeeId:payload.employeeId,subFolderType:item.subFolder});if(up.status!=='SUCCESS')throw new Error(up.message||'Upload failed.');if(item.target==='f_passportImg'){payload.passportImg=up.fileUrl;payload.passportFileId=up.fileId||'';}if(item.target==='f_trcImg'){payload.trcImg=up.fileUrl;payload.trcFileId=up.fileId||'';}if(item.target==='f_wpImg'){payload.wpImg=up.fileUrl;payload.wpFileId=up.fileId||'';}if(item.target==='f_contractImg'){payload.contractImg=up.fileUrl;payload.contractFileId=up.fileId||'';}}if(pending.length){r=await apiPost('SAVE_PROFILE',payload);if(r.status!=='SUCCESS')throw new Error(r.message||'File uploaded but profile update failed.');}Object.keys(pendingUploads).forEach(k=>delete pendingUploads[k]);const verify=await apiGet('GET_PROFILE',{employeeId:payload.employeeId});if(verify.status!=='SUCCESS')throw new Error(verify.message||'Could not verify saved data.');toast('Saved and verified successfully.');closeModal();await loadDashboard();await loadProfile();}catch(err){toast(err.message||'Cannot save employee.');}finally{setButtonBusy(btn,false);}}
+  async function deleteEmployee(encoded){if(!canEdit("employees")){toast("View only: you cannot delete employees.");return;} if(!confirm('Move this employee to INACTIVE and lock the account?'))return;try{const r=await apiPost('DELETE_EMPLOYEE',{employeeId:decodeURIComponent(encoded)});toast(r.message||'');if(r.status==='SUCCESS')await loadDashboard();}catch(e){toast(e.message);}}
+
+  // ---------------- Domestic travel ----------------
+  async function saveDomesticTravel(){if(!canEdit("travel")){toast("View only: you cannot change Domestic Travel records.");return;} const d={employeeId:currentUser.employeeId,fromDate:document.getElementById('travelFromDate').value,toDate:document.getElementById('travelToDate').value,fromLocation:document.getElementById('travelFrom').value.trim(),toLocation:document.getElementById('travelTo').value.trim(),purpose:document.getElementById('travelPurpose').value.trim(),travelId:document.getElementById('travelEditId').value.trim()};if(!d.fromDate||!d.toDate||!d.fromLocation||!d.toLocation)return toast('Please complete travel information.');const btn=document.getElementById('travelBtn');setButtonBusy(btn,true,'Saving...');try{const r=await apiPost(d.travelId?'UPDATE_DOMESTIC_TRAVEL':'ADD_DOMESTIC_TRAVEL',d);toast(r.message||'');if(r.status==='SUCCESS'){resetTravelForm();await loadTravel();if(isHR())await loadDashboard();}}catch(e){toast(e.message);}finally{setButtonBusy(btn,false);}}
+  function resetTravelForm(){['travelEditId','travelFromDate','travelToDate','travelFrom','travelTo','travelPurpose'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});document.getElementById('travelCancelEditBtn').classList.add('hidden');document.getElementById('travelBtn').textContent=(I18N[uiLang]||I18N.en)['travel.submit']||'Submit Travel Request';}
+  async function editDomesticTravel(encoded){if(!canEdit("travel")){toast("View only: you cannot edit Domestic Travel records.");return;} try{const r=await apiGet('GET_DOMESTIC_TRAVEL',{employeeId:currentUser.employeeId}),x=(r.records||[]).find(v=>String(v.travelId)===String(decodeURIComponent(encoded)));if(!x)return toast('Travel schedule not found.');if(x.status==='CANCELLED')return toast('Schedule cancelled.');document.getElementById('travelEditId').value=x.travelId;document.getElementById('travelFromDate').value=x.fromDate||'';document.getElementById('travelToDate').value=x.toDate||'';document.getElementById('travelFrom').value=x.fromLocation||'';document.getElementById('travelTo').value=x.toLocation||'';document.getElementById('travelPurpose').value=x.purpose||'';document.getElementById('travelCancelEditBtn').classList.remove('hidden');document.getElementById('travelBtn').textContent='Update Travel';showPage('travel');window.scrollTo({top:0,behavior:'smooth'});}catch(e){toast(e.message);}}
+  async function cancelDomesticTravel(encoded){if(!canEdit("travel")){toast("View only: you cannot cancel Domestic Travel records.");return;} if(!confirm('Cancel this travel schedule?'))return;try{const r=await apiPost('CANCEL_DOMESTIC_TRAVEL',{travelId:decodeURIComponent(encoded),employeeId:currentUser.employeeId});toast(r.message||'');if(r.status==='SUCCESS'){await loadTravel();if(isHR())await loadDashboard();}}catch(e){toast(e.message);}}
+  async function approveDomesticTravel(encoded,status){if(!canEdit("travel")){toast("View only: you cannot approve/reject Domestic Travel records.");return;} if(!confirm(status==='APPROVED'?'Approve this travel request?':'Reject this travel request?'))return;try{const r=await apiPost('APPROVE_DOMESTIC_TRAVEL',{travelId:decodeURIComponent(encoded),status});toast(r.message||'');if(r.status==='SUCCESS'){await loadTravel();if(isHR())await loadDashboard();}}catch(e){toast(e.message);}}
+  async function loadTravel(){if(!currentUser?.employeeId)return;const b=document.getElementById('travelList');if(!b)return;b.innerHTML='<div class="text-slate-400"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Loading...</div>';try{const r=await apiGet('GET_DOMESTIC_TRAVEL',{employeeId:currentUser.employeeId}),arr=r.records||[];if(!arr.length){b.innerHTML=`<div class="text-slate-400 py-2">${escapeHTML((I18N[uiLang]||I18N.en)['common.noData']||'No data')}</div>`;return;}b.innerHTML=arr.map(x=>{const id=encodeURIComponent(x.travelId),status=String(x.status||'').toUpperCase();const approval=canEdit("travel")&&status==='PENDING'?`<button onclick="approveDomesticTravel('${id}','APPROVED')" class="text-emerald-600" title="Approve"><i class="fa-solid fa-check"></i></button><button onclick="approveDomesticTravel('${id}','REJECTED')" class="text-red-600" title="Reject"><i class="fa-solid fa-xmark"></i></button>`:'';return `<div class="border-b py-3"><div class="flex justify-between gap-3"><div><div class="font-bold text-sm">${escapeHTML(x.fromLocation)} → ${escapeHTML(x.toLocation)}</div><div class="text-xs text-slate-500">${escapeHTML(x.fromDate)} → ${escapeHTML(x.toDate)}</div><div class="text-xs italic text-slate-500 mt-1">Purpose: ${escapeHTML(x.purpose||'-')}</div><div class="text-xs font-bold mt-1 ${status==='APPROVED'?'text-emerald-600':status==='CANCELLED'||status==='REJECTED'?'text-red-600':'text-amber-600'}">${escapeHTML(status)}</div></div><div class="flex gap-3 items-start">${approval}${canEdit("travel")&&status!=='CANCELLED'&&status!=='REJECTED'?`<button onclick="editDomesticTravel('${id}')" class="text-amber-600" title="Edit"><i class="fa-solid fa-pen-to-square"></i></button><button onclick="cancelDomesticTravel('${id}')" class="text-red-600" title="Cancel"><i class="fa-solid fa-ban"></i></button>`:''}</div></div></div>`;}).join('');}catch(e){b.innerHTML='<div class="text-red-500">Unable to load travel history.</div>';}}
+
+  // ---------------- Accounts ----------------
+  async function loadAccounts(){if(!canView("accounts")){toast("You do not have permission to access Accounts.");return;} const tb=document.getElementById('accountTable');if(tb)tb.innerHTML='<tr><td colspan="5" class="p-6 text-center text-slate-400"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Loading...</td></tr>';try{const r=await apiGet('GET_ACCOUNT_USERS');if(r.status!=='SUCCESS')return toast(r.message);accountUsers=r.users||[];renderAccounts();}catch(e){toast(e.message);}}
+  function renderAccounts(){const tb=document.getElementById('accountTable');if(!tb)return;tb.innerHTML=accountUsers.length?accountUsers.map(u=>{const active=String(u.status).toUpperCase()==='ACTIVE',inactiveEmp=String(u.employeeActiveStatus).toUpperCase()==='INACTIVE',id=encodeURIComponent(u.userId),name=encodeURIComponent(u.fullName||u.email||'');let actions='';if(isSuperAdmin()&&String(u.userId)!==String(currentUser.userId))actions+=`<button onclick="openAdminReset('${id}','${name}')" class="text-indigo-600 mr-3" title="Reset password"><i class="fa-solid fa-key"></i></button>`;if(canManageAccounts()&&String(u.userId)!==String(currentUser.userId))actions+=active?`<button onclick="changeAccountStatus('${id}','INACTIVE')" class="text-red-600" title="Lock"><i class="fa-solid fa-lock"></i></button>`:`<button onclick="changeAccountStatus('${id}','ACTIVE')" class="text-emerald-600" title="Unlock"><i class="fa-solid fa-lock-open"></i></button>`;return `<tr class="border-b hover:bg-slate-50"><td class="p-3"><div class="font-semibold">${escapeHTML(u.fullName)}</div><div class="text-xs text-slate-400">${escapeHTML(u.employeeId||'')}</div>${inactiveEmp?'<div class="text-xs text-red-500">Employee INACTIVE</div>':''}</td><td class="p-3">${escapeHTML(u.email||'')}</td><td class="p-3 text-center">${escapeHTML(u.role||'')}</td><td class="p-3 text-center">${active?'<span class="badge bg-emerald-100 text-emerald-700">ACTIVE</span>':'<span class="badge bg-red-100 text-red-700">LOCKED</span>'}</td><td class="p-3 text-center">${actions||'—'}</td></tr>`;}).join(''):'<tr><td colspan="5" class="p-6 text-center text-slate-400">No account.</td></tr>';}
+  function openChangePasswordModal(){if(!canChangePassword()){toast("You do not have permission to change passwords.");return;} document.getElementById('passwordModal').classList.remove('hidden');document.getElementById('cpCurrent').value='';document.getElementById('cpNew').value='';document.getElementById('cpConfirm').value='';setTimeout(()=>document.getElementById('cpCurrent').focus(),50);}
+  function closePasswordModal(){document.getElementById('passwordModal').classList.add('hidden');}
+  async function submitChangePassword(){if(!canChangePassword()){toast("You do not have permission to change passwords.");return;} const np=document.getElementById('cpNew').value;if(np!==document.getElementById('cpConfirm').value)return toast('Passwords do not match.');const btn=document.getElementById('changePasswordBtn');setButtonBusy(btn,true,'Saving...');try{const r=await apiPost('CHANGE_PASSWORD',{currentPassword:document.getElementById('cpCurrent').value,newPassword:np,confirmPassword:document.getElementById('cpConfirm').value});toast(r.message||'');if(r.status==='SUCCESS')closePasswordModal();}catch(e){toast(e.message);}finally{setButtonBusy(btn,false);}}
+  function openAdminReset(encodedUserId,encodedName){if(!canManageAccounts()){toast("ADMIN only for account management.");return;} if(!isSuperAdmin())return toast('ADMIN only.');document.getElementById('resetUserId').value=decodeURIComponent(encodedUserId);document.getElementById('resetTargetInfo').textContent='Account: '+decodeURIComponent(encodedName);document.getElementById('resetNewPassword').value='';document.getElementById('resetConfirmPassword').value='';document.getElementById('resetPasswordModal').classList.remove('hidden');setTimeout(()=>document.getElementById('resetNewPassword').focus(),50);}
+  function closeResetPasswordModal(){document.getElementById('resetPasswordModal').classList.add('hidden');}
+  async function submitAdminResetPassword(){if(!canManageAccounts()){toast("ADMIN only for account management.");return;} const np=document.getElementById('resetNewPassword').value;if(!np||np!==document.getElementById('resetConfirmPassword').value)return toast('Please enter matching new passwords.');const btn=document.getElementById('resetPasswordBtn');setButtonBusy(btn,true,'Resetting...');try{const r=await apiPost('ADMIN_RESET_PASSWORD',{userId:document.getElementById('resetUserId').value,newPassword:np});toast(r.message||'');if(r.status==='SUCCESS'){closeResetPasswordModal();await loadAccounts();}}catch(e){toast(e.message);}finally{setButtonBusy(btn,false);}}
+  async function changeAccountStatus(encoded,status){if(!canManageAccounts()){toast("Only ADMIN can lock or unlock accounts.");return;} const id=decodeURIComponent(encoded);if(!confirm(status==='ACTIVE'?'Unlock this account?':'Lock this account?'))return;try{const r=await apiPost('SET_ACCOUNT_STATUS',{userId:id,status});toast(r.message||'');if(r.status==='SUCCESS')await loadAccounts();}catch(e){toast(e.message);}}
+  function closeModal(){document.getElementById('employeeModal').classList.add('hidden');}
+
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'){document.getElementById('employeeModal')?.classList.add('hidden');document.getElementById('masterImportModal')?.classList.add('hidden');document.getElementById('passwordModal')?.classList.add('hidden');document.getElementById('resetPasswordModal')?.classList.add('hidden');}});
+
+</script>
+</body>
+</html>
