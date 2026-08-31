@@ -532,7 +532,7 @@
     "ADMIN":{dashboard:"FULL",profile:"FULL",immigration:"FULL",travel:"FULL",employees:"FULL",accounts:"FULL",changePassword:"FULL"},
     "HR ADMIN":{dashboard:"FULL",profile:"FULL",immigration:"FULL",travel:"FULL",employees:"FULL",accounts:"VIEW",changePassword:"FULL"},
     "HR":{dashboard:"VIEW",profile:"VIEW",immigration:"VIEW",travel:"VIEW",employees:"VIEW",accounts:"NONE",changePassword:"NONE"},
-    "DIRECTOR":{dashboard:"VIEW",profile:"VIEW",immigration:"VIEW",travel:"VIEW",employees:"VIEW",accounts:"NONE",changePassword:"NONE"},
+    "DIRECTOR":{dashboard:"VIEW",profile:"VIEW",immigration:"FULL",travel:"FULL",employees:"VIEW",accounts:"NONE",changePassword:"NONE"},
     "USER":{dashboard:"NONE",profile:"VIEW",immigration:"FULL",travel:"FULL",employees:"NONE",accounts:"NONE",changePassword:"FULL"}
   };
   function role(){return String(currentUser?.role||"").trim().toUpperCase();}
