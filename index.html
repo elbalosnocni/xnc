@@ -218,7 +218,7 @@
 
       <div id="eeSingleFields" class="hidden border rounded-2xl p-5 bg-slate-50 mt-5">
         <div class="grid md:grid-cols-2 gap-3">
-          <div><label class="text-xs font-semibold" data-i18n="entryExit.type">Type</label><select id="eeType" class="input mt-1"><option value="ENTRY" data-i18n="entryExit.entry">Entry</option><option value="EXIT" data-i18n="entryExit.exit">Exit</option></select></div>
+          <input id="eeType" type="hidden" value="">
           <div><label class="text-xs font-semibold" data-i18n="entryExit.planned">Planned date & time</label><input id="eePlannedDate" type="datetime-local" class="input mt-1"></div>
           <div><label class="text-xs font-semibold" data-i18n="entryExit.actual">Actual date & time</label><input id="eeActualDate" type="datetime-local" class="input mt-1"></div>
           <div><label class="text-xs font-semibold" data-i18n="entryExit.port">Airport / border gate</label><input id="eeAirport" class="input mt-1" data-i18n-placeholder="entryExit.portPlaceholder"></div>
