@@ -1,0 +1,1225 @@
+<!DOCTYPE html>
+<!-- saved from url=(0026)https://hrm.dnd.vn/lwlogin -->
+<html lang="en" translate="no" class=" "><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    
+    <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=0,minimum-scale=1,maximum-scale=1">
+    <!--<meta http-equiv="X-UA-Compatible" content="ie=edge">-->
+    <title>Firewall - Login</title>
+    <style type="text/css">
+        body {
+            margin: 0;
+            padding: 0;
+        }
+
+        .init-bg {
+            background: #6666;
+        }
+
+        .ekko-lightbox-loader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            width: 100%;
+            display: -ms-flexbox;
+            display: flex;
+            -ms-flex-direction: column;
+            flex-direction: column;
+            -ms-flex-pack: center;
+            justify-content: center;
+            -ms-flex-align: center;
+            align-items: center;
+            z-index: 999999;
+        }
+
+        #poorway {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            left: -100px;
+            top: -100px;
+        }
+
+        .div_slider_exlogin {
+            position: fixed;
+            z-index: 99999;
+            top: 0px;
+            width: 100%;
+            bottom: 0px;
+            /* complete liquid height based on the parent's height!! */
+            height: 100%;
+            width: 100%;
+            /* only transition on transform properties which are hardware accelerated = way better performances */
+            -webkit-transition: -webkit-transform .3s ease;
+            -moz-transition: -moz-transform .3s ease;
+            -ms-transition: -ms-transform .3s ease;
+            transition: transform .3s ease;
+            background-color: #f7f7f8;
+        }
+
+        .exhi_opened {
+            overflow-y: hidden;
+        }
+
+        .exhi_closed {
+            overflow-y: auto;
+        }
+
+        .exhi_opened .div_slider_exlogin {
+            /* visible */
+            -webkit-transform: translate(0, 0%);
+            -moz-transform: translate(0, 0%);
+            -ms-transform: translate(0, 0%);
+            transform: translate(0, 0%);
+        }
+
+        .exhi_closed .div_slider_exlogin {
+            /* completely offscreen */
+            -webkit-transform: translate(0, -100%);
+            -moz-transform: translate(0, -100%);
+            -ms-transform: translate(0, -100%);
+            transform: translate(0, -100%);
+        }
+
+        .exhi_newtabshow .div_slider_exlogin {
+            display: none !important;
+        }
+
+
+        .div_slider_exlogin > iframe {
+            width: 100%;
+            position: fixed;
+            top: 0px;
+            bottom: 0px;
+            border: 0px;
+            height: 100%;
+            right: 0px;
+            left: 0px;
+        }
+
+        #ld3 {
+            position: relative;
+            animation: outercontainer 4s linear infinite;
+        }
+
+            #ld3 div {
+                height: 16px;
+                width: 16px;
+                border-radius: 50%;
+                position: absolute;
+                top: 0;
+                bottom: 0;
+                left: 0;
+                right: 0;
+            }
+
+                #ld3 div:nth-child(1) {
+                    top: 20px;
+                    background: #59CD90;
+                    animation: ld3_div1 2s linear infinite;
+                }
+
+                #ld3 div:nth-child(2) {
+                    top: -20px;
+                    background: #D91E36;
+                    animation: ld3_div2 2s linear infinite;
+                }
+
+                #ld3 div:nth-child(3) {
+                    left: 20px;
+                    background: #F39237;
+                    animation: ld3_div4 2s linear infinite;
+                }
+
+                #ld3 div:nth-child(4) {
+                    left: -20px;
+                    background: #0072BB;
+                    animation: ld3_div3 2s linear infinite;
+                }
+
+        @keyframes outercontainer {
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        @keyframes ld3_div1 {
+            0% {
+                top: 20px;
+            }
+
+            25% {
+                top: 0;
+            }
+
+            50% {
+                top: 20px;
+            }
+
+            75% {
+                top: 0;
+            }
+
+            100% {
+                top: 20px;
+            }
+        }
+
+        @keyframes ld3_div2 {
+            0% {
+                top: -20px;
+            }
+
+            25% {
+                top: 0;
+            }
+
+            50% {
+                top: -20px;
+            }
+
+            75% {
+                top: 0;
+            }
+
+            100% {
+                top: -20px;
+            }
+        }
+
+        @keyframes ld3_div3 {
+            0% {
+                left: -20px;
+            }
+
+            25% {
+                left: 0;
+            }
+
+            50% {
+                left: -20px;
+            }
+
+            75% {
+                left: 0;
+            }
+
+            100% {
+                left: -20px;
+            }
+        }
+
+        @keyframes ld3_div4 {
+            0% {
+                left: 20px;
+            }
+
+            25% {
+                left: 0;
+            }
+
+            50% {
+                left: 20px;
+            }
+
+            75% {
+                left: 0;
+            }
+
+            100% {
+                left: 20px;
+            }
+        }
+        #frm_login {
+            background-image: url(https://hellohrm.github.io/utils/pagelands/images/Cuckoo.png);
+            background-repeat: no-repeat;
+            background-size: 45px 45px;
+            background-position: 10px 10px;
+        }
+    </style>
+<link rel="stylesheet" type="text/css" href="./Firewall - Login_files/hellohrm.css"><link rel="stylesheet" type="text/css" id="vendors.bundle.bootstrap.css" href="./Firewall - Login_files/vendors.bundle.bootstrap.css"><link rel="stylesheet" type="text/css" href="./Firewall - Login_files/theme.bundle.min.css"><link rel="stylesheet" type="text/css" id="skin_color" href="./Firewall - Login_files/theme-2.min.css">
+    
+    
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge">
+    <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=0,minimum-scale=1,maximum-scale=1">
+
+    <meta name="apple-mobile-web-app-capable" content="yes">
+ 
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+
+    <meta content="Hello-HRM" name="description">
+    <meta content="HelloHRM" name="author">
+    <meta name="msapplication-TileColor" content="#ffffff">
+    <meta name="theme-color" content="#ffffff">
+    <!--<link href="https://adamschwartz.co/chrome-tabs/css/chrome-tabs-dark-theme.css" rel="stylesheet" />-->
+
+<link rel="stylesheet" type="text/css" id="vendors.bundle.min.css" href="./Firewall - Login_files/vendors.bundle.min.css"><link rel="stylesheet" type="text/css" id="JS_JS_reglv.css" href="./Firewall - Login_files/JS_JS_reglv.css"><link rel="stylesheet" type="text/css" id="devthemes.css" href="./Firewall - Login_files/dx.dark.min.css"><link rel="stylesheet" type="text/css" href="./Firewall - Login_files/hellodev.css"></head>
+<body class="darkcolor dx-device-desktop dx-device-generic">
+    <div id="helloguy" class="ekko-lightbox-loader" style="display: none;"><div class=""></div><div style="width: 60px; height: 60px;"><div class="dx-loadindicator-wrapper"><div class="dx-loadindicator-content"><div class="dx-loadindicator-icon"><div class="dx-loadindicator-segment dx-loadindicator-segment7"></div><div class="dx-loadindicator-segment dx-loadindicator-segment6"></div><div class="dx-loadindicator-segment dx-loadindicator-segment5"></div><div class="dx-loadindicator-segment dx-loadindicator-segment4"></div><div class="dx-loadindicator-segment dx-loadindicator-segment3"></div><div class="dx-loadindicator-segment dx-loadindicator-segment2"></div><div class="dx-loadindicator-segment dx-loadindicator-segment1"></div><div class="dx-loadindicator-segment dx-loadindicator-segment0"></div></div></div></div><div></div></div></div>
+
+    <iframe id="poorway" data-src="&lt;form&gt;&lt;input type=&quot;hidden&quot; name=&quot;whoami&quot; id=&quot;whoami&quot; data-whoareu=&quot;&quot; data-prefixsrc=&quot;https://hrm.dnd.vn&quot;/&gt;&lt;input type=&quot;hidden&quot; name=&quot;diesvr&quot; id=&quot;diesvr&quot; value=&quot;&quot; /&gt;&lt;/form&gt;" data-lang="" pages-dev="" mrweb="https://hellohrm.github.io/utils|https://fwlogin.pages.dev/liway_login" style="position:fixed;width:1px;height:1px;left:-10px;visibility: hidden;" src="./Firewall - Login_files/saved_resource.html"></iframe>
+
+
+
+<div id="app" style="" class="app-navbar-fixed app-sidebar-fixed app-sidebar-closed darkcolor only1tab">
+    <div class="modal fade popuphwnd" id="popuphwnd" tabindex="-1" role="dialog" data-backdrop="static" data-keyboard="false">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header-full-width modal-header">
+                    <h5 class="modal-title w-100">Title</h5>
+                    <button type="button" class="close " data-dismiss="modal" aria-label="Close">
+                        <span style="font-size: 1.3em;" aria-hidden="true">×</span>
+                    </button>
+                </div>
+                <div class="modal-body"></div>
+                <div class="modal-footer-full-width  modal-footer">
+                    <button id="popupdone" type="button" class="btn btn-primary btn-md btn-rounded">Save changes</button>
+                    <button type="button" class="btn btn-secondary btn-md btn-rounded" data-dismiss="modal" lanf="f_003_1">
+                        Đóng                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="sidebar app-aside" id="sidebar">
+        <div class="sidebar-container perfect-scrollbar ps">
+            <nav>
+                <div class="search-form">
+                    <a class="s-open" href="https://hrm.dnd.vn/lwlogin#">
+                        <i class="ti-search"></i>
+                    </a>
+                    <form class="navbar-form" role="search">
+                        <a class="s-remove" href="https://hrm.dnd.vn/lwlogin#" target=".navbar-form">
+                            <i class="ti-close"></i>
+                        </a>
+                        <div class="form-group">
+                            <input type="text" class="form-control" lanf="placeholderf_003_5" placeholder="Tìm kiếm ...">
+                            <button class="btn search-button" type="submit">
+                                <i class="ti-search"></i>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                <!--<div class="navbar-title">
+                    <span>Main Navigation</span>
+                </div>-->
+
+
+
+
+
+                
+<ul class="main-navigation-menu" style="margin:0px;">
+    <li class="">
+        <a id="JS_reglv">
+            <div class="item-content">
+                <div class="item-media">
+                    <i class="ti-marker-alt"></i>
+                </div>
+                <div class="item-inner">
+                    <span class="title">
+                        Đăng Ký Chấm Công                    </span>
+                </div>
+            </div>
+        </a>
+    </li>
+
+    <li class="">
+        <a id="JS_userprofile">
+            <div class="item-content">
+                <div class="item-media">
+                    <i class="ti-user"></i>
+                </div>
+                <div class="item-inner">
+                    <span class="title">
+                        Quản lý Đăng nhập                    </span>
+                </div>
+
+            </div>
+        </a>
+    </li>
+
+    
+    <li>
+        <a id="JS_excel">
+            <div class="item-content">
+                <div class="item-media">
+                    <i class="ti-server" aria-hidden="true"></i>
+                </div>
+                <div class="item-inner">
+                    <span class="title">
+                        Regis Data Management
+                    </span>
+                </div>
+            </div>
+        </a>
+    </li>
+
+    
+</ul>
+
+
+
+
+
+
+
+
+                
+
+
+
+
+
+
+
+
+
+                <div class="wrapper">
+                    <!--<a href="javascript:void(0)" onclick="admin$.mnujob(this, 'dev_hsnv');" class="button-o">-->
+                    <a id="tmp_cakip_overview" class="button-o">
+                        <i class="ti-help"></i>
+                        <span lanf="f_003_12" class="title">
+                            Tài liệu hướng dẫn                        </span>
+                    </a>
+                </div>
+            </nav>
+        <div class="ps__rail-x" style="left: 0px; bottom: 0px;"><div class="ps__thumb-x" tabindex="0" style="left: 0px; width: 0px;"></div></div><div class="ps__rail-y" style="top: 0px; right: 0px;"><div class="ps__thumb-y" tabindex="0" style="top: 0px; height: 0px;"></div></div></div>
+    </div>
+    <div class="app-content" style="position: relative; top: auto; width: auto;">
+        <header class="navbar navbar-expand-lg navbar-light navbar-static-top">
+
+            <div class="navbar-header">
+                <a href="https://hrm.dnd.vn/lwlogin#" id="mnucmd" class="sidebar-mobile-toggler float-left d-lg-none" data-toggle-class="app-slide-off" data-toggle-target="#app" data-toggle-click-outside="#sidebar">
+                    <i class="ti-align-justify" style="font-size:larger"></i>
+                </a>
+                <a class="navbar-brand" href="javascript:void(0)">
+                    <img src="./Firewall - Login_files/hellologo.png" alt="Hello" width="40">
+                </a>
+                <a href="https://hrm.dnd.vn/lwlogin#" class="sidebar-toggler float-right d-none d-lg-block d-xl-block" data-toggle-class="app-sidebar-closed" data-toggle-target="#app">
+                    <i class="ti-align-justify" style="font-size:larger"></i>
+                </a>
+                <!--<a class="float-right menu-toggler d-block d-sm-none" id="menu-toggler" data-toggle="collapse" href=".navbar-collapse">
+                    <span class="sr-only">Toggle navigation</span>
+                    <i class="ti-view-grid"></i>
+                </a>-->
+            </div>
+            <div class="container-navbar-right">
+                <ul class="navbar-right">
+                    <li class="dropdown d-none">
+                        <a href="javascript:void(0)" data-parent-tab="#offTab" data-tab="#off-users" class="sidebar-mobile-toggler" data-toggle-class="app-offsidebar-open" data-toggle-target="#app" data-toggle-click-outside="#off-sidebar">
+                            <span class="hieu-badge partition-red animated infinite pulse">1</span>
+                            <i class="ti-comment animated bounce"></i>
+                            <span lanf="f_003_16" class="d-none d-md-block d-lg-block d-xl-block">
+                                TIN NHẮN                            </span>
+                        </a>
+                    </li>
+                    <li class="dropdown">
+                        <a href="javascript:void(0)" class="dropdown-toggle" data-toggle="dropdown">
+                            <i class="flag-icon flag-icon-vi"></i>
+                            <span lanf="lanCF1" class="d-none d-md-block d-lg-block d-xl-block">
+                                Tiếng Việt                            </span>
+                        </a>
+                        <div id="sellan" role="menu" class="dropdown-menu dropdown-menu-right dropdown-light dropdown-alignleft">
+                            <a lang="en" class="dropdown-item">
+                                <i class="ti-check" style="visibility:hidden;"></i>
+                                <span>
+                                    <i class="flag-icon  flag-icon-en"></i>
+                                    English                                </span>
+                            </a>
+                            <a lang="vi" class="dropdown-item">
+                                <i class="ti-check" style="visibility:visible;"></i>
+                                <span>
+                                    <i class="flag-icon  flag-icon-vi"></i>
+                                    Tiếng Việt                                </span>
+                            </a>
+                        </div>
+                    </li>
+
+                    <li class="dropdown current-user d-md-block d-lg-block d-xl-block">
+
+                        <a class="dropdown-toggle" data-toggle="dropdown">
+
+                            <img src="./Firewall - Login_files/71.jpg" alt="Guest">
+
+                            <span class="username">SetUp<i class="ti-angle-down hasusr"></i></span>
+
+                        </a>
+
+                        <ul class="dropdown-menu dropdown-menu-right dropdown-light acclogin_menu">
+
+                            
+                            <lo class="dropdown-item" lang="out">
+                                <a>
+                                    Đăng xuất                                </a>
+                            </lo>
+
+                                                    </ul>
+
+                    </li>
+
+                </ul>
+            </div>
+
+            <a class="dropdown-off-sidebar sidebar-mobile-toggler d-md-block d-lg-block" data-toggle-class="app-offsidebar-open" data-toggle-target="#app" data-toggle-click-outside="#off-sidebar"></a> &nbsp;
+            <a class="dropdown-off-sidebar sidebar-mobile-toggler d-none d-sm-block" data-toggle-class="app-offsidebar-open" data-toggle-target="#app" data-toggle-click-outside="#off-sidebar">&nbsp;</a>
+
+        </header>
+
+        <div class="main-content">
+
+            <div class="toikhoqua" style="">
+                <div class="chrome-tabs" style="--tab-content-margin: 9px; width: 2234.06px;" data-chrome-tabs-instance-id="0">
+                    <div class="chrome-tabs-content">
+                        <!--<div class="chrome-tab">
+                <div class="chrome-tab-dividers"></div>
+                <div class="chrome-tab-background">
+                    <svg version="1.1" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <symbol id="chrome-tab-geometry-left" viewbox="0 0 214 36">
+                                <path d="M17 0h197v36H0v-2c4.5 0 9-3.5 9-8V8c0-4.5 3.5-8 8-8z"></path>
+                            </symbol>
+                            <symbol id="chrome-tab-geometry-right" viewbox="0 0 214 36">
+                                <use xlink:href="#chrome-tab-geometry-left"></use>
+                            </symbol>
+                            <clippath id="crop">
+                                <rect class="mask" width="100%" height="100%" x="0"></rect>
+                            </clippath>
+                        </defs>
+                        <svg width="52%" height="100%">
+                            <use xlink:href="#chrome-tab-geometry-left" width="214" height="36" class="chrome-tab-geometry"></use>
+                        </svg>
+                        <g transform="scale(-1, 1)">
+                            <svg width="52%" height="100%" x="-100%" y="0">
+                                <use xlink:href="#chrome-tab-geometry-right" width="214" height="36" class="chrome-tab-geometry"></use>
+                            </svg>
+                        </g>
+                    </svg>
+                </div>
+                <div class="chrome-tab-content">
+                    <div class="chrome-tab-favicon" style="background-image: url('https://hrm.dnd.vn/media/vendor/chrome-tabs/demo/images/google-favicon.ico')"></div>
+                    <div class="chrome-tab-title">Google</div>
+                    <div class="chrome-tab-drag-handle"></div>
+                    <div class="chrome-tab-close"></div>
+                </div>
+            </div>-->
+                        <!--<div class="chrome-tab" data-tab-id="overview" active>
+                        <div class="chrome-tab-dividers"></div>
+                        <div class="chrome-tab-background">
+                            <svg version="1.1" xmlns="http://www.w3.org/2000/svg">
+                                <defs>
+                                    <symbol id="chrome-tab-geometry-left" viewbox="0 0 214 36">
+                                        <path d="M17 0h197v36H0v-2c4.5 0 9-3.5 9-8V8c0-4.5 3.5-8 8-8z"></path>
+                                    </symbol>
+                                    <symbol id="chrome-tab-geometry-right" viewbox="0 0 214 36">
+                                        <use xlink:href="#chrome-tab-geometry-left"></use>
+                                    </symbol>
+                                    <clippath id="crop">
+                                        <rect class="mask" width="100%" height="100%" x="0"></rect>
+                                    </clippath>
+                                </defs>
+                                <svg width="52%" height="100%">
+                                    <use xlink:href="#chrome-tab-geometry-left" width="214" height="36" class="chrome-tab-geometry"></use>
+                                </svg>
+                                <g transform="scale(-1, 1)">
+                                    <svg width="52%" height="100%" x="-100%" y="0">
+                                        <use xlink:href="#chrome-tab-geometry-right" width="214" height="36" class="chrome-tab-geometry"></use>
+                                    </svg>
+                                </g>
+                            </svg>
+                        </div>
+                        <div class="chrome-tab-content">
+                            <div class="chrome-tab-favicon" style="background-image: url('https://hrm.dnd.vn/media/vendor/chrome-tabs/demo/images/facebook-favicon.ico')"></div>
+                            <div class="chrome-tab-title">Facebook Facebook Facebook Facebook</div>
+                            <div class="chrome-tab-drag-handle"></div>
+                            <div class="chrome-tab-close"></div>
+                        </div>
+                    </div>-->
+                    <div class="chrome-tab" data-tab-id="JS_reglv" active="" style="width: 258px;">
+      <div class="chrome-tab-dividers"></div>
+      <div class="chrome-tab-background">
+        <svg version="1.1" xmlns="http://www.w3.org/2000/svg"><defs><symbol id="chrome-tab-geometry-left" viewBox="0 0 214 36"><path d="M17 0h197v36H0v-0c4.5 0 9-3.5 9-8V8c0-4.5 3.5-8 8-8z"></path></symbol><symbol id="chrome-tab-geometry-right" viewBox="0 0 214 36"><use xlink:href="#chrome-tab-geometry-left"></use></symbol><clippath id="crop"><rect class="mask" width="100%" height="100%" x="0"></rect></clippath></defs><svg width="52%" height="100%"><use xlink:href="#chrome-tab-geometry-left" width="214" height="36" class="chrome-tab-geometry"></use></svg><g transform="scale(-1, 1)"><svg width="52%" height="100%" x="-100%" y="0"><use xlink:href="#chrome-tab-geometry-right" width="214" height="36" class="chrome-tab-geometry"></use></svg></g></svg>
+      </div>
+      <div class="chrome-tab-content">
+        <div class="chrome-tab-favicon"><i class="ti-marker-alt"></i></div>
+        <div class="chrome-tab-title">Đăng Ký Chấm Công</div>
+        <div class="chrome-tab-drag-handle"></div>
+        <div class="chrome-tab-close"></div>
+      </div>
+    </div></div>
+                <style>
+          .chrome-tabs[data-chrome-tabs-instance-id="0"] .chrome-tab:nth-child(1) {
+            transform: translate3d(0px, 0, 0)
+          }
+        </style></div>
+
+                <!--<div class="chrome-tabs-bottom-bar"></div>-->
+
+            </div>
+      
+            <div class="wrap-content container" id="app_container" style="padding-left:0px;padding-right:0px">
+                <!--<iframe src="https://hrpro.cf/login" style="width:100%; height: 500px;"></iframe>-->
+
+            <div id="tabBODY_JS_reglv" class="noneifrm">
+
+
+<style type="text/css">
+
+</style>
+
+
+
+<div class="form_container" style="">
+
+    <div class="position-relative">
+
+        <div class="long-title d-flex align-items-center justify-content-center">
+
+            <div class="second-group ml-3 mr-auto p-1" style="max-width:400px;border-radius:10px;padding:0 5px 3px!important">
+                <div arr-lang="js_011_31" lanidx="0" class="text-center text-secondary font-italic pt-1">Chọn Từ ngày - Đến ngày để giới hạn dữ liệu hiển thị</div>
+                <div class="row" style="min-width: 400px">
+                    <div class="col-5">
+                        <div class="lk_tungay dx-show-invalid-badge dx-datebox dx-textbox dx-texteditor dx-dropdowneditor-button-visible dx-editor-outlined dx-widget dx-visibility-change-handler dx-auto-width dx-dropdowneditor dx-datebox-date dx-datebox-calendar"><div class="dx-dropdowneditor-input-wrapper"><input type="hidden" value="2026-09-01"><div class="dx-texteditor-container"><div class="dx-texteditor-input-container"><input autocomplete="off" class="dx-texteditor-input" aria-haspopup="true" aria-autocomplete="list" type="text" spellcheck="false" tabindex="0" role="combobox" aria-expanded="false"><div data-dx_placeholder="Từ ngày" class="dx-placeholder dx-state-invisible"></div></div><div class="dx-texteditor-buttons-container"><div></div><div role="button" class="dx-widget dx-button-mode-contained dx-button-normal dx-dropdowneditor-button" aria-label="Select"><div class="dx-button-content"><div class="dx-dropdowneditor-icon"></div></div></div></div></div></div></div>
+                    </div>
+                    <div class="col-2 p-1 text-center align-self-end">
+                        <button style="padding: 4px 5px 0px;" mnu="gview" type="button" class="btn btn-sm btn-warning">
+                            <i class="ti-view-grid"></i>
+                        </button>
+                        <button style="padding: 4px 5px 0px;" mnu="gfilter" type="button" class="btn btn-sm btn-secondary">
+                            <i class="ti-reload"></i>
+                        </button>
+                    </div>
+                    <div class="col-5">
+                        <div class="lk_dengay dx-show-invalid-badge dx-datebox dx-textbox dx-texteditor dx-dropdowneditor-button-visible dx-editor-outlined dx-widget dx-visibility-change-handler dx-auto-width dx-dropdowneditor dx-datebox-date dx-datebox-calendar"><div class="dx-dropdowneditor-input-wrapper"><input type="hidden" value="2026-09-30"><div class="dx-texteditor-container"><div class="dx-texteditor-input-container"><input autocomplete="off" class="dx-texteditor-input" aria-haspopup="true" aria-autocomplete="list" type="text" spellcheck="false" tabindex="0" role="combobox" aria-expanded="false"><div data-dx_placeholder="Đến ngày" class="dx-placeholder dx-state-invisible"></div></div><div class="dx-texteditor-buttons-container"><div></div><div role="button" class="dx-widget dx-button-mode-contained dx-button-normal dx-dropdowneditor-button" aria-label="Select"><div class="dx-button-content"><div class="dx-dropdowneditor-icon"></div></div></div></div></div></div></div>
+                    </div>
+                </div>
+            </div>
+            <div mnu="tuychon" class="btn ti-settings p-2" style="font-size: 20px;"></div>
+
+            <div style="flex:0.3;text-align:right"><a mnu="start_mnu" style="padding: 10px;border-radius: 50%;font-size:large" type="button" class="btn btn-primary ti-plus start_mnu _close"></a><div></div></div><h3 class="frm_tieude ml-3" style="flex:0.7;text-align:left">
+                <span data-lang="js_011_1">Đăng Ký Chấm Công</span>
+            </h3>
+            
+            <span type="button" class="btn btn-outline-info btn-sm pull-right margin-left-10 mr-3">
+                <i class="ti-help"></i>
+                <span class="d-none d-sm-inline">Help</span>
+            </span>
+            
+            
+
+        </div>
+    </div>
+
+
+
+    <!--1. thu tu tim build-->
+    <div class="divfrm"><div class="fuck_reg row" style="margin:0"><div class="col-12 col-xxl-6" style="padding:0"><div class="re_ca_bo card-footer p-0">
+                    <!-- Nav profile pages -->
+                    <ul class="nav nav-bottom-line align-items-center justify-content-center  mb-0 border-0">
+                        <li class="nav-item">
+                            <a mnu="1" class="nav-link">
+                                <div class="d-flex">
+                                    <span arr-lang="js_011_33" lanidx="3">Sự Kiện</span>
+                                    <!--<span class="badge text-success small"> 230</span>-->
+                                </div>
+                            </a>
+                        </li>
+                        <li class="nav-item rmv_self">
+                            <a mnu="2" class="nav-link">
+                                <div class="d-flex">
+                                    <span arr-lang="js_011_33" lanidx="4">Lịch Sử Của Tôi</span>
+                                    <!--<span class="badge text-success small sig_refresh">
+                                        <i class="ti-reload"></i>
+                                    </span>-->
+                                </div>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a mnu="3" class="nav-link active">
+                                <div class="d-flex">
+                                    <span arr-lang="js_011_33" lanidx="5">Tất Cả Lịch Sử</span>
+                                </div>
+                            </a>
+                        </li>
+                        <!--<li class="nav-item">
+                            <a mnu="4" class="nav-link">
+                                <div class="d-flex">
+                                    <span>(Tat ca lich su)</span>
+                                </div>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="javascript:void(0)">
+                                <div class="d-flex">
+                                    <span>Videos</span>
+                                </div>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="javascript:void(0)"> Activity</a>
+                        </li>-->
+                    </ul>
+                </div><div class="fuckdrawer dx-drawer dx-widget dx-visibility-change-handler dx-drawer-shrink dx-drawer-expand dx-drawer-top dx-drawer-opened" style="width: 100%; height: 100%;"><div class="dx-drawer-wrapper"><div class="dx-drawer-panel-content" style="height: 736px; transition: none;"><div><div style="box-shadow: inset 0 8px 10px -6px rgba(191, 191, 191, 0.15);" class="dx-toolbar dx-widget dx-visibility-change-handler dx-collection" role="toolbar"><div class="dx-toolbar-items-container"><div class="dx-toolbar-before"><div class="dx-item dx-toolbar-item dx-toolbar-button"><div class="dx-item-content dx-toolbar-item-content"><div role="button" aria-label="menu" class="dx-widget dx-button dx-button-mode-text dx-button-normal dx-button-has-icon" tabindex="0"><div class="dx-button-content"><i class="dx-icon dx-icon-menu"></i></div></div></div></div><div class="dx-item dx-toolbar-item dx-toolbar-button"><div class="dx-item-content dx-toolbar-item-content"><div class="informer"><div class="count">Nhóm theo</div></div></div></div><div class="dx-item dx-toolbar-item dx-toolbar-button"><div class="dx-item-content dx-toolbar-item-content"><div class="dx-show-invalid-badge dx-selectbox dx-textbox dx-texteditor dx-dropdowneditor-button-visible dx-editor-outlined dx-widget dx-dropdowneditor dx-dropdowneditor-field-clickable" style="width: 225px;"><div class="dx-dropdowneditor-input-wrapper dx-selectbox-container"><input type="hidden" value=""><div class="dx-texteditor-container"><div class="dx-texteditor-input-container"><input autocomplete="off" class="dx-texteditor-input" aria-haspopup="listbox" aria-autocomplete="list" type="text" readonly="" spellcheck="false" tabindex="0" role="combobox" aria-expanded="false"><div data-dx_placeholder="Chọn..." class="dx-placeholder dx-state-invisible"></div></div><div class="dx-texteditor-buttons-container"><div></div><div role="button" class="dx-widget dx-button-mode-contained dx-button-normal dx-dropdowneditor-button" aria-label="Select"><div class="dx-button-content"><div class="dx-dropdowneditor-icon"></div></div></div></div></div></div></div></div></div><div class="dx-item dx-toolbar-item dx-toolbar-button"><div class="dx-item-content dx-toolbar-item-content"><div role="button" aria-label="Collapse All" aria-hidden="true" class="dx-widget dx-button dx-button-mode-contained dx-button-normal dx-button-has-text dx-state-invisible" tabindex="0" style="width: 136px;"><div class="dx-button-content"><span class="dx-button-text">Collapse All</span></div></div></div></div><div class="dx-item dx-toolbar-item dx-toolbar-button"><div class="dx-item-content dx-toolbar-item-content"><div role="button" aria-label="Sửa" aria-disabled="true" class="dx-widget dx-button dx-button-mode-text dx-button-normal dx-button-has-text dx-button-has-icon dx-state-disabled"><div class="dx-button-content"><i class="dx-icon dx-icon-edit"></i><span class="dx-button-text">Sửa</span></div></div></div></div><div class="dx-item dx-toolbar-item dx-toolbar-button"><div class="dx-item-content dx-toolbar-item-content"><div role="button" aria-label="Xóa" aria-disabled="true" class="dx-widget dx-button dx-button-mode-text dx-button-danger dx-button-has-text dx-button-has-icon dx-state-disabled" tabindex="-1"><div class="dx-button-content"><i class="dx-icon dx-icon-trash"></i><span class="dx-button-text">Xóa</span></div></div></div></div></div><div class="dx-toolbar-center" style="margin: 0px 49.6667px 0px 504.083px; float: none;"></div><div class="dx-toolbar-after"><div class="dx-item dx-toolbar-item dx-toolbar-button"><div class="dx-item-content dx-toolbar-item-content"><div role="button" aria-label="ti ti-close" class="dx-widget dx-button dx-button-mode-text dx-button-danger dx-button-has-icon" tabindex="0"><div class="dx-button-content"><i class="dx-icon ti ti-close"></i></div></div></div></div></div></div></div><div class="luoi_head bo_line_top gid_lineh_1 dx-widget dx-visibility-change-handler" role="presentation" style="width: 100%; height: 700px;"><div class="dx-datagrid dx-gridbase-container dx-datagrid-borders" role="group" aria-label="Data grid"><div class="dx-hidden"></div><div class="dx-hidden"></div><div class="dx-hidden"></div><div class="dx-hidden"></div><div class="dx-datagrid-headers dx-datagrid-nowrap dx-header-multi-row" role="presentation" style="padding-right: 0px;"><div class="dx-datagrid-scrollable-simulated dx-datagrid-content dx-datagrid-scroll-container" role="presentation"><table class="dx-datagrid-table dx-datagrid-table-fixed"><colgroup><col style="width: 50px;"><col><col style="width: 100px;"><col><col style="width: 70px;"><col style="width: 70px;"><col style="width: 75px;"><col style="width: 100px;"><col><col style="width: 100px;"><col style="width: 100px;"></colgroup><tbody role="presentation"><tr class="dx-row dx-column-lines dx-header-row" role="row"><td class="text-wrap text-center dx-datagrid-action dx-cell-focus-disabled" rowspan="2" role="columnheader" aria-colindex="1" id="dx-col-1" aria-label="Column STT" aria-sort="none" tabindex="0" style="text-align: right;"><div class="dx-column-indicators" role="presentation" style="float: left;"><span class="dx-sort dx-sort-none"></span></div><div class="dx-datagrid-text-content dx-text-content-alignment-right" role="presentation">STT</div></td><td rowspan="2" role="columnheader" aria-colindex="2" id="dx-col-2" aria-label="Column Loại đăng ký" class="dx-datagrid-action dx-cell-focus-disabled" aria-sort="none" tabindex="0" style="text-align: left;"><div class="dx-column-indicators" role="presentation" style="float: right;"><span class="dx-sort dx-sort-none"></span><span class="dx-header-filter dx-header-filter-empty" tabindex="0" aria-label="Show filter options for column &#39;Loại đăng ký&#39;" aria-haspopup="dialog" role="button"></span></div><div class="dx-datagrid-text-content dx-text-content-alignment-left dx-header-filter-indicator" role="presentation">Loại đăng ký</div></td><td rowspan="2" role="columnheader" aria-colindex="3" id="dx-col-3" aria-label="Column Ngày" class="dx-datagrid-action dx-cell-focus-disabled" aria-sort="none" tabindex="0" style="text-align: left;"><div class="dx-column-indicators" role="presentation" style="float: right;"><span class="dx-sort dx-sort-none"></span></div><div class="dx-datagrid-text-content dx-text-content-alignment-left" role="presentation">Ngày</div></td><td rowspan="2" role="columnheader" aria-colindex="4" id="dx-col-4" aria-label="Column Trạng thái" class="dx-datagrid-action dx-cell-focus-disabled" aria-sort="none" tabindex="0" style="text-align: left;" title="Trạng thái"><div class="dx-column-indicators" role="presentation" style="float: right;"><span class="dx-sort dx-sort-none"></span><span class="dx-header-filter dx-header-filter-empty" tabindex="0" aria-label="Show filter options for column &#39;Trạng thái&#39;" aria-haspopup="dialog" role="button" title=""></span></div><div class="dx-datagrid-text-content dx-text-content-alignment-left dx-header-filter-indicator" role="presentation">Trạng thái</div></td><td class="w_1 dx-datagrid-action dx-cell-focus-disabled" rowspan="2" role="columnheader" aria-colindex="5" id="dx-col-5" aria-label="Column Tài liệu đính kèm" aria-sort="none" tabindex="0" style="text-align: right;"><div class="dx-column-indicators" role="presentation" style="float: left;"><span class="dx-sort dx-sort-none"></span></div><div class="dx-datagrid-text-content dx-text-content-alignment-right" role="presentation">Tài liệu đính kèm</div></td><td class="w_1 dx-datagrid-action dx-cell-focus-disabled" rowspan="2" role="columnheader" aria-colindex="6" id="dx-col-6" aria-label="Column Nhân viên hiệu lực" aria-sort="none" tabindex="0" style="text-align: right;"><div class="dx-column-indicators" role="presentation" style="float: left;"><span class="dx-sort dx-sort-none"></span></div><div class="dx-datagrid-text-content dx-text-content-alignment-right" role="presentation">Nhân viên hiệu lực</div></td><td colspan="3" role="columnheader" aria-colindex="7" aria-sort="none" class="dx-cell-focus-disabled" tabindex="0" style="text-align: left;"><div class="dx-datagrid-text-content" role="presentation">Đăng ký bởi</div></td><td class="w_1 _1_ dx-datagrid-action dx-cell-focus-disabled" rowspan="2" role="columnheader" aria-colindex="10" id="dx-col-11" aria-label="Column Thời gian đ.ký" aria-sort="none" tabindex="0" style="text-align: left;"><div class="dx-column-indicators" role="presentation" style="float: right;"><span class="dx-sort dx-sort-none"></span></div><div class="dx-datagrid-text-content dx-text-content-alignment-left" role="presentation">Thời gian đ.ký</div></td><td class="w_1 dx-datagrid-action dx-cell-focus-disabled" rowspan="2" role="columnheader" aria-colindex="11" id="dx-col-12" aria-label="Column Admin kiểm" aria-sort="none" tabindex="0" style="text-align: left;"><div class="dx-column-indicators" role="presentation" style="float: right;"><span class="dx-sort dx-sort-none"></span><span class="dx-header-filter dx-header-filter-empty" tabindex="0" aria-label="Show filter options for column &#39;Admin kiểm&#39;" aria-haspopup="dialog" role="button"></span></div><div class="dx-datagrid-text-content dx-text-content-alignment-left dx-header-filter-indicator" role="presentation">Admin kiểm</div></td></tr><tr class="dx-row dx-column-lines dx-header-row" role="row"><td role="columnheader" aria-colindex="1" id="dx-col-8" aria-label="Column Mã AC" class="dx-datagrid-action dx-cell-focus-disabled" aria-sort="none" tabindex="0" style="text-align: left;"><div class="dx-column-indicators" role="presentation" style="float: right;"><span class="dx-sort dx-sort-none"></span></div><div class="dx-datagrid-text-content dx-text-content-alignment-left" role="presentation">Mã AC</div></td><td role="columnheader" aria-colindex="2" id="dx-col-9" aria-label="Column Mã N.viên" class="dx-datagrid-action dx-cell-focus-disabled" aria-sort="none" tabindex="0" style="text-align: left;"><div class="dx-column-indicators" role="presentation" style="float: right;"><span class="dx-sort dx-sort-none"></span></div><div class="dx-datagrid-text-content dx-text-content-alignment-left" role="presentation">Mã N.viên</div></td><td role="columnheader" aria-colindex="3" id="dx-col-10" aria-label="Column Tên nhân viên" class="dx-datagrid-action dx-cell-focus-disabled" aria-sort="none" tabindex="0" style="text-align: left;"><div class="dx-column-indicators" role="presentation" style="float: right;"><span class="dx-sort dx-sort-none"></span></div><div class="dx-datagrid-text-content dx-text-content-alignment-left" role="presentation">Tên nhân viên</div></td></tr><tr class="dx-row dx-column-lines dx-datagrid-filter-row" role="row"><td class="text-wrap text-center" role="gridcell" aria-colindex="1" style="text-align: right;"></td><td role="gridcell" aria-colindex="2" style="text-align: left;"></td><td role="gridcell" aria-colindex="3" aria-describedby="dx-col-3" aria-label="Filter cell" class="dx-editor-cell" style="text-align: left;"><div class="dx-editor-with-menu"><div class="dx-menu dx-widget dx-visibility-change-handler dx-collection dx-menu-base dx-datagrid dx-cell-focus-disabled dx-filter-menu" tabindex="0" aria-label="" role="menubar"><div class="dx-menu-horizontal"><ul role="none" class="dx-menu-items-container"><li role="none" class="dx-menu-item-wrapper"><div class="dx-item dx-menu-item dx-menu-item-has-icon dx-menu-item-has-submenu" role="menuitem" tabindex="-1" aria-haspopup="true"><div class="dx-item-content dx-menu-item-content"><i class="dx-icon dx-icon-filter-operation-default"></i><span class="dx-menu-item-popout-container"><div class="dx-menu-item-popout"></div></span></div></div></li></ul></div></div><div class="dx-editor-container"><div class="dx-datebox dx-textbox dx-texteditor dx-dropdowneditor-button-visible dx-editor-outlined dx-texteditor-empty dx-widget dx-visibility-change-handler dx-dropdowneditor dx-datebox-date dx-datebox-calendar" style="width: auto;"><div class="dx-dropdowneditor-input-wrapper"><input type="hidden" value=""><div class="dx-texteditor-container"><div class="dx-texteditor-input-container"><input autocomplete="off" aria-label="Filter cell" aria-describedby="dx-col-3" class="dx-texteditor-input" aria-haspopup="true" aria-autocomplete="list" type="text" spellcheck="false" tabindex="0" role="combobox" aria-expanded="false" style="padding-right: 0px; text-align: left;"><div data-dx_placeholder="" class="dx-placeholder"></div></div><div class="dx-texteditor-buttons-container"><div></div><div role="button" class="dx-widget dx-button-mode-contained dx-button-normal dx-dropdowneditor-button" aria-label="Select"><div class="dx-button-content"><div class="dx-dropdowneditor-icon"></div></div></div></div></div></div></div></div></div></td><td role="gridcell" aria-colindex="4" style="text-align: left;"></td><td class="w_1 dx-editor-cell" role="gridcell" aria-colindex="5" style="text-align: right;" aria-describedby="dx-col-5" aria-label="Filter cell"><div class="dx-editor-with-menu"><div class="dx-menu dx-widget dx-visibility-change-handler dx-collection dx-menu-base dx-datagrid dx-cell-focus-disabled dx-filter-menu" tabindex="0" aria-label="" role="menubar"><div class="dx-menu-horizontal"><ul role="none" class="dx-menu-items-container"><li role="none" class="dx-menu-item-wrapper"><div class="dx-item dx-menu-item dx-menu-item-has-icon dx-menu-item-has-submenu" role="menuitem" tabindex="-1" aria-haspopup="true"><div class="dx-item-content dx-menu-item-content"><i class="dx-icon dx-icon-filter-operation-default"></i><span class="dx-menu-item-popout-container"><div class="dx-menu-item-popout"></div></span></div><div class="dx-context-menu dx-has-context-menu dx-widget dx-visibility-change-handler dx-collection"><div class="dx-overlay dx-widget dx-state-invisible dx-visibility-change-handler"><div class="dx-overlay-content dx-inner-overlay dx-context-menu dx-datagrid dx-cell-focus-disabled dx-filter-menu dx-menu-base" aria-hidden="true" style="width: auto; height: auto;"><div class="dx-submenu" style="visibility: visible;"><ul role="none" class="dx-menu-items-container"><li role="none" class="dx-menu-item-wrapper"><div class="dx-item dx-menu-item dx-menu-item-has-text dx-menu-item-has-icon dx-menu-item-selected" role="menuitem" tabindex="-1"><div class="dx-item-content dx-menu-item-content"><i class="dx-icon dx-icon-filter-operation-equals"></i><span class="dx-menu-item-text">Equals</span></div></div></li><li role="none" class="dx-menu-item-wrapper"><div class="dx-item dx-menu-item dx-menu-item-has-text dx-menu-item-has-icon" role="menuitem" tabindex="-1"><div class="dx-item-content dx-menu-item-content"><i class="dx-icon dx-icon-filter-operation-not-equals"></i><span class="dx-menu-item-text">Does not equal</span></div></div></li><li role="none" class="dx-menu-item-wrapper"><div class="dx-item dx-menu-item dx-menu-item-has-text dx-menu-item-has-icon" role="menuitem" tabindex="-1"><div class="dx-item-content dx-menu-item-content"><i class="dx-icon dx-icon-filter-operation-less"></i><span class="dx-menu-item-text">Less than</span></div></div></li><li role="none" class="dx-menu-item-wrapper"><div class="dx-item dx-menu-item dx-menu-item-has-text dx-menu-item-has-icon" role="menuitem" tabindex="-1"><div class="dx-item-content dx-menu-item-content"><i class="dx-icon dx-icon-filter-operation-greater"></i><span class="dx-menu-item-text">Greater than</span></div></div></li><li role="none" class="dx-menu-item-wrapper"><div class="dx-item dx-menu-item dx-menu-item-has-text dx-menu-item-has-icon" role="menuitem" tabindex="-1"><div class="dx-item-content dx-menu-item-content"><i class="dx-icon dx-icon-filter-operation-less-equal"></i><span class="dx-menu-item-text">Less than or equal to</span></div></div></li><li role="none" class="dx-menu-item-wrapper"><div class="dx-item dx-menu-item dx-menu-item-has-text dx-menu-item-has-icon" role="menuitem" tabindex="-1"><div class="dx-item-content dx-menu-item-content"><i class="dx-icon dx-icon-filter-operation-greater-equal"></i><span class="dx-menu-item-text">Greater than or equal to</span></div></div></li><li role="none" class="dx-menu-item-wrapper"><div class="dx-item dx-menu-item dx-menu-item-has-text dx-menu-item-has-icon" role="menuitem" tabindex="-1"><div class="dx-item-content dx-menu-item-content"><i class="dx-icon dx-icon-filter-operation-between"></i><span class="dx-menu-item-text">Between</span></div></div></li><li role="none" class="dx-menu-item-wrapper"><div class="dx-item dx-menu-item dx-menu-item-has-text dx-menu-item-has-icon" role="menuitem" tabindex="-1"><div class="dx-item-content dx-menu-item-content"><i class="dx-icon dx-icon-filter-operation-default"></i><span class="dx-menu-item-text">Reset</span></div></div></li></ul></div><div class="dx-context-menu-content-delimiter"></div></div></div></div><div class="dx-context-menu-container-border" style="display: none;"></div></div></li></ul></div></div><div class="dx-editor-container"><div class="dx-show-invalid-badge dx-numberbox dx-texteditor dx-editor-outlined dx-texteditor-empty dx-widget"><input type="hidden" value=""><div class="dx-texteditor-container"><div class="dx-texteditor-input-container"><input autocomplete="off" inputmode="decimal" aria-label="Filter cell" aria-describedby="dx-col-5" class="dx-texteditor-input" type="text" step="1" aria-valuemin="" aria-valuemax="" tabindex="0" aria-valuenow="" aria-valuetext="No data" role="spinbutton" style="text-align: right;"><div class="dx-placeholder"></div></div><div class="dx-texteditor-buttons-container"><div></div><div></div></div></div></div></div></div></td><td class="w_1 dx-editor-cell" role="gridcell" aria-colindex="6" style="text-align: right;" aria-describedby="dx-col-6" aria-label="Filter cell"><div class="dx-editor-with-menu"><div class="dx-menu dx-widget dx-visibility-change-handler dx-collection dx-menu-base dx-datagrid dx-cell-focus-disabled dx-filter-menu" tabindex="0" aria-label="" role="menubar"><div class="dx-menu-horizontal"><ul role="none" class="dx-menu-items-container"><li role="none" class="dx-menu-item-wrapper"><div class="dx-item dx-menu-item dx-menu-item-has-icon dx-menu-item-has-submenu" role="menuitem" tabindex="-1" aria-haspopup="true"><div class="dx-item-content dx-menu-item-content"><i class="dx-icon dx-icon-filter-operation-default"></i><span class="dx-menu-item-popout-container"><div class="dx-menu-item-popout"></div></span></div></div></li></ul></div></div><div class="dx-editor-container"><div class="dx-show-invalid-badge dx-numberbox dx-texteditor dx-editor-outlined dx-texteditor-empty dx-widget"><input type="hidden" value=""><div class="dx-texteditor-container"><div class="dx-texteditor-input-container"><input autocomplete="off" inputmode="decimal" aria-label="Filter cell" aria-describedby="dx-col-6" class="dx-texteditor-input" type="text" step="1" aria-valuemin="" aria-valuemax="" tabindex="0" aria-valuenow="" aria-valuetext="No data" role="spinbutton" style="text-align: right;"><div class="dx-placeholder"></div></div><div class="dx-texteditor-buttons-container"><div></div><div></div></div></div></div></div></div></td><td role="gridcell" aria-colindex="7" style="text-align: left;" aria-describedby="dx-col-8" aria-label="Filter cell" class="dx-editor-cell"><div class="dx-editor-with-menu"><div class="dx-menu dx-widget dx-visibility-change-handler dx-collection dx-menu-base dx-datagrid dx-cell-focus-disabled dx-filter-menu" tabindex="0" aria-label="" role="menubar"><div class="dx-menu-horizontal"><ul role="none" class="dx-menu-items-container"><li role="none" class="dx-menu-item-wrapper"><div class="dx-item dx-menu-item dx-menu-item-has-icon dx-menu-item-has-submenu" role="menuitem" tabindex="-1" aria-haspopup="true"><div class="dx-item-content dx-menu-item-content"><i class="dx-icon dx-icon-filter-operation-default"></i><span class="dx-menu-item-popout-container"><div class="dx-menu-item-popout"></div></span></div></div></li></ul></div></div><div class="dx-editor-container"><div class="dx-show-invalid-badge dx-textbox dx-texteditor dx-editor-outlined dx-texteditor-empty dx-widget"><div class="dx-texteditor-container"><div class="dx-texteditor-input-container"><input autocomplete="off" aria-label="Filter cell" aria-describedby="dx-col-8" class="dx-texteditor-input" type="text" spellcheck="false" tabindex="0" role="textbox" style="text-align: left;"><div class="dx-placeholder"></div></div><div class="dx-texteditor-buttons-container"><div></div></div></div></div></div></div></td><td role="gridcell" aria-colindex="8" style="text-align: left;" aria-describedby="dx-col-9" aria-label="Filter cell" class="dx-editor-cell"><div class="dx-editor-with-menu"><div class="dx-menu dx-widget dx-visibility-change-handler dx-collection dx-menu-base dx-datagrid dx-cell-focus-disabled dx-filter-menu" tabindex="0" aria-label="" role="menubar"><div class="dx-menu-horizontal"><ul role="none" class="dx-menu-items-container"><li role="none" class="dx-menu-item-wrapper"><div class="dx-item dx-menu-item dx-menu-item-has-icon dx-menu-item-has-submenu" role="menuitem" tabindex="-1" aria-haspopup="true"><div class="dx-item-content dx-menu-item-content"><i class="dx-icon dx-icon-filter-operation-default"></i><span class="dx-menu-item-popout-container"><div class="dx-menu-item-popout"></div></span></div></div></li></ul></div></div><div class="dx-editor-container"><div class="dx-show-invalid-badge dx-textbox dx-texteditor dx-editor-outlined dx-texteditor-empty dx-widget"><div class="dx-texteditor-container"><div class="dx-texteditor-input-container"><input autocomplete="off" aria-label="Filter cell" aria-describedby="dx-col-9" class="dx-texteditor-input" type="text" spellcheck="false" tabindex="0" role="textbox" style="text-align: left;"><div class="dx-placeholder"></div></div><div class="dx-texteditor-buttons-container"><div></div></div></div></div></div></div></td><td role="gridcell" aria-colindex="9" style="text-align: left;" aria-describedby="dx-col-10" aria-label="Filter cell" class="dx-editor-cell"><div class="dx-editor-with-menu"><div class="dx-menu dx-widget dx-visibility-change-handler dx-collection dx-menu-base dx-datagrid dx-cell-focus-disabled dx-filter-menu" tabindex="0" aria-label="" role="menubar"><div class="dx-menu-horizontal"><ul role="none" class="dx-menu-items-container"><li role="none" class="dx-menu-item-wrapper"><div class="dx-item dx-menu-item dx-menu-item-has-icon dx-menu-item-has-submenu" role="menuitem" tabindex="-1" aria-haspopup="true"><div class="dx-item-content dx-menu-item-content"><i class="dx-icon dx-icon-filter-operation-default"></i><span class="dx-menu-item-popout-container"><div class="dx-menu-item-popout"></div></span></div><div class="dx-context-menu dx-has-context-menu dx-widget dx-visibility-change-handler dx-collection"><div class="dx-overlay dx-widget dx-state-invisible dx-visibility-change-handler"><div class="dx-overlay-content dx-inner-overlay dx-context-menu dx-datagrid dx-cell-focus-disabled dx-filter-menu dx-menu-base" aria-hidden="true" style="width: auto; height: auto;"><div class="dx-submenu" style="visibility: visible;"><ul role="none" class="dx-menu-items-container"><li role="none" class="dx-menu-item-wrapper"><div class="dx-item dx-menu-item dx-menu-item-has-text dx-menu-item-has-icon dx-menu-item-selected" role="menuitem" tabindex="-1"><div class="dx-item-content dx-menu-item-content"><i class="dx-icon dx-icon-filter-operation-contains"></i><span class="dx-menu-item-text">Contains</span></div></div></li><li role="none" class="dx-menu-item-wrapper"><div class="dx-item dx-menu-item dx-menu-item-has-text dx-menu-item-has-icon" role="menuitem" tabindex="-1"><div class="dx-item-content dx-menu-item-content"><i class="dx-icon dx-icon-filter-operation-not-contains"></i><span class="dx-menu-item-text">Does not contain</span></div></div></li><li role="none" class="dx-menu-item-wrapper"><div class="dx-item dx-menu-item dx-menu-item-has-text dx-menu-item-has-icon" role="menuitem" tabindex="-1"><div class="dx-item-content dx-menu-item-content"><i class="dx-icon dx-icon-filter-operation-starts-with"></i><span class="dx-menu-item-text">Starts with</span></div></div></li><li role="none" class="dx-menu-item-wrapper"><div class="dx-item dx-menu-item dx-menu-item-has-text dx-menu-item-has-icon" role="menuitem" tabindex="-1"><div class="dx-item-content dx-menu-item-content"><i class="dx-icon dx-icon-filter-operation-ends-with"></i><span class="dx-menu-item-text">Ends with</span></div></div></li><li role="none" class="dx-menu-item-wrapper"><div class="dx-item dx-menu-item dx-menu-item-has-text dx-menu-item-has-icon" role="menuitem" tabindex="-1"><div class="dx-item-content dx-menu-item-content"><i class="dx-icon dx-icon-filter-operation-equals"></i><span class="dx-menu-item-text">Equals</span></div></div></li><li role="none" class="dx-menu-item-wrapper"><div class="dx-item dx-menu-item dx-menu-item-has-text dx-menu-item-has-icon" role="menuitem" tabindex="-1"><div class="dx-item-content dx-menu-item-content"><i class="dx-icon dx-icon-filter-operation-not-equals"></i><span class="dx-menu-item-text">Does not equal</span></div></div></li><li role="none" class="dx-menu-item-wrapper"><div class="dx-item dx-menu-item dx-menu-item-has-text dx-menu-item-has-icon" role="menuitem" tabindex="-1"><div class="dx-item-content dx-menu-item-content"><i class="dx-icon dx-icon-filter-operation-default"></i><span class="dx-menu-item-text">Reset</span></div></div></li></ul></div><div class="dx-context-menu-content-delimiter"></div></div></div></div><div class="dx-context-menu-container-border" style="display: none;"></div></div></li></ul></div></div><div class="dx-editor-container"><div class="dx-show-invalid-badge dx-textbox dx-texteditor dx-editor-outlined dx-widget"><div class="dx-texteditor-container"><div class="dx-texteditor-input-container"><input autocomplete="off" aria-label="Filter cell" aria-describedby="dx-col-10" class="dx-texteditor-input" type="text" spellcheck="false" tabindex="0" role="textbox" style="text-align: left;"><div class="dx-placeholder dx-state-invisible"></div></div><div class="dx-texteditor-buttons-container"><div></div></div></div></div></div></div></td><td class="w_1 _1_ dx-editor-cell" role="gridcell" aria-colindex="10" style="text-align: left;" aria-describedby="dx-col-11" aria-label="Filter cell"><div class="dx-editor-with-menu"><div class="dx-menu dx-widget dx-visibility-change-handler dx-collection dx-menu-base dx-datagrid dx-cell-focus-disabled dx-filter-menu" tabindex="0" aria-label="" role="menubar"><div class="dx-menu-horizontal"><ul role="none" class="dx-menu-items-container"><li role="none" class="dx-menu-item-wrapper"><div class="dx-item dx-menu-item dx-menu-item-has-icon dx-menu-item-has-submenu" role="menuitem" tabindex="-1" aria-haspopup="true"><div class="dx-item-content dx-menu-item-content"><i class="dx-icon dx-icon-filter-operation-default"></i><span class="dx-menu-item-popout-container"><div class="dx-menu-item-popout"></div></span></div></div></li></ul></div></div><div class="dx-editor-container"><div class="dx-datebox dx-textbox dx-texteditor dx-dropdowneditor-button-visible dx-editor-outlined dx-texteditor-empty dx-widget dx-visibility-change-handler dx-dropdowneditor dx-datebox-datetime dx-datebox-calendar" style="width: auto;"><div class="dx-dropdowneditor-input-wrapper"><input type="hidden" value=""><div class="dx-texteditor-container"><div class="dx-texteditor-input-container"><input autocomplete="off" aria-label="Filter cell" aria-describedby="dx-col-11" class="dx-texteditor-input" aria-haspopup="true" aria-autocomplete="list" type="text" spellcheck="false" tabindex="0" role="combobox" aria-expanded="false" style="padding-right: 0px; text-align: left;"><div data-dx_placeholder="" class="dx-placeholder"></div></div><div class="dx-texteditor-buttons-container"><div></div><div role="button" class="dx-widget dx-button-mode-contained dx-button-normal dx-dropdowneditor-button" aria-label="Select"><div class="dx-button-content"><div class="dx-dropdowneditor-icon"></div></div></div></div></div></div></div></div></div></td><td class="w_1" role="gridcell" aria-colindex="11" style="text-align: left;"></td></tr></tbody></table></div></div><div class="dx-datagrid-rowsview dx-datagrid-nowrap dx-scrollable dx-visibility-change-handler dx-scrollable-both dx-scrollable-simulated" role="presentation" tabindex="0"><div class="dx-scrollable-wrapper"><div class="dx-scrollable-container" style=""><div class="dx-scrollable-content" style="left: 0px; top: 0px; transform: none;"><div class="dx-datagrid-content"><table class="dx-datagrid-table dx-datagrid-table-fixed"><colgroup><col style="width: 50px;"><col><col style="width: 100px;"><col><col style="width: 70px;"><col style="width: 70px;"><col style="width: 75px;"><col style="width: 100px;"><col><col style="width: 100px;"><col style="width: 100px;"></colgroup><tbody role="presentation"><tr class="dx-row dx-data-row dx-column-lines text-success dx-row-focused" role="row" aria-rowindex="1" tabindex="0"><td aria-describedby="dx-col-1" class="text-wrap text-center" role="gridcell" aria-colindex="1" style="text-align: right;">83</td><td aria-describedby="dx-col-2" role="gridcell" aria-colindex="2" style="text-align: left;">Đăng ký Nghỉ vắng</td><td aria-describedby="dx-col-3" role="gridcell" aria-colindex="3" style="text-align: left;">21/09/2026</td><td aria-describedby="dx-col-4" role="gridcell" aria-colindex="4" style="text-align: left;"><i class="fa fa-check-circle"></i> Phê duyệt</td><td aria-describedby="dx-col-5" class="w_1" role="gridcell" aria-colindex="5" style="text-align: right;">0</td><td aria-describedby="dx-col-6" class="w_1" role="gridcell" aria-colindex="6" style="text-align: right;">1</td><td aria-describedby="dx-col-8" role="gridcell" aria-colindex="7" style="text-align: left;">5988</td><td aria-describedby="dx-col-9" role="gridcell" aria-colindex="8" style="text-align: left;">PL969</td><td aria-describedby="dx-col-10" role="gridcell" aria-colindex="9" style="text-align: left;">NGUYỄN VĂN Ý</td><td aria-describedby="dx-col-11" class="w_1 _1_" role="gridcell" aria-colindex="10" style="text-align: left;">31/08/2026 22:43</td><td aria-describedby="dx-col-12" class="w_1" role="gridcell" aria-colindex="11" style="text-align: left;">&nbsp;</td></tr><tr class="dx-row dx-freespace-row dx-column-lines" role="presentation" style="height: 469.792px;"><td class="text-wrap text-center" style="text-align: right;"></td><td style="text-align: left;"></td><td style="text-align: left;"></td><td style="text-align: left;"></td><td class="w_1" style="text-align: right;"></td><td class="w_1" style="text-align: right;"></td><td style="text-align: left;"></td><td style="text-align: left;"></td><td style="text-align: left;"></td><td class="w_1 _1_" style="text-align: left;"></td><td class="w_1" style="text-align: left;"></td></tr></tbody></table></div></div><div class="dx-scrollable-scrollbar dx-widget dx-scrollbar-horizontal dx-scrollbar-hoverable" style="display: none;"><div class="dx-scrollable-scroll dx-state-invisible" style="width: 1227px; transform: translate(0px, 0px);"><div class="dx-scrollable-scroll-content"></div></div></div><div class="dx-scrollable-scrollbar dx-widget dx-scrollbar-vertical dx-scrollbar-hoverable" style="display: none;"><div class="dx-scrollable-scroll dx-state-invisible" style="height: 498px; transform: translate(0px, 0px);"><div class="dx-scrollable-scroll-content"></div></div></div></div></div><span class="dx-datagrid-nodata dx-hidden"></span></div><div class="dx-hidden" style="padding-right: 0px;"></div><div></div><div class="dx-datagrid-filter-panel"><div class="dx-datagrid-filter-panel-left"><div class="dx-widget dx-checkbox dx-checkbox-checked dx-datagrid-filter-panel-checkbox" aria-readonly="false" aria-invalid="false" role="checkbox" aria-checked="true" tabindex="0" title="Enable the filter"><input type="hidden" value="true"><div class="dx-checkbox-container"><span class="dx-checkbox-icon"></span></div></div><div class="dx-icon-filter" tabindex="0"></div><div class="dx-datagrid-filter-panel-text" tabindex="0">[Tên nhân viên] Có chứa 'ý'</div></div><div class="dx-datagrid-filter-panel-clear-filter" tabindex="0">Clear</div></div><div class="dx-widget dx-datagrid-pager dx-pager" role="navigation" aria-label="Page Navigation"><div class="dx-page-sizes"><div class="dx-page-size dx-selection dx-first-child" tabindex="0" role="button" aria-label="Items per page: 20">20</div><div class="dx-page-size" tabindex="0" role="button" aria-label="Items per page: 50">50</div><div class="dx-page-size" tabindex="0" role="button" aria-label="Items per page: 100">100</div><div class="dx-page-size" tabindex="0" role="button" aria-label="Items per page: Tất cả">Tất cả</div></div><div class="dx-pages"><div class="dx-info">Page 1 of 1 (1 items)</div><div class="dx-page-indexes"><div class="dx-button-disable dx-navigate-button dx-prev-button" tabindex="-1" role="button" aria-label="Previous Page"></div><div class="dx-page dx-selection" tabindex="0" role="button" aria-label="Page 1" aria-current="page">1</div><div class="dx-button-disable dx-navigate-button dx-next-button" tabindex="-1" role="button" aria-label="Next Page"></div></div></div></div><div class="dx-datagrid-drag-header dx-datagrid-text-content dx-widget" style="display: none;"></div><div class="dx-context-menu dx-has-context-menu dx-widget dx-visibility-change-handler dx-collection" role="presentation"></div><div class="dx-header-filter-menu"></div><div></div></div></div></div></div><div class="dx-drawer-content" style="padding: 0px;"><div class="dx-drawer-shader dx-state-invisible" style="opacity: 1; transition: none; visibility: visible;"></div><div class="empty_msg text-center d-none my-5 mx-3">
+                    <div class="text-left d-inline-block mx-auto text-secondary font-italic" style="font-size:16px;font-weight: 100;font-family:Segoe UI Light,Helvetica Neue Light,Segoe UI,Helvetica Neue,Trebuchet MS,Verdana">
+                        <div class="text-warning">
+                            <i class="ti-light-bulb"></i> <span arr-lang="js_011_33" lanidx="0">Ồ ! Không có đăng ký</span>
+                        </div>
+                        <div arr-lang="js_011_33" lanidx="1">1. Kiểm tra điều kiện lọc đăng ký</div>
+                        <div arr-lang="js_011_33" lanidx="2">2. hoặc nhấn Nút dấu Cộng - màu Xanh để đăng ký mới</div>
+                    </div>
+                </div><ul class="list-group ulDU_ME mx-3"><li class="list-group-item"><div class="cssprofile my-3 mt-xxl dx-widget d-none">
+                        <div style="text-align:center">
+                            <ul class="pagination modal-5">
+                                <lo class="">
+                                    <a href="javascript:void(0)" mnu="prev" class="btn disabled prev fa fa-arrow-left"></a>
+                                </lo>
+                                <lo class="textonly">
+                                    <a href="javascript:void(0)" class="mx-2 text-info">Record</a>
+                                </lo>
+                                <lo>
+                                    <a href="javascript:void(0)" class="recordidx active">1 / 122</a>
+                                </lo>
+                                <lo class="textonly">
+                                    <a href="javascript:void(0)" class="mx-2 text-info">Total</a>
+                                </lo>
+                                <lo class="">
+                                    <a href="javascript:void(0)" mnu="next" class="btn next fa fa-arrow-right"></a>
+                                </lo>
+                            </ul>
+                        </div>
+                    </div></li></ul></div></div></div></div><div class="reg_pop_home col-12 col-xxl-6 mx-auto"><div class="row m-0"><div class="col-12 comments"><div class="act_cmm_tmpl clearfix ok_flow_usr"><div class="collapse show" id="reg_no_131261">
+
+                                
+
+                            </div><div class="comment-box panel re_ca_bo mb-0"><div class="d-flex align-items-center">
+
+                                    <!--<h3 class="m-0 colap_hed">
+                                        <i class="fa fa-check-circle  mr-2"></i>
+                                    </h3>-->
+
+                                    
+                                    <h5 class="text-success m-0"><i class="fa fa-check-circle  mr-2" aria-hidden="true"></i>Đăng ký Nghỉ vắng</h5>
+
+                                    <div class="req-tools d-flex">
+                                        <div data-original-title="Collapse" data-toggle="collapse" data-target="#reg_no_131261" class="btn btn-transparent btn-sm panel-collapse dume_collapse">
+                                            <i class="ti-minus collapse-off"></i>
+                                            <i class="ti-plus collapse-on"></i>
+                                        </div>
+                                        <div data-original-title="Refresh" data-toggle="tooltip" data-placement="top" class="btn btn-transparent btn-sm panel-refresh">
+                                            <i class="ti-reload d-block"></i>
+                                        </div>
+                                        <!--<div class="btn btn-transparent btn-sm panel-cmd" href="#">
+                                            <i class="ti-more-alt"></i>
+                                        </div>-->
+                                    </div>
+
+                                </div><div class="panel-body"><div class="container p-0">
+
+                                        <div class="col-12 pr-0">
+
+                                            <div class="row" style="margin-right:-41px;">
+                                                <div class="col-md-12">
+                                                    
+                                                    <div>
+                                                        <div class="widget-box reg_dat">
+
+                                                            <div class="widget-header bordered-bottom bordered-themesecondary">
+                                                                <i class="widget-icon ti-ink-pen themesecondary"></i>
+
+                                                                <h5 class="widget-caption themesecondary">ĐĂNG KÝ NGHỈ VẮNG</h5>
+
+
+                                                                <button class="widget-icon themesecondary nut_collapse chi__doc" data-toggle="collapse" data-target="#datno_131261">
+                                                                    <i class="btn fa fa-minus state-off" style="display:block"></i>
+                                                                    <i class="btn fa fa-plus state-on"></i>
+                                                                </button>
+
+                                                            </div><!--Widget Header-->
+
+                                                            <div class="widget-body collapse chi__doc show xongroi" id="datno_131261">
+                                                                <div class="widget-main p-0">
+                                                                    <div class="tickets-container pr-0  pl-2 px-sm-4 pb-3">
+                                                                        <ul class="tickets-list">
+                                                                            <li class="ticket-item">
+
+                                                                                <div class="row">
+
+                                                                                    <div class="col-12 col-sm-6  col-md-4 loai_dk"><div class="m-1 text-large">Phép năm/ Anual leave</div></div>
+
+                                                                                    <div class="col-6 col-sm-3 col-md-2 ticket-time py-0 text-center my-2">
+
+                                                                                        <div class="divider d-none d-md-block"></div>
+
+
+                                                                                        <i class="fa fa-calendar"></i>
+                                                                                        <!--<span class="elipx">2022/12/5</span>
+                                                                                        <span>(12.5)</span>-->
+
+
+                                                                                    <span class="elipx">21/09/2026</span></div>
+
+                                                                                    <div class="col-6 col-sm-3 col-md-2 ticket-time py-0 text-center my-2">
+
+                                                                                        <div class="divider d-none d-md-block"></div>
+
+                                                                                        <i class="fa fa-calendar"></i>
+                                                                                        <span>23/09/2026</span>
+
+                                                                                        <div class="divider rtl d-none d-md-block"></div>
+
+                                                                                    </div>
+
+                                                                                    <div class="col-12 col-md-4 loai_dk px-3 ghichu">Về quê có việc gia đình ( bữa em có xin phép nghĩ mà nhầm ngày e xin hủy rồi ạ mấy sếp duyệt lại giúp em với) (Tổng 3 ngày)</div>
+
+                                                                                </div>
+                                                                            </li>
+                                                                        </ul>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+
+                                                        </div>
+
+                                                        <div class="comment-meta float-none text-center py-2">
+
+                                                            <div class="comment-like">
+                                                                <i class="fa fa-paperclip" aria-hidden="true"></i>
+                                                            &nbsp;0</div>
+                                                            <div class="comment-dislike">
+                                                                <i class="ti-user" aria-hidden="true"></i>
+                                                            &nbsp;1</div>
+                                                            <a href="javascript:void(0)" class="comment-reply view_regis" xem="LTFfMTMxMjYxfC0x">Xem đăng ký</a>
+                                                        </div>
+                                                    <div class="widget-box valid_emp mb-3">
+
+                                                            <div class="widget-header bordered-bottom bordered-themesecondary">
+                                                                <i class="widget-icon themesecondary fa fa-users"></i>
+
+                                                                <h5 class="widget-caption themesecondary"><span class="m-0 d-inline-block  pr-2" style="font-size:1.1rem">(1)</span><span>NHÂN VIÊN HIỆU LỰC</span></h5>
+
+
+                                                                <button class="widget-icon themesecondary nut_collapse chi__doc" data-toggle="collapse" data-target="#empsno_131261">
+                                                                    <i class="btn fa fa-minus state-off" style="display:block"></i>
+                                                                    <i class="btn fa fa-plus state-on"></i>
+                                                                </button>
+
+                                                            </div><!--Widget Header-->
+
+                                                            <div class="widget-body collapse show xongroi" id="empsno_131261">
+                                                                <div class="widget-main p-0">
+                                                                    <div class="tickets-container pr-0  pl-2 px-sm-4 pb-3">
+                                                                        <ul class="tickets-list">
+                                                                            <li class="ticket-item">
+
+                                                                                <div class="row">
+
+                                                                                    <div class="col-12 col-sm-6 loai_dk col-md-6">
+
+                                                                                        <div class="checkbox clip-check check-danger m-1">
+                                                                                            <input type="checkbox" id="n.v_5988" value="1" disabled="">
+                                                                                            <label for="n.v_5988" class="d-flex flex-wrap m-0"><span class="text-large"> 1. NGUYỄN VĂN Ý</span></label>
+                                                                                        </div>
+
+                                                                                    <span class="ml-auto">(Nam)</span></div>
+
+                                                                                    <div class="col-6 col-sm-3 col-md-2 ticket-time py-0 text-center"><div class="m-1 text-large">PL969</div></div>
+
+                                                                                    <div class="col-6 col-sm-3  col-md-2 ticket-time py-0 text-center"><div class="m-1 text-large">5988</div></div>
+
+                                                                                    
+
+                                                                                </div>
+                                                                            </li>
+                                                                        </ul>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+
+                                                        </div></div><div class="nhap_cmm">
+                                                        <div style="box-shadow:none" class="widget-header bordered-bottom bordered-themesecondary">
+                                                            <i class="widget-icon fa fa-commenting-o themesecondary"></i>
+                                                            <h5 class="widget-caption themesecondary">GHI CHÚ</h5>
+                                                            <!--<button mnu="more_flow_act" class="more_flow_act widget-icon themesecondary">
+                                                                <span class="btn ti-more-alt"></span>
+                                                            </button>-->
+
+                                                        </div><!--Widget Header-->
+
+
+                                                        <div class="p-0" style="padding-right: 13px!important;">
+
+                                                            <textarea class="form-control re_ca_bo" rows="2" placeholder="Nhập nội dung ..." maxlength="200"></textarea>
+
+                                                            <div class="center_center mt-3">
+                                                                <button mnu="send_reg" type="button" class="ml-2 btn btn-primary btn-sm d-none">
+                                                                    <i class="fa fa-paper-plane mr-1"></i>
+                                                                </button>
+
+                                                                <span class="font-italic text-right mx-2"></span>
+
+                                                                <div style="position:relative;display:inline-block">
+                                                                    <button mnu="more_flow_act" type="button" class="more_flow_act btn btn-secondary btn-sm"><i class="fa fa-key" aria-hidden="true"></i> Quản lý</button>
+                                                                </div>
+
+                                                            </div>
+                                                        </div>
+
+                                                    </div>
+
+
+                                                </div>
+
+
+                                            </div>
+
+
+                                        </div>
+
+
+
+
+                                    </div><div class="comment-box replied">
+
+                                        <div class="d-flex align-items-center text-success"><h3 class="m-0"><i class="fa fa-check-circle  mr-2"></i></h3>
+                                            <span class="commenter-pic reply_agent">
+                                                <img class="img-fluid" data-lazy="OTk5ODQ=" src="./Firewall - Login_files/user-icon.jpg">
+                                            </span>
+                                            <span class="commenter-name">
+                                                <a href="https://hrm.dnd.vn/lwlogin#">BRAINARD ANTHONY ABULAD SO</a>
+                                                <span class="comment-time">03/09/2026 08:55</span>
+                                            </span>
+                                        </div>
+
+                                        <p class="comment-txt more text-success"></p>
+                                        <hr class="hrx  my-2 mx-5">
+                                        <div class="comment-meta"><div class="comment-like"><i class="fa fa-clock-o" aria-hidden="true"></i> Cách đây 1 ngày</div></div>
+
+                                    <div class="comment-box replied">
+
+                                        <div class="d-flex align-items-center">
+                                            <span class="commenter-pic reply_agent">
+                                                <img class="img-fluid" data-lazy="MTM4Ng==" src="./Firewall - Login_files/1386.jpg">
+                                            </span>
+                                            <span class="commenter-name">
+                                                <a href="https://hrm.dnd.vn/lwlogin#">DƯƠNG CÔNG PHI THOÀN</a>
+                                                <span class="comment-time">03/09/2026 06:57</span>
+                                            </span>
+                                        </div>
+
+                                        <p class="comment-txt more"></p>
+                                        <hr class="hrx  my-2 mx-5">
+                                        <div class="comment-meta"><div class="comment-like"><i class="fa fa-clock-o" aria-hidden="true"></i> Cách đây 1 ngày</div></div>
+
+                                    <div class="comment-box replied">
+
+                                        <div class="d-flex align-items-center">
+                                            <span class="commenter-pic reply_agent">
+                                                <img class="img-fluid" data-lazy="MTYzMg==" src="./Firewall - Login_files/1632.jpg">
+                                            </span>
+                                            <span class="commenter-name">
+                                                <a href="https://hrm.dnd.vn/lwlogin#">SƠN SA RƯƠNE</a>
+                                                <span class="comment-time">01/09/2026 06:48</span>
+                                            </span>
+                                        </div>
+
+                                        <p class="comment-txt more"></p>
+                                        <hr class="hrx  my-2 mx-5">
+                                        <div class="comment-meta"><div class="comment-like"><i class="fa fa-clock-o" aria-hidden="true"></i> Cách đây 3 ngày</div></div>
+
+                                    <div class="comment-box replied">
+
+                                        <div class="d-flex align-items-center">
+                                            <span class="commenter-pic reply_agent">
+                                                <img class="img-fluid" data-lazy="NTk4OA==" src="./Firewall - Login_files/5988.jpg">
+                                            </span>
+                                            <span class="commenter-name">
+                                                <a href="https://hrm.dnd.vn/lwlogin#">NGUYỄN VĂN Ý</a>
+                                                <span class="comment-time">31/08/2026 22:43</span>
+                                            </span>
+                                        </div>
+
+                                        <p class="comment-txt more"></p>
+                                        <hr class="hrx  my-2 mx-5">
+                                        <div class="comment-meta"><div class="comment-like"><i class="fa fa-clock-o" aria-hidden="true"></i> Cách đây 4 ngày</div></div>
+
+                                    </div></div></div></div></div></div></div></div><div class="reg_card col-12 px-3 dx-form dx-widget dx-visibility-change-handler" role="form"><div class="dx-layout-manager dx-widget"><div class="dx-widget dx-collection dx-responsivebox-screen-undefined dx-responsivebox" style="width: 100%; height: 100%;"><div class="dx-box-flex dx-box dx-widget dx-visibility-change-handler dx-collection" style="display: flex; flex-direction: row; width: 100%; height: 100%; justify-content: flex-start; align-items: stretch;"><div class="dx-item dx-box-item" style="display: flex; max-width: none; min-width: 0px; flex: 1 1 auto;"><div class="dx-item-content dx-box-item-content" style="width: auto; height: auto; display: flex; flex-basis: 0px; flex-grow: 1; flex-direction: column;"><div class="first-group px-0 mx-auto dx-first-row dx-first-col dx-last-col dx-last-row dx-field-item dx-col-0 dx-field-item-optional dx-field-item-has-group"><div class="dx-field-item-content dx-field-item-content-location-right"><div class="dx-form-group dx-group-colcount-8" group-col-count="8"><div class="dx-form-group-content"><div class="dx-layout-manager dx-widget"><div class="dx-widget dx-collection dx-responsivebox-screen-undefined dx-responsivebox" style="width: 100%; height: 100%;"><div class="dx-box-flex dx-box dx-widget dx-visibility-change-handler dx-collection" style="display: flex; flex-direction: column; width: 100%; height: 100%; justify-content: flex-start; align-items: stretch;"><div class="dx-item dx-box-item" style="display: flex; min-height: auto; flex-grow: 1; flex-shrink: 1;"><div class="dx-item-content dx-box-item-content dx-box-flex dx-box dx-widget dx-visibility-change-handler dx-collection" style="display: flex; flex-direction: row; justify-content: flex-start; align-items: stretch; width: auto; height: auto; flex-basis: 0px; flex-grow: 1;"><div class="dx-item dx-box-item" style="display: flex; min-width: 0px; flex: 5 1 0px;"><div class="dx-item-content dx-box-item-content" style="width: auto; height: auto; display: flex; flex-basis: 0px; flex-grow: 1; flex-direction: column;"><div class="dx-first-row dx-first-col dx-last-row dx-field-item dx-col-0 dx-field-item-optional dx-field-item-has-group"><div class="dx-field-item-content dx-field-item-content-location-right"><div class="dx-form-group dx-group-colcount-4" group-col-count="4"><div class="dx-form-group-content"><div class="dx-layout-manager dx-widget"><div class="dx-widget dx-collection dx-responsivebox-screen-undefined dx-responsivebox" style="width: 100%; height: 100%;"><div class="dx-box-flex dx-box dx-widget dx-visibility-change-handler dx-collection" style="display: flex; flex-direction: column; width: 100%; height: 100%; justify-content: flex-start; align-items: stretch;"><div class="dx-item dx-box-item" style="display: flex; min-height: auto; flex-grow: 1; flex-shrink: 1;"><div class="dx-item-content dx-box-item-content dx-box-flex dx-box dx-widget dx-visibility-change-handler dx-collection" style="display: flex; flex-direction: row; justify-content: flex-start; align-items: stretch; width: auto; height: auto; flex-basis: 0px; flex-grow: 1;"><div class="dx-item dx-box-item" style="display: flex; min-width: 0px; flex: 1 1 0px;"><div class="dx-item-content dx-box-item-content" style="width: auto; height: auto; display: flex; flex-basis: 0px; flex-grow: 1; flex-direction: column;"><div class="position-relative dx-first-row dx-first-col dx-last-row dx-field-item dx-col-0 dx-field-item-optional dx-flex-layout"><div class="dx-field-item-content dx-field-item-content-location-right"><div class="dumeARROW" style="margin-top: -50px;right: 0;left: auto;">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512">
+                            <path d="M318 177.5c3.8-8.8 2-19-4.6-26l-136-144C172.9 2.7 166.6 0 160 0s-12.9 2.7-17.4 7.5l-136 144c-6.6 7-8.4 17.2-4.6 26S14.4 192 24 192h88l0 288c0 17.7 14.3 32 32 32h32c17.7 0 32-14.3 32-32l0-288h88c9.6 0 18.2-5.7 22-14.5z"></path>
+                        </svg>
+                    </div><div class="form-avatar mx-auto" style="background-image: url(&quot;https://timegold.liwayway.com.vn:3004/core2/epic/5988.jpg?t=1788493981445&quot;);"></div></div></div></div></div><div class="dx-item dx-box-item" style="display: flex; min-width: 0px; flex: 3 1 0px;"><div class="dx-item-content dx-box-item-content" style="width: auto; height: auto; display: flex; flex-basis: 0px; flex-grow: 1; flex-direction: column;"><div class="dx-first-row dx-last-col dx-last-row dx-field-item dx-col-1 dx-field-item-optional dx-field-item-has-group"><div class="dx-field-item-content dx-field-item-content-location-right"><div class="dx-form-group dx-group-colcount-1" group-col-count="1"><div class="dx-form-group-content"><div class="dx-layout-manager dx-widget"><div class="dx-widget dx-collection dx-responsivebox-screen-undefined dx-responsivebox" style="width: 100%; height: 100%;"><div class="dx-box-flex dx-box dx-widget dx-visibility-change-handler dx-collection" style="display: flex; flex-direction: column; width: 100%; height: 100%; justify-content: flex-start; align-items: stretch;"><div class="dx-item dx-box-item" style="display: flex; min-height: auto; flex-grow: 1; flex-shrink: 1;"><div class="dx-item-content dx-box-item-content" style="width: auto; height: auto; display: flex; flex-basis: 0px; flex-grow: 1; flex-direction: column;"><div class="dx-first-row dx-first-col dx-last-col dx-field-item dx-col-0 dx-field-item-optional dx-flex-layout"><div class="dx-field-item-content dx-field-item-content-location-right"><div class="dx-show-invalid-badge dx-textbox dx-texteditor dx-editor-outlined dx-widget dx-texteditor-with-floating-label dx-state-readonly"><div class="dx-texteditor-container"><div class="dx-texteditor-input-container"><input autocomplete="off" id="dx_dx-958ad641-2551-9ddd-68a9-9a79553d4c13_usrid" class="dx-texteditor-input" type="text" spellcheck="false" name="usrid" aria-labelledby="dx-texteditor-label-87deb6a6-a8be-296e-c453-97bd8e8554a8" role="textbox" readonly="" aria-readonly="true" aria-required="false"><div data-dx_placeholder="" class="dx-placeholder dx-state-invisible"></div></div><div class="dx-texteditor-buttons-container"><div></div></div></div><div class="dx-texteditor-label" id="dx-texteditor-label-87deb6a6-a8be-296e-c453-97bd8e8554a8"><div class="dx-label-before" style="width: 0px;"></div><div class="dx-label" style="max-width: 424.5px;"><span data-mark="">Mã AC</span></div><div class="dx-label-after"></div></div></div></div></div></div></div><div class="dx-item dx-box-item" style="display: flex; min-height: auto; flex-grow: 1; flex-shrink: 1;"><div class="dx-item-content dx-box-item-content" style="width: auto; height: auto; display: flex; flex-basis: 0px; flex-grow: 1; flex-direction: column;"><div class="dx-first-col dx-last-col dx-field-item dx-col-0 dx-field-item-optional dx-flex-layout"><div class="dx-field-item-content dx-field-item-content-location-right"><div class="dx-show-invalid-badge dx-textbox dx-texteditor dx-editor-outlined dx-widget dx-texteditor-with-floating-label dx-state-readonly"><div class="dx-texteditor-container"><div class="dx-texteditor-input-container"><input autocomplete="off" id="dx_dx-958ad641-2551-9ddd-68a9-9a79553d4c13_EmpCode" class="dx-texteditor-input" type="text" spellcheck="false" name="EmpCode" aria-labelledby="dx-texteditor-label-d1aa44b2-2861-c74d-1992-d7fae1677685" role="textbox" readonly="" aria-readonly="true" aria-required="false" tabindex="0"><div data-dx_placeholder="" class="dx-placeholder dx-state-invisible"></div></div><div class="dx-texteditor-buttons-container"><div></div></div></div><div class="dx-texteditor-label" id="dx-texteditor-label-d1aa44b2-2861-c74d-1992-d7fae1677685"><div class="dx-label-before" style="width: 0px;"></div><div class="dx-label" style="max-width: 424.5px;"><span data-mark="">Mã N.viên</span></div><div class="dx-label-after"></div></div></div></div></div></div></div><div class="dx-item dx-box-item" style="display: flex; min-height: auto; flex-grow: 1; flex-shrink: 1;"><div class="dx-item-content dx-box-item-content" style="width: auto; height: auto; display: flex; flex-basis: 0px; flex-grow: 1; flex-direction: column;"><div class="dx-first-col dx-last-col dx-last-row dx-field-item dx-col-0 dx-field-item-optional dx-flex-layout"><div class="dx-field-item-content dx-field-item-content-location-right"><div class="dx-show-invalid-badge dx-datebox dx-textbox dx-texteditor dx-editor-outlined dx-texteditor-empty dx-widget dx-visibility-change-handler dx-auto-width dx-texteditor-with-floating-label dx-dropdowneditor dx-datebox-date dx-datebox-calendar dx-state-readonly"><div class="dx-dropdowneditor-input-wrapper"><input type="hidden" name="jd" value=""><div class="dx-texteditor-container"><div class="dx-texteditor-input-container"><input autocomplete="off" id="dx_dx-958ad641-2551-9ddd-68a9-9a79553d4c13_jd" class="dx-texteditor-input" aria-haspopup="true" aria-autocomplete="list" type="text" spellcheck="false" aria-labelledby="dx-texteditor-label-56cbdbb4-4714-66d9-9a24-63b2da3b2093" role="combobox" aria-expanded="false" readonly="" aria-readonly="true" aria-required="false" tabindex="0"><div data-dx_placeholder="" class="dx-placeholder"></div></div><div class="dx-texteditor-buttons-container"><div></div><div role="button" class="dx-widget dx-button-mode-contained dx-button-normal dx-state-disabled dx-state-invisible dx-dropdowneditor-button" aria-label="Select" aria-disabled="true" aria-hidden="true"><div class="dx-button-content"><div class="dx-dropdowneditor-icon"></div></div></div></div></div></div><div class="dx-texteditor-label" id="dx-texteditor-label-56cbdbb4-4714-66d9-9a24-63b2da3b2093"><div class="dx-label-before" style="width: 0px;"></div><div class="dx-label" style="max-width: 407.5px;"><span data-mark="">Ngày gia nhập</span></div><div class="dx-label-after"></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div><div class="dx-item dx-box-item" style="display: flex; min-width: 0px; flex: 3 1 0px;"><div class="dx-item-content dx-box-item-content" style="width: auto; height: auto; display: flex; flex-basis: 0px; flex-grow: 1; flex-direction: column;"><div class="dx-first-row dx-last-col dx-last-row dx-field-item dx-col-5 dx-field-item-optional dx-field-item-has-group"><div class="dx-field-item-content dx-field-item-content-location-right"><div class="dx-form-group dx-group-colcount-1" group-col-count="1"><div class="dx-form-group-content"><div class="dx-layout-manager dx-widget"><div class="dx-widget dx-collection dx-responsivebox-screen-undefined dx-responsivebox" style="width: 100%; height: 100%;"><div class="dx-box-flex dx-box dx-widget dx-visibility-change-handler dx-collection" style="display: flex; flex-direction: column; width: 100%; height: 100%; justify-content: flex-start; align-items: stretch;"><div class="dx-item dx-box-item" style="display: flex; min-height: auto; flex-grow: 1; flex-shrink: 1;"><div class="dx-item-content dx-box-item-content" style="width: auto; height: auto; display: flex; flex-basis: 0px; flex-grow: 1; flex-direction: column;"><div class="dx-first-row dx-first-col dx-last-col dx-field-item dx-col-0 dx-field-item-optional dx-flex-layout"><div class="dx-field-item-content dx-field-item-content-location-right"><div class="dx-show-invalid-badge dx-textbox dx-texteditor dx-editor-outlined dx-widget dx-texteditor-with-floating-label dx-state-readonly"><div class="dx-texteditor-container"><div class="dx-texteditor-input-container"><input autocomplete="off" id="dx_dx-958ad641-2551-9ddd-68a9-9a79553d4c13_EmpName" class="dx-texteditor-input" type="text" spellcheck="false" name="EmpName" aria-labelledby="dx-texteditor-label-ea9a091e-9366-2d36-339c-06a8c1caed32" role="textbox" readonly="" aria-readonly="true" aria-required="false" tabindex="0"><div data-dx_placeholder="" class="dx-placeholder dx-state-invisible"></div></div><div class="dx-texteditor-buttons-container"><div></div></div></div><div class="dx-texteditor-label" id="dx-texteditor-label-ea9a091e-9366-2d36-339c-06a8c1caed32"><div class="dx-label-before" style="width: 0px;"></div><div class="dx-label" style="max-width: 342px;"><span data-mark="">Tên nhân viên</span></div><div class="dx-label-after"></div></div></div></div></div></div></div><div class="dx-item dx-box-item" style="display: flex; min-height: auto; flex-grow: 1; flex-shrink: 1;"><div class="dx-item-content dx-box-item-content" style="width: auto; height: auto; display: flex; flex-basis: 0px; flex-grow: 1; flex-direction: column;"><div class="dx-first-col dx-last-col dx-field-item dx-col-0 dx-field-item-optional dx-flex-layout"><div class="dx-field-item-content dx-field-item-content-location-right"><div class="dx-show-invalid-badge dx-textbox dx-texteditor dx-editor-outlined dx-widget dx-texteditor-with-floating-label dx-state-readonly"><div class="dx-texteditor-container"><div class="dx-texteditor-input-container"><input autocomplete="off" id="dx_dx-958ad641-2551-9ddd-68a9-9a79553d4c13_ff_gt" class="dx-texteditor-input" type="text" spellcheck="false" name="ff_gt" aria-labelledby="dx-texteditor-label-85470f98-168d-e24a-91b6-be66a69e75ab" role="textbox" readonly="" aria-readonly="true" aria-required="false" tabindex="0"><div data-dx_placeholder="" class="dx-placeholder dx-state-invisible"></div></div><div class="dx-texteditor-buttons-container"><div></div></div></div><div class="dx-texteditor-label" id="dx-texteditor-label-85470f98-168d-e24a-91b6-be66a69e75ab"><div class="dx-label-before" style="width: 0px;"></div><div class="dx-label" style="max-width: 342px;"><span data-mark="">Giới tính</span></div><div class="dx-label-after"></div></div></div></div></div></div></div><div class="dx-item dx-box-item" style="display: flex; min-height: auto; flex-grow: 1; flex-shrink: 1;"><div class="dx-item-content dx-box-item-content" style="width: auto; height: auto; display: flex; flex-basis: 0px; flex-grow: 1; flex-direction: column;"><div class="dx-first-col dx-last-col dx-last-row dx-field-item dx-col-0 dx-field-item-optional dx-flex-layout"><div class="dx-field-item-content dx-field-item-content-location-right"><div class="dx-show-invalid-badge dx-datebox dx-textbox dx-texteditor dx-editor-outlined dx-texteditor-empty dx-widget dx-visibility-change-handler dx-auto-width dx-texteditor-with-floating-label dx-dropdowneditor dx-datebox-date dx-datebox-calendar dx-state-readonly"><div class="dx-dropdowneditor-input-wrapper"><input type="hidden" name="bd" value=""><div class="dx-texteditor-container"><div class="dx-texteditor-input-container"><input autocomplete="off" id="dx_dx-958ad641-2551-9ddd-68a9-9a79553d4c13_bd" class="dx-texteditor-input" aria-haspopup="true" aria-autocomplete="list" type="text" spellcheck="false" aria-labelledby="dx-texteditor-label-713ae34b-20bb-27d2-c7c2-666e2b407e84" role="combobox" aria-expanded="false" readonly="" aria-readonly="true" aria-required="false" tabindex="0"><div data-dx_placeholder="" class="dx-placeholder"></div></div><div class="dx-texteditor-buttons-container"><div></div><div role="button" class="dx-widget dx-button-mode-contained dx-button-normal dx-state-disabled dx-state-invisible dx-dropdowneditor-button" aria-label="Select" aria-disabled="true" aria-hidden="true"><div class="dx-button-content"><div class="dx-dropdowneditor-icon"></div></div></div></div></div></div><div class="dx-texteditor-label" id="dx-texteditor-label-713ae34b-20bb-27d2-c7c2-666e2b407e84"><div class="dx-label-before" style="width: 0px;"></div><div class="dx-label" style="max-width: 325px;"><span data-mark="">Ngày sinh</span></div><div class="dx-label-after"></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div>
+
+    <!--2. start menu  divfrm.next() -->
+    <div></div>
+
+
+    <!--3. ref popup registration divfrm.next.next()-->
+    <div class="row" style="margin:0">
+    
+        <div class="reg_navigator col-12">
+
+            <div class="mobi_tabs panel">
+
+                
+
+                
+
+            </div>
+
+        </div>
+
+        
+
+ 
+    </div>
+
+
+    <div class="container">
+        <!--https://www.markuptag.com/bootstrap-4-blog-post-comments-section-design/-->
+        <div class="row">
+       
+            
+       
+        </div>
+    </div>
+
+</div>
+
+
+
+
+
+
+</div></div>
+        </div>
+    </div>
+    <footer id="pagefooter">
+        <div class="footer-inner d-flex">
+            <div>
+                ©
+                <span class="current-year">2026</span>
+                <span class="text-bold text-uppercase">
+                    +84 339449621-HIHRS                </span>.
+                <span>
+                    Liên hệ bản quyền                </span>
+            </div>
+            <div>
+                <span class="go-top">
+                    <i class="ti-angle-up"></i>
+                </span>
+            </div>
+        </div>
+    </footer>
+    <div id="off-sidebar" class="sidebar">
+        <div class="sidebar-wrapper">
+            <ul id="offTab" class="nav nav-tabs nav-justified">
+                <li class="nav-item">
+                    <a href="https://hrm.dnd.vn/lwlogin#off-users" class="nav-link active" aria-controls="off-users" role="tab" data-toggle="tab">
+                        <i class="ti-comments"></i>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="https://hrm.dnd.vn/lwlogin#off-activities" class="nav-link" aria-controls="off-activities" role="tab" data-toggle="tab">
+                        <i class="ti-check-box"></i>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="https://hrm.dnd.vn/lwlogin#off-favorites" class="nav-link" aria-controls="off-favorites" role="tab" data-toggle="tab">
+                        <i class="ti-heart"></i>
+                    </a>
+                </li>
+            </ul>
+            <div class="tab-content">
+                <div role="tabpanel" class="tab-pane active" id="off-users">
+                    <div id="users" toggleable="" active-class="chat-open">
+                                            </div>
+                </div>
+                <div role="tabpanel" class="tab-pane" id="off-activities">
+                                    </div>
+                <div role="tabpanel" class="tab-pane" id="off-favorites">
+                                    </div>
+            </div>
+        </div>
+    </div>
+
+</div><div class="settings panel panel-default" id="settings" style="">
+    <button ct-toggle="toggle" data-toggle-class="active" data-toggle-target="#settings" class="btn btn-default">
+        <i class="fa fa-spin fa-gear"></i>
+    </button>
+    <div class="panel-heading">Style Selector</div>
+    <div class="panel-body">
+        <div class="setting-box clearfix">
+            <span class="setting-title float-left">Fixed header</span>
+            <span class="setting-switch float-right">
+                <label class="tgl">
+                    <input type="checkbox" id="fixed-header">
+                    <span class="tgl_body">
+                        <span class="tgl_switch"></span>
+                        <span class="tgl_track">
+                            <span class="tgl_bgd"></span>
+                            <span class="tgl_bgd tgl_bgd-negative"></span>
+                        </span>
+                    </span>
+                </label>
+            </span>
+        </div>
+        <div class="setting-box clearfix">
+            <span class="setting-title float-left">Fixed sidebar</span>
+            <span class="setting-switch float-right">
+                <label class="tgl">
+                    <input type="checkbox" id="fixed-sidebar">
+                    <span class="tgl_body">
+                        <span class="tgl_switch"></span>
+                        <span class="tgl_track">
+                            <span class="tgl_bgd"></span>
+                            <span class="tgl_bgd tgl_bgd-negative"></span>
+                        </span>
+                    </span>
+                </label>
+            </span>
+        </div>
+        <div class="setting-box clearfix">
+            <span class="setting-title float-left">Closed sidebar</span>
+            <span class="setting-switch float-right">
+                <label class="tgl">
+                    <input type="checkbox" id="closed-sidebar">
+                    <span class="tgl_body">
+                        <span class="tgl_switch"></span>
+                        <span class="tgl_track">
+                            <span class="tgl_bgd"></span>
+                            <span class="tgl_bgd tgl_bgd-negative"></span>
+                        </span>
+                    </span>
+                </label>
+            </span>
+        </div>
+        <div class="setting-box clearfix">
+            <span class="setting-title float-left">Fixed footer</span>
+            <span class="setting-switch float-right">
+                <label class="tgl">
+                    <input type="checkbox" id="fixed-footer">
+                    <span class="tgl_body">
+                        <span class="tgl_switch"></span>
+                        <span class="tgl_track">
+                            <span class="tgl_bgd"></span>
+                            <span class="tgl_bgd tgl_bgd-negative"></span>
+                        </span>
+                    </span>
+                </label>
+            </span>
+        </div>
+        <div class="colors-row setting-box">
+            <div class="color-theme theme-1">
+                <div class="color-layout">
+                    <label>
+                        <input type="radio" name="setting-theme" value="theme-1">
+                        <span class="ti-check"></span>
+                        <span class="split header">
+                            <span class="color th-header"></span>
+                            <span class="color th-collapse"></span>
+                        </span>
+                        <span class="split">
+                            <span class="color th-sidebar">
+                                <i class="element"></i>
+                            </span>
+                            <span class="color th-body"></span>
+                        </span>
+                    </label>
+                </div>
+            </div>
+            <div class="color-theme theme-2">
+                <div class="color-layout">
+                    <label>
+                        <input type="radio" name="setting-theme" value="theme-2">
+                        <span class="ti-check"></span>
+                        <span class="split header">
+                            <span class="color th-header"></span>
+                            <span class="color th-collapse"></span>
+                        </span>
+                        <span class="split">
+                            <span class="color th-sidebar">
+                                <i class="element"></i>
+                            </span>
+                            <span class="color th-body"></span>
+                        </span>
+                    </label>
+                </div>
+            </div>
+        </div>
+        <div class="colors-row setting-box">
+            <div class="color-theme theme-3">
+                <div class="color-layout">
+                    <label>
+                        <input type="radio" name="setting-theme" value="theme-3">
+                        <span class="ti-check"></span>
+                        <span class="split header">
+                            <span class="color th-header"></span>
+                            <span class="color th-collapse"></span>
+                        </span>
+                        <span class="split">
+                            <span class="color th-sidebar">
+                                <i class="element"></i>
+                            </span>
+                            <span class="color th-body"></span>
+                        </span>
+                    </label>
+                </div>
+            </div>
+            <div class="color-theme theme-4">
+                <div class="color-layout">
+                    <label>
+                        <input type="radio" name="setting-theme" value="theme-4">
+                        <span class="ti-check"></span>
+                        <span class="split header">
+                            <span class="color th-header"></span>
+                            <span class="color th-collapse"></span>
+                        </span>
+                        <span class="split">
+                            <span class="color th-sidebar">
+                                <i class="element"></i>
+                            </span>
+                            <span class="color th-body"></span>
+                        </span>
+                    </label>
+                </div>
+            </div>
+        </div>
+        <div class="colors-row setting-box">
+            <div class="color-theme theme-5">
+                <div class="color-layout">
+                    <label>
+                        <input type="radio" name="setting-theme" value="theme-5">
+                        <span class="ti-check"></span>
+                        <span class="split header">
+                            <span class="color th-header"></span>
+                            <span class="color th-collapse"></span>
+                        </span>
+                        <span class="split">
+                            <span class="color th-sidebar">
+                                <i class="element"></i>
+                            </span>
+                            <span class="color th-body"></span>
+                        </span>
+                    </label>
+                </div>
+            </div>
+            <div class="color-theme theme-6">
+                <div class="color-layout">
+                    <label>
+                        <input type="radio" name="setting-theme" value="theme-6">
+                        <span class="ti-check"></span>
+                        <span class="split header">
+                            <span class="color th-header"></span>
+                            <span class="color th-collapse"></span>
+                        </span>
+                        <span class="split">
+                            <span class="color th-sidebar">
+                                <i class="element"></i>
+                            </span>
+                            <span class="color th-body"></span>
+                        </span>
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+</div></body></html>
