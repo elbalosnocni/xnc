@@ -3,7 +3,7 @@
 // A. DATA STRUCTURE & CONSTANTS
 // ==========================================
 const SPREADSHEET_ID = SpreadsheetApp.getActiveSpreadsheet().getId();
-const SESSION_TTL_SECONDS = 21600; // 6 Giờ
+const SESSION_TTL_SECONDS = 21600; // 6 hours
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024; // 10 MB / file
 const ALLOWED_UPLOAD_MIME = new Set([
   'application/pdf',
@@ -39,7 +39,7 @@ function getSheet(tableName) {
   if (!_SS) _SS = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = _SS.getSheetByName(tableName);
   if (!sheet) {
-    throw new Error(`Bảng ${tableName} chưa tồn tại. Vui lòng chạy setupSystem() thủ công.`);
+    throw new Error(`Sheet ${tableName} does not exist. Please run setupSystem() manually.`);
   }
   _SHEET_CACHE[tableName] = sheet;
   return sheet;
@@ -55,7 +55,7 @@ function doGet(e) {
 }
 
 function doPost(e) {
-  let result = { status: "ERROR", message: "Yêu cầu không hợp lệ!" };
+  let result = { status: "ERROR", message: "Invalid request!" };
   try {
     let requestData = {};
     if (e && e.postData && e.postData.contents) {
@@ -77,7 +77,7 @@ function doPost(e) {
       const requester = validateSession(token);
       result = requester
         ? dispatchApiAction(action, token, requester, data, params)
-        : { status: "ERROR", message: "Phiên đăng nhập hết hạn hoặc không hợp lệ!" };
+        : { status: "ERROR", message: "Session expired or is invalid!" };
     }
   } catch (error) {
     result = { status: "ERROR", message: error.message || String(error) };
@@ -99,7 +99,7 @@ function apiCall(action, token, data, params) {
 
     const requester = validateSession(token);
     if (!requester) {
-      return { status: "ERROR", message: "Phiên đăng nhập hết hạn hoặc không hợp lệ!" };
+      return { status: "ERROR", message: "Session expired or is invalid!" };
     }
 
     return dispatchApiAction(action, token, requester, data, params);
@@ -110,7 +110,7 @@ function apiCall(action, token, data, params) {
 }
 
 function dispatchApiAction(action, token, requester, data, params) {
-  let result = { status: "ERROR", message: "Hành động không hợp lệ!" };
+  let result = { status: "ERROR", message: "Invalid action!" };
   const employeeId = params.employeeId || data.employeeId || (data.data && data.data.employeeId);
 
   switch (action) {
@@ -128,7 +128,7 @@ function dispatchApiAction(action, token, requester, data, params) {
       break;
     case "SAVE_DOCUMENT":
       if (![ROLES.ADMIN, ROLES.HR_ADMIN].includes(normalizeRole(requester.role))) {
-        result = { status: "ERROR", message: "Chỉ ADMIN / HR ADMIN được cập nhật giấy tờ." };
+        result = { status: "ERROR", message: "Only ADMIN / HR ADMIN can update documents." };
       } else {
         result = saveDocument(data, requester);
       }
@@ -221,7 +221,7 @@ function handleLogin(username, password) {
   username = String(username || "").trim();
   password = String(password || "");
   if (!username || !password) {
-    return { status: "ERROR", message: "Vui lòng nhập tài khoản và mật khẩu." };
+    return { status: "ERROR", message: "Please enter your username and password." };
   }
 
   const sheet = getSheet(TABLES.USERS);
@@ -237,14 +237,14 @@ function handleLogin(username, password) {
     if (loginMatches && (hashMatches || legacyPlainMatches)) {
       
       if (String(status).toUpperCase() !== "ACTIVE") {
-        return { status: "ERROR", message: "Tài khoản của bạn đã bị vô hiệu hóa!" };
+        return { status: "ERROR", message: "Your account has been disabled!" };
       }
 
       const empSheet = getSheet(TABLES.EMPLOYEES);
       const empRows = empSheet.getDataRange().getValues();
       const emp = empRows.find(r => String(r[0]) === String(employeeId));
       if (emp && emp[10] !== "ACTIVE") {
-        return { status: "ERROR", message: "Hồ sơ nhân viên đã dừng hoạt động!" };
+        return { status: "ERROR", message: "The employee profile is inactive!" };
       }
       
       if (legacyPlainMatches && !hashMatches) {
@@ -269,7 +269,7 @@ function handleLogin(username, password) {
       };
     }
   }
-  return { status: "ERROR", message: "Tài khoản hoặc mật khẩu không chính xác!" };
+  return { status: "ERROR", message: "Incorrect username or password!" };
 }
 
 function validateSession(token) {
@@ -291,7 +291,7 @@ function validateSession(token) {
 
 function handleLogout(token) {
   PropertiesService.getScriptProperties().deleteProperty(token);
-  return { status: "SUCCESS", message: "Đã đăng xuất thành công!" };
+  return { status: "SUCCESS", message: "Logged out successfully!" };
 }
 
 function normalizeRole(role) {
@@ -325,7 +325,7 @@ function canAccessEmployee(requester, targetEmpId) {
 }
 
 // ==========================================
-// D. QUẢN LÝ PROFILE & HỢP ĐỒNG & GIẤY TỜ
+// D. PROFILE, CONTRACT & DOCUMENT MANAGEMENT
 // ==========================================
 function handleSaveProfile(data, requester) {
   data = data || {};
@@ -337,12 +337,12 @@ function handleSaveProfile(data, requester) {
   const isSelf = isSelfEmployee(requester, data.employeeId);
   const canWrite = isHRAdmin || ([ROLES.DIRECTOR, ROLES.USER].includes(role) && isSelf);
 
-  if (!data.employeeId) return { status: "ERROR", message: "Thiếu Mã nhân viên." };
+  if (!data.employeeId) return { status: "ERROR", message: "Employee ID is required." };
   if (!canWrite) {
-    return { status: "ERROR", message: "Bạn không có quyền cập nhật hồ sơ này!" };
+    return { status: "ERROR", message: "You do not have permission to update this profile!" };
   }
   if (isHRAdmin && !data.fullName) {
-    return { status: "ERROR", message: "Họ và tên là bắt buộc." };
+    return { status: "ERROR", message: "Full name is required." };
   }
 
   const sheet = getSheet(TABLES.EMPLOYEES);
@@ -374,7 +374,7 @@ function handleSaveProfile(data, requester) {
       const newEmail = String(data.email || "").trim();
       updatedRow[7] = newEmail;
       
-      // Đồng bộ email sang bảng Users nếu thay đổi email
+      // Sync email to the Users sheet if the email changes
       if (newEmail && newEmail.toLowerCase() !== String(currentRow[7]).trim().toLowerCase()) {
         const userSheet = getSheet(TABLES.USERS);
         const uRows = userSheet.getDataRange().getValues();
@@ -394,10 +394,10 @@ function handleSaveProfile(data, requester) {
     SpreadsheetApp.flush();
     writeAuditLog(requester.userId, "UPDATE", "Employees", data.employeeId, JSON.stringify(currentRow), JSON.stringify(updatedRow));
   } else {
-    if (!isHRAdmin) return { status: "ERROR", message: "Chỉ HR mới được thêm mới nhân viên!" };
+    if (!isHRAdmin) return { status: "ERROR", message: "Only HR can add new employees!" };
 
     if (rows.slice(1).some(r => String(r[0]).trim() === data.employeeId)) {
-      return { status: "ERROR", message: "Mã nhân viên đã tồn tại." };
+      return { status: "ERROR", message: "Employee ID already exists." };
     }
 
     const normalizedEmail = String(data.email || "").trim().toLowerCase();
@@ -405,7 +405,7 @@ function handleSaveProfile(data, requester) {
       const userSheet = getSheet(TABLES.USERS);
       const userRows = userSheet.getDataRange().getValues();
       if (userRows.slice(1).some(r => String(r[1]).trim().toLowerCase() === normalizedEmail)) {
-        return { status: "ERROR", message: "Email tài khoản đã tồn tại." };
+        return { status: "ERROR", message: "Account email already exists." };
       }
     }
 
@@ -442,7 +442,7 @@ function handleSaveProfile(data, requester) {
     writeAuditLog(requester.userId, "CREATE", "Employees", data.employeeId, null, JSON.stringify(newRow));
   }
 
-  // Đồng bộ trạng thái vị trí làm việc
+  // Synchronize work location status
   calculateEmployeeLocationStatus(data.employeeId);
 
   const childResults = { documents: [], contract: null };
@@ -483,12 +483,12 @@ function handleSaveProfile(data, requester) {
 
   const verify = getProfileData(data.employeeId, requester);
   if (verify.status !== "SUCCESS") {
-    return { status: "ERROR", message: "Đã ghi nhưng không đọc lại được hồ sơ: " + verify.message };
+    return { status: "ERROR", message: "Data was written, but the profile could not be read back: " + verify.message };
   }
 
   return {
     status: "SUCCESS",
-    message: "Đã lưu thông tin hồ sơ thành công!",
+    message: "Profile information saved successfully!",
     profile: verify.profile,
     children: childResults
   };
@@ -584,7 +584,7 @@ function saveContractAndAppendix(data, requester) {
       formatDate(data.appendixEndDate || data.contractExpiry),
       Number(data.appendixSalary !== undefined ? data.appendixSalary : data.salary) || 0,
       data.appendixAllowancesJson ? String(data.appendixAllowancesJson) : JSON.stringify({ allowance: Number(data.appendixAllowance !== undefined ? data.appendixAllowance : data.allowance) || 0 }),
-      data.appendixContent || "Cập nhật theo hồ sơ",
+      data.appendixContent || "Updated according to profile",
       data.appendixFileId || "",
       data.appendixFileUrl || data.contractImg || "",
       appRowIndex > 0 ? (appRows[appRowIndex - 1][11] || new Date()) : new Date(),
@@ -635,7 +635,7 @@ function saveDocument(docData, requester) {
     sheet.getRange(currentRowIndex, 1, 1, 13).setValues([updated]);
     SpreadsheetApp.flush();
     writeAuditLog(requester.userId, "UPDATE_DOCUMENT", "Documents", updated[0], JSON.stringify(oldRow), JSON.stringify(updated));
-    return { status: "SUCCESS", message: "Cập nhật giấy tờ thành công!", docId: updated[0] };
+    return { status: "SUCCESS", message: "Document updated successfully!", docId: updated[0] };
   }
 
   const docId = "DOC-" + Utilities.getUuid().substring(0, 8);
@@ -658,18 +658,18 @@ function saveDocument(docData, requester) {
   sheet.appendRow(newDocRow);
   SpreadsheetApp.flush();
   writeAuditLog(requester.userId, "ADD_DOCUMENT", "Documents", docId, null, JSON.stringify(newDocRow));
-  return { status: "SUCCESS", message: "Thêm mới giấy tờ thành công!", docId: docId };
+  return { status: "SUCCESS", message: "Document added successfully!", docId: docId };
 }
 
 // ==========================================
-// E. DRIVE FILE UPLOAD & BẢO MẬT
+// E. DRIVE FILE UPLOAD & SECURITY
 // ==========================================
 function uploadEmployeeFile(param, requester) {
   try {
     const { base64Data, fileName, mimeType, employeeId, subFolderType } = param;
     
     if (!canEditEmployee(requester, employeeId) || ![ROLES.ADMIN, ROLES.HR_ADMIN].includes(normalizeRole(requester.role))) {
-      return { status: "ERROR", message: "Chỉ ADMIN / HR ADMIN được upload hồ sơ nhân viên." };
+      return { status: "ERROR", message: "Only ADMIN / HR ADMIN can upload employee files." };
     }
 
     const empSheet = getSheet(TABLES.EMPLOYEES);
@@ -684,7 +684,7 @@ function uploadEmployeeFile(param, requester) {
     }
 
     if (!folderId) {
-      return { status: "ERROR", message: "Nhân viên chưa có thư mục Drive." };
+      return { status: "ERROR", message: "The employee does not have a Drive folder." };
     }
     const parentFolder = DriveApp.getFolderById(folderId);
     const folderName = String(subFolderType || "Misc").replace(/[\\/]/g, "").trim() || "Misc";
@@ -694,12 +694,12 @@ function uploadEmployeeFile(param, requester) {
     const encoded = String(base64Data).split(",")[1] || String(base64Data);
     const bytes = Utilities.base64Decode(encoded);
     if (bytes.length > MAX_UPLOAD_BYTES) {
-      return { status: "ERROR", message: "File vượt quá giới hạn 10 MB." };
+      return { status: "ERROR", message: "File exceeds the 10 MB limit." };
     }
     const safeName = String(fileName || "upload").replace(/[\\/:*?"<>|]/g, "_").trim() || "upload";
     const safeMime = String(mimeType || "").toLowerCase();
     if (!ALLOWED_UPLOAD_MIME.has(safeMime)) {
-      return { status: "ERROR", message: "Định dạng file không được hỗ trợ. Chỉ nhận PDF, JPG, PNG, WEBP." };
+      return { status: "ERROR", message: "Unsupported file format. Only PDF, JPG, PNG, and WEBP are accepted." };
     }
     const blob = Utilities.newBlob(bytes, safeMime, safeName);
     const file = targetFolder.createFile(blob);
@@ -725,7 +725,7 @@ function uploadEmployeeFile(param, requester) {
 }
 
 // ==========================================
-// F. LỊCH TRÌNH & XUẤT NHẬP CẢNH & DỰ ĐỊNH
+// F. SCHEDULES, ENTRY/EXIT & PLANNING
 // ==========================================
 function parseDateSafe(val) {
   if (!val) return new Date(0);
@@ -767,8 +767,8 @@ function calculateEmployeeLocationStatus(employeeId) {
     .filter(x => x.date.getTime() > 0 && x.date <= now)
     .sort((a, b) => b.date - a.date);
 
-  // Trạng thái hiện tại chỉ dựa trên sự kiện nhập/xuất gần nhất ĐÃ xảy ra.
-  // Không dùng lịch Entry/Exit trong tương lai để làm thay đổi trạng thái hiện tại.
+  // The current status is based only on the most recent completed entry/exit event.
+  // Future Entry/Exit schedules do not change the current status.
   let status = "Exited";
   let location = "Overseas";
 
@@ -777,8 +777,8 @@ function calculateEmployeeLocationStatus(employeeId) {
     location = status === "In Vietnam" ? "Vietnam" : "Overseas";
   }
 
-  // DomesticTravel chỉ được override khi đang ở Việt Nam và chuyến đã APPROVED
-  // với khoảng thời gian bao phủ thời điểm hiện tại.
+  // DomesticTravel overrides the status only while the employee is in Vietnam and the trip is APPROVED
+  // with a date range that covers the current time.
   if (status === "In Vietnam") {
     const travelRows = travelSheet.getDataRange().getValues().slice(1)
       .filter(r => String(r[1]).trim() === String(employeeId).trim())
@@ -822,7 +822,7 @@ function updateEmployeeStatusRecord(employeeId, status, location) {
   }
 }
 
-// --- 1. HÀM THÊM KHAI BÁO NHẬP XUẤT CẢNH (Đã fix nhận dateTime) ---
+// --- 1. ADD ENTRY/EXIT DECLARATION (dateTime handling fixed) ---
 function handleAddEntryExit(data, req) {
   data = data || {};
   const employeeId = String(data.employeeId || "").trim();
@@ -832,21 +832,21 @@ function handleAddEntryExit(data, req) {
   const eventDate = actualDateTime || plannedDateTime;
 
   if (!employeeId || !["ENTRY", "EXIT"].includes(type) || !eventDate || !data.airport) {
-    return { status: "ERROR", message: "Thiếu hoặc sai thông tin nhập/xuất cảnh." };
+    return { status: "ERROR", message: "Missing or invalid entry/exit information." };
   }
   if (!canEditEmployee(req, employeeId)) {
-    return { status: "ERROR", message: "Bạn không có quyền thực hiện thao tác ghi cho nhân viên này." };
+    return { status: "ERROR", message: "You do not have permission to modify records for this employee." };
   }
 
   const parsedEvent = parseDateSafe(eventDate);
-  if (parsedEvent.getTime() === 0) return { status: "ERROR", message: "Ngày giờ không hợp lệ." };
+  if (parsedEvent.getTime() === 0) return { status: "ERROR", message: "Invalid date/time." };
 
   const sheet = getSheet(TABLES.ENTRY_EXIT);
   const id = "EE-" + Utilities.getUuid().substring(0, 8);
   const now = new Date();
 
-  // Schema mới giữ nguyên 9 cột đầu để tương thích dữ liệu cũ,
-  // đồng thời bổ sung CreatedBy / PlannedDateTime / ActualDateTime / TripID.
+  // The new schema keeps the first 9 columns for backward compatibility,
+  // and adds CreatedBy / PlannedDateTime / ActualDateTime / TripID.
   const row = [
     id,
     employeeId,
@@ -868,29 +868,29 @@ function handleAddEntryExit(data, req) {
   writeAuditLog(req.userId, "ADD_ENTRY_EXIT", TABLES.ENTRY_EXIT, id, null,
     JSON.stringify({ employeeId, type, eventDate, plannedDateTime, actualDateTime, airport: data.airport, flightNo: data.flightNo, destination: data.destination, purpose: data.purpose }));
 
-  return { status: "SUCCESS", message: "Đã lưu khai báo nhập/xuất cảnh thành công!", entryExitId: id };
+  return { status: "SUCCESS", message: "Entry/exit declaration saved successfully!", entryExitId: id };
 }
 
 function handleUpdateEntryExit(data, req) {
   data = data || {};
   const id = String(data.entryExitId || data.logId || "").trim();
   const employeeId = String(data.employeeId || "").trim();
-  if (!id || !employeeId) return { status: "ERROR", message: "Thiếu mã khai báo." };
-  if (!canEditEmployee(req, employeeId)) return { status: "ERROR", message: "Bạn không có quyền thực hiện thao tác ghi cho nhân viên này." };
+  if (!id || !employeeId) return { status: "ERROR", message: "Declaration ID is required." };
+  if (!canEditEmployee(req, employeeId)) return { status: "ERROR", message: "You do not have permission to modify records for this employee." };
 
   const type = String(data.type || "").trim().toUpperCase();
   const plannedDateTime = data.plannedDateTime || data.dateTime || data.date;
   const actualDateTime = data.actualDateTime || "";
   const eventDate = actualDateTime || plannedDateTime;
   if (!["ENTRY", "EXIT"].includes(type) || !eventDate || !data.airport) {
-    return { status: "ERROR", message: "Thiếu hoặc sai thông tin nhập/xuất cảnh." };
+    return { status: "ERROR", message: "Missing or invalid entry/exit information." };
   }
 
   const sheet = getSheet(TABLES.ENTRY_EXIT);
   const rows = sheet.getDataRange().getValues();
   for (let i = 1; i < rows.length; i++) {
     if (String(rows[i][0]).trim() !== id) continue;
-    if (String(rows[i][1]).trim() !== employeeId) return { status: "ERROR", message: "Khai báo không thuộc nhân viên này." };
+    if (String(rows[i][1]).trim() !== employeeId) return { status: "ERROR", message: "This declaration does not belong to this employee." };
 
     const oldRow = rows[i].slice();
     const updated = oldRow.slice();
@@ -910,34 +910,34 @@ function handleUpdateEntryExit(data, req) {
     sheet.getRange(i + 1, 1, 1, 13).setValues([updated.slice(0, 13)]);
     calculateEmployeeLocationStatus(employeeId);
     writeAuditLog(req.userId, "UPDATE_ENTRY_EXIT", TABLES.ENTRY_EXIT, id, JSON.stringify(oldRow), JSON.stringify(updated));
-    return { status: "SUCCESS", message: "Đã cập nhật khai báo nhập/xuất cảnh." };
+    return { status: "SUCCESS", message: "Entry/exit declaration updated successfully." };
   }
-  return { status: "ERROR", message: "Không tìm thấy khai báo nhập/xuất cảnh." };
+  return { status: "ERROR", message: "Entry/exit declaration not found." };
 }
 
 function handleDeleteEntryExit(data, req) {
   data = data || {};
   const id = String(data.entryExitId || data.logId || "").trim();
-  if (!id) return { status: "ERROR", message: "Thiếu mã khai báo." };
+  if (!id) return { status: "ERROR", message: "Declaration ID is required." };
 
   const sheet = getSheet(TABLES.ENTRY_EXIT);
   const rows = sheet.getDataRange().getValues();
   for (let i = 1; i < rows.length; i++) {
     if (String(rows[i][0]).trim() !== id) continue;
     const employeeId = String(rows[i][1]).trim();
-    if (!canEditEmployee(req, employeeId)) return { status: "ERROR", message: "Bạn không có quyền thực hiện thao tác ghi cho nhân viên này." };
+    if (!canEditEmployee(req, employeeId)) return { status: "ERROR", message: "You do not have permission to modify records for this employee." };
 
     const oldRow = rows[i].slice();
     sheet.deleteRow(i + 1);
     calculateEmployeeLocationStatus(employeeId);
     writeAuditLog(req.userId, "DELETE_ENTRY_EXIT", TABLES.ENTRY_EXIT, id, JSON.stringify(oldRow), "DELETED");
-    return { status: "SUCCESS", message: "Đã xóa khai báo nhập/xuất cảnh." };
+    return { status: "SUCCESS", message: "Entry/exit declaration deleted successfully." };
   }
-  return { status: "ERROR", message: "Không tìm thấy khai báo nhập/xuất cảnh." };
+  return { status: "ERROR", message: "Entry/exit declaration not found." };
 }
 
 function handleGetEntryExit(empId, req) {
-  if (!canAccessEmployee(req, empId)) return { status: "ERROR", message: "Không có quyền xem thông tin." };
+  if (!canAccessEmployee(req, empId)) return { status: "ERROR", message: "You do not have permission to view this information." };
 
   const sheet = getSheet(TABLES.ENTRY_EXIT);
   const rows = sheet.getDataRange().getValues().slice(1);
@@ -978,15 +978,15 @@ function handleAddDomesticTravel(d, req) {
   d.fromLocation = String(d.fromLocation || "").trim();
   d.toLocation = String(d.toLocation || "").trim();
   if (!d.employeeId || !d.fromDate || !d.toDate || !d.fromLocation || !d.toLocation) {
-    return { status: "ERROR", message: "Thiếu thông tin lịch trình." };
+    return { status: "ERROR", message: "Schedule information is required." };
   }
 
   const start = parseDateSafe(d.fromDate);
   const end = parseDateSafe(d.toDate);
   if (start.getTime() === 0 || end.getTime() === 0 || end < start) {
-    return { status: "ERROR", message: "Khoảng ngày đi lại không hợp lệ." };
+    return { status: "ERROR", message: "Invalid travel date range." };
   }
-  if (!canEditEmployee(req, d.employeeId)) return { status: "ERROR", message: "Bạn không có quyền thêm/sửa lịch của nhân viên này." };
+  if (!canEditEmployee(req, d.employeeId)) return { status: "ERROR", message: "You do not have permission to add or edit this employee's schedule." };
 
   const sheet = getSheet(TABLES.TRAVEL);
   const id = "TRV-" + Utilities.getUuid().substring(0, 8);
@@ -1002,7 +1002,7 @@ function handleAddDomesticTravel(d, req) {
   writeAuditLog(req.userId, "ADD_DOMESTIC_TRAVEL", TABLES.TRAVEL, id, null, JSON.stringify(row));
   return {
     status: "SUCCESS",
-    message: initialStatus === "APPROVED" ? "Đã lưu và duyệt lịch trình công tác!" : "Đã gửi yêu cầu công tác (Chờ duyệt)!",
+    message: initialStatus === "APPROVED" ? "Travel schedule saved and approved!" : "Travel request submitted (pending approval)!",
     travelId: id
   };
 }
@@ -1010,7 +1010,7 @@ function handleAddDomesticTravel(d, req) {
 function handleUpdateDomesticTravel(d, req) {
   d = d || {};
   const travelId = String(d.travelId || "").trim();
-  if (!travelId) return { status: "ERROR", message: "Thiếu mã lịch đi lại." };
+  if (!travelId) return { status: "ERROR", message: "Travel schedule ID is required." };
 
   const sheet = getSheet(TABLES.TRAVEL);
   const rows = sheet.getDataRange().getValues();
@@ -1018,7 +1018,7 @@ function handleUpdateDomesticTravel(d, req) {
     if (String(rows[i][0]).trim() !== travelId) continue;
 
     const employeeId = String(rows[i][1]).trim();
-    if (!canEditEmployee(req, employeeId)) return { status: "ERROR", message: "Bạn không có quyền sửa lịch của nhân viên này." };
+    if (!canEditEmployee(req, employeeId)) return { status: "ERROR", message: "You do not have permission to edit this employee's travel schedule." };
 
     const fromDate = d.fromDate;
     const toDate = d.toDate;
@@ -1026,7 +1026,7 @@ function handleUpdateDomesticTravel(d, req) {
     const endDate = parseDateSafe(toDate);
     if (!fromDate || !toDate || startDate.getTime() === 0 || endDate.getTime() === 0 || endDate < startDate ||
         !d.fromLocation || !d.toLocation) {
-      return { status: "ERROR", message: "Thông tin lịch đi lại không hợp lệ." };
+      return { status: "ERROR", message: "Invalid travel schedule information." };
     }
 
     const oldRow = rows[i].slice();
@@ -1036,19 +1036,19 @@ function handleUpdateDomesticTravel(d, req) {
     updated[4] = fromDate;
     updated[5] = toDate;
     updated[11] = String(d.purpose || "").trim();
-    // Không tự ý đổi PENDING/APPROVED khi chỉ sửa nội dung.
+    // Do not change PENDING/APPROVED status when only editing content.
     sheet.getRange(i + 1, 1, 1, 12).setValues([updated.slice(0, 12)]);
     calculateEmployeeLocationStatus(employeeId);
     writeAuditLog(req.userId, "UPDATE_DOMESTIC_TRAVEL", TABLES.TRAVEL, travelId, JSON.stringify(oldRow), JSON.stringify(updated));
-    return { status: "SUCCESS", message: "Đã cập nhật lịch đi lại." };
+    return { status: "SUCCESS", message: "Travel schedule updated successfully." };
   }
-  return { status: "ERROR", message: "Không tìm thấy lịch đi lại." };
+  return { status: "ERROR", message: "Travel schedule not found." };
 }
 
 function handleCancelDomesticTravel(d, req) {
   d = d || {};
   const travelId = String(d.travelId || "").trim();
-  if (!travelId) return { status: "ERROR", message: "Thiếu mã lịch đi lại." };
+  if (!travelId) return { status: "ERROR", message: "Travel schedule ID is required." };
 
   const sheet = getSheet(TABLES.TRAVEL);
   const rows = sheet.getDataRange().getValues();
@@ -1056,28 +1056,28 @@ function handleCancelDomesticTravel(d, req) {
     if (String(rows[i][0]).trim() !== travelId) continue;
 
     const employeeId = String(rows[i][1]).trim();
-    if (!canEditEmployee(req, employeeId)) return { status: "ERROR", message: "Bạn không có quyền sửa lịch của nhân viên này." };
+    if (!canEditEmployee(req, employeeId)) return { status: "ERROR", message: "You do not have permission to edit this employee's travel schedule." };
 
     const oldStatus = String(rows[i][6] || "");
-    if (oldStatus.toUpperCase() === "CANCELLED") return { status: "SUCCESS", message: "Lịch đi lại đã được hủy trước đó." };
+    if (oldStatus.toUpperCase() === "CANCELLED") return { status: "SUCCESS", message: "The travel schedule was already cancelled." };
 
     sheet.getRange(i + 1, 7).setValue("CANCELLED");
     calculateEmployeeLocationStatus(employeeId);
     writeAuditLog(req.userId, "CANCEL_DOMESTIC_TRAVEL", TABLES.TRAVEL, travelId, oldStatus, "CANCELLED");
-    return { status: "SUCCESS", message: "Đã hủy lịch đi lại." };
+    return { status: "SUCCESS", message: "Travel schedule cancelled successfully." };
   }
-  return { status: "ERROR", message: "Không tìm thấy lịch đi lại." };
+  return { status: "ERROR", message: "Travel schedule not found." };
 }
 
 function handleApproveDomesticTravel(d, req) {
   d = d || {};
   if (![ROLES.ADMIN, ROLES.HR_ADMIN].includes(normalizeRole(req.role))) {
-    return { status: "ERROR", message: "Chỉ ADMIN / HR ADMIN được duyệt hoặc từ chối lịch công tác." };
+    return { status: "ERROR", message: "Only ADMIN / HR ADMIN can approve or reject travel schedules." };
   }
   const travelId = String(d.travelId || "").trim();
   const status = String(d.status || "").trim().toUpperCase();
   if (!travelId || !["APPROVED", "REJECTED"].includes(status)) {
-    return { status: "ERROR", message: "Travel ID hoặc trạng thái không hợp lệ." };
+    return { status: "ERROR", message: "Invalid Travel ID or status." };
   }
   const sheet = getSheet(TABLES.TRAVEL);
   const rows = sheet.getDataRange().getValues();
@@ -1087,13 +1087,13 @@ function handleApproveDomesticTravel(d, req) {
     sheet.getRange(i + 1, 7).setValue(status);
     calculateEmployeeLocationStatus(String(rows[i][1]).trim());
     writeAuditLog(req.userId, status === "APPROVED" ? "APPROVE_DOMESTIC_TRAVEL" : "REJECT_DOMESTIC_TRAVEL", TABLES.TRAVEL, travelId, oldStatus, status);
-    return { status: "SUCCESS", message: status === "APPROVED" ? "Đã duyệt lịch đi lại." : "Đã từ chối lịch đi lại." };
+    return { status: "SUCCESS", message: status === "APPROVED" ? "Travel schedule approved." : "Travel schedule rejected." };
   }
-  return { status: "ERROR", message: "Không tìm thấy lịch đi lại." };
+  return { status: "ERROR", message: "Travel schedule not found." };
 }
 
 function handleGetDomesticTravel(empId, req) {
-  if (!canAccessEmployee(req, empId)) return { status: "ERROR", message: "Không có quyền xem thông tin." };
+  if (!canAccessEmployee(req, empId)) return { status: "ERROR", message: "You do not have permission to view this information." };
 
   const sheet = getSheet(TABLES.TRAVEL);
   const rows = sheet.getDataRange().getValues().slice(1);
@@ -1116,7 +1116,7 @@ function handleGetDomesticTravel(empId, req) {
 // ==========================================
 function requireBatchAdmin(req) {
   if (!req || ![ROLES.ADMIN, ROLES.HR_ADMIN].includes(String(req.role || "").toUpperCase())) {
-    return { status: "ERROR", message: "Chỉ ADMIN / HR ADMIN được phép thực hiện thao tác hàng loạt." };
+    return { status: "ERROR", message: "Only ADMIN / HR ADMIN can perform batch operations." };
   }
   return null;
 }
@@ -1128,7 +1128,7 @@ function handleBatchAddEntryExit(data, req) {
   data = data || {};
   const employeeIds = Array.isArray(data.employeeIds) ? data.employeeIds.map(String).map(x => x.trim()).filter(Boolean) : [];
   const mode = String(data.mode || "ROUND_TRIP").toUpperCase();
-  if (!employeeIds.length) return { status: "ERROR", message: "Chưa chọn nhân viên." };
+  if (!employeeIds.length) return { status: "ERROR", message: "No employees selected." };
 
   const results = [];
   const errors = [];
@@ -1137,7 +1137,7 @@ function handleBatchAddEntryExit(data, req) {
     try {
       if (["ROUND_TRIP", "ENTRY_ONLY"].includes(mode)) {
         if (!data.entryPlannedDateTime || !data.entryAirport) {
-          throw new Error("Thiếu thông tin Entry.");
+          throw new Error("Entry information is required.");
         }
         const r = handleAddEntryExit({
           employeeId,
@@ -1150,13 +1150,13 @@ function handleBatchAddEntryExit(data, req) {
           purpose: data.purpose || "",
           tripId: data.tripId || ""
         }, req);
-        if (r.status !== "SUCCESS") throw new Error(r.message || "Không lưu được Entry.");
+        if (r.status !== "SUCCESS") throw new Error(r.message || "Unable to save Entry.");
         results.push({ employeeId, type: "ENTRY", id: r.entryExitId });
       }
 
       if (["ROUND_TRIP", "EXIT_ONLY"].includes(mode)) {
         if (!data.exitPlannedDateTime || !data.exitAirport) {
-          throw new Error("Thiếu thông tin Exit.");
+          throw new Error("Exit information is required.");
         }
         const r = handleAddEntryExit({
           employeeId,
@@ -1169,7 +1169,7 @@ function handleBatchAddEntryExit(data, req) {
           purpose: data.purpose || "",
           tripId: data.tripId || ""
         }, req);
-        if (r.status !== "SUCCESS") throw new Error(r.message || "Không lưu được Exit.");
+        if (r.status !== "SUCCESS") throw new Error(r.message || "Unable to save Exit.");
         results.push({ employeeId, type: "EXIT", id: r.entryExitId });
       }
     } catch (e) {
@@ -1179,7 +1179,7 @@ function handleBatchAddEntryExit(data, req) {
 
   return {
     status: errors.length && !results.length ? "ERROR" : "SUCCESS",
-    message: `Đã xử lý ${results.length} bản ghi Entry/Exit${errors.length ? `, ${errors.length} lỗi` : ""}.`,
+    message: `Processed ${results.length} Entry/Exit records${errors.length ? `, ${errors.length} errors` : ""}.`,
     created: results.length,
     errors,
     records: results
@@ -1192,7 +1192,7 @@ function handleBatchAddDomesticTravel(data, req) {
 
   data = data || {};
   const employeeIds = Array.isArray(data.employeeIds) ? data.employeeIds.map(String).map(x => x.trim()).filter(Boolean) : [];
-  if (!employeeIds.length) return { status: "ERROR", message: "Chưa chọn nhân viên." };
+  if (!employeeIds.length) return { status: "ERROR", message: "No employees selected." };
 
   const results = [];
   const errors = [];
@@ -1206,7 +1206,7 @@ function handleBatchAddDomesticTravel(data, req) {
         toLocation: data.toLocation,
         purpose: data.purpose || ""
       }, req);
-      if (r.status !== "SUCCESS") throw new Error(r.message || "Không lưu được lịch Travel.");
+      if (r.status !== "SUCCESS") throw new Error(r.message || "Unable to save Travel schedule.");
       results.push({ employeeId, id: r.travelId });
     } catch (e) {
       errors.push({ employeeId, message: e.message || String(e) });
@@ -1215,7 +1215,7 @@ function handleBatchAddDomesticTravel(data, req) {
 
   return {
     status: errors.length && !results.length ? "ERROR" : "SUCCESS",
-    message: `Đã xử lý ${results.length} lịch Travel${errors.length ? `, ${errors.length} lỗi` : ""}.`,
+    message: `Processed ${results.length} Travel schedules${errors.length ? `, ${errors.length} errors` : ""}.`,
     created: results.length,
     errors,
     records: results
@@ -1227,7 +1227,7 @@ function handleBatchImportMovement(data, req) {
   if (denied) return denied;
 
   const rows = Array.isArray(data && data.rows) ? data.rows : [];
-  if (!rows.length) return { status: "ERROR", message: "Không có dữ liệu Movement." };
+  if (!rows.length) return { status: "ERROR", message: "No Movement data found." };
 
   const errors = [];
   const created = [];
@@ -1241,9 +1241,9 @@ function handleBatchImportMovement(data, req) {
     const employeeId = String(row.employeeId || "").trim();
 
     try {
-      if (!employeeId) throw new Error("Thiếu EmployeeID.");
+      if (!employeeId) throw new Error("EmployeeID is required.");
       if (!["ENTRY_EXIT", "TRAVEL"].includes(movementType)) {
-        throw new Error("MovementType phải là ENTRY_EXIT hoặc TRAVEL.");
+        throw new Error("MovementType must be ENTRY_EXIT or TRAVEL.");
       }
 
       if (movementType === "ENTRY_EXIT") {
@@ -1264,7 +1264,7 @@ function handleBatchImportMovement(data, req) {
             purpose: row.purpose,
             tripId: row.tripId
           }, req);
-          if (r.status !== "SUCCESS") throw new Error(r.message || "Không tạo Entry.");
+          if (r.status !== "SUCCESS") throw new Error(r.message || "Unable to create Entry.");
           entryExitCreated++;
           created.push({ row: rowNo, employeeId, type: "ENTRY", id: r.entryExitId });
         }
@@ -1281,13 +1281,13 @@ function handleBatchImportMovement(data, req) {
             purpose: row.purpose,
             tripId: row.tripId
           }, req);
-          if (r.status !== "SUCCESS") throw new Error(r.message || "Không tạo Exit.");
+          if (r.status !== "SUCCESS") throw new Error(r.message || "Unable to create Exit.");
           entryExitCreated++;
           created.push({ row: rowNo, employeeId, type: "EXIT", id: r.entryExitId });
         }
 
         if (!(entryPlanned || entryActual || exitPlanned || exitActual)) {
-          throw new Error("ENTRY_EXIT phải có ít nhất Entry hoặc Exit.");
+          throw new Error("ENTRY_EXIT must contain at least Entry or Exit.");
         }
       } else {
         const r = handleAddDomesticTravel({
@@ -1298,7 +1298,7 @@ function handleBatchImportMovement(data, req) {
           toLocation: row.toLocation,
           purpose: row.purpose || ""
         }, req);
-        if (r.status !== "SUCCESS") throw new Error(r.message || "Không tạo Travel.");
+        if (r.status !== "SUCCESS") throw new Error(r.message || "Unable to create Travel.");
         travelCreated++;
         created.push({ row: rowNo, employeeId, type: "TRAVEL", id: r.travelId });
       }
@@ -1309,7 +1309,7 @@ function handleBatchImportMovement(data, req) {
 
   return {
     status: errors.length && !created.length ? "ERROR" : "SUCCESS",
-    message: `Import Movement hoàn tất: ${entryExitCreated} Entry/Exit, ${travelCreated} Travel${errors.length ? `, ${errors.length} dòng lỗi` : ""}.`,
+    message: `Movement import completed: ${entryExitCreated} Entry/Exit, ${travelCreated} Travel${errors.length ? `, ${errors.length} error rows` : ""}.`,
     entryExitCreated,
     travelCreated,
     created: created.length,
@@ -1442,7 +1442,7 @@ function getDashboardExpiryData(empRows, docRows, ctrRows, now, warningDays) {
 
 function getDashboardData(requester) {
   if (![ROLES.ADMIN, ROLES.HR_ADMIN, ROLES.HR, ROLES.DIRECTOR].includes(normalizeRole(requester.role))) {
-    return { status: "ERROR", message: "Không có quyền truy cập dữ liệu quản trị." };
+    return { status: "ERROR", message: "You do not have permission to access administrative data." };
   }
 
   const empRows = getSheet(TABLES.EMPLOYEES).getDataRange().getValues().slice(1);
@@ -1458,7 +1458,7 @@ function getDashboardData(requester) {
   const nextTravelMap = {};
   const nextEntryExitMap = {};
 
-  // Entry/Exit: lịch tương lai gần nhất; ưu tiên PlannedDateTime (K), fallback EventDate (D).
+  // Entry/Exit: nearest future schedule; prefer PlannedDateTime (K), fallback to EventDate (D).
   eeRows.forEach(r => {
     const employeeId = String(r[1] || "").trim();
     const candidateValue = r[10] || r[3];
@@ -1492,7 +1492,7 @@ function getDashboardData(requester) {
     }
   });
 
-  // DomesticTravel: chuyến APPROVED sắp tới gần nhất hoặc đang diễn ra.
+  // DomesticTravel: nearest upcoming or currently active APPROVED trip.
   travelRows.forEach(r => {
     const employeeId = String(r[1] || "").trim();
     const startDate = parseDateSafe(r[4]);
@@ -1605,7 +1605,7 @@ function getDriveFileInfo(fileId, fallbackUrl, fallbackMimeType) {
 
 function getProfileData(employeeId, requester) {
   if (!canAccessEmployee(requester, employeeId)) {
-    return { status: "ERROR", message: "Bạn không có quyền xem thông tin hồ sơ này!" };
+    return { status: "ERROR", message: "You do not have permission to view this profile!" };
   }
 
   const empSheet = getSheet(TABLES.EMPLOYEES);
@@ -1619,7 +1619,7 @@ function getProfileData(employeeId, requester) {
     }
   }
 
-  if (!emp) return { status: "ERROR", message: "Không tìm thấy hồ sơ nhân viên." };
+  if (!emp) return { status: "ERROR", message: "Employee profile not found." };
 
   const docSheet = getSheet(TABLES.DOCUMENTS);
   const docRows = docSheet.getDataRange().getValues().slice(1);
@@ -1807,12 +1807,12 @@ function normalizeImportDate(value) {
 function handleImportEmployeesExcel(data, requester) {
   const allowedRoles = [ROLES.ADMIN, ROLES.HR_ADMIN];
   if (!allowedRoles.includes(normalizeRole(requester.role))) {
-    return { status: "ERROR", message: "Chỉ HR/HR ADMIN/ADMIN được import danh sách nhân viên." };
+    return { status: "ERROR", message: "Only HR / HR ADMIN / ADMIN can import the employee list." };
   }
 
   const rows = Array.isArray(data && data.rows) ? data.rows : [];
-  if (!rows.length) return { status: "ERROR", message: "Không có dữ liệu Excel để import." };
-  if (rows.length > 500) return { status: "ERROR", message: "Mỗi lần import tối đa 500 dòng." };
+  if (!rows.length) return { status: "ERROR", message: "No Excel data to import." };
+  if (rows.length > 500) return { status: "ERROR", message: "Each import is limited to 500 rows." };
 
   const sheet = getSheet(TABLES.EMPLOYEES);
   const values = sheet.getDataRange().getValues();
@@ -1853,12 +1853,12 @@ function handleImportEmployeesExcel(data, requester) {
 
     if (!employeeId || !fullName) {
       result.skipped++;
-      result.errors.push({ row: excelRow, message: "Thiếu EmployeeID hoặc FullName." });
+      result.errors.push({ row: excelRow, message: "EmployeeID or FullName is missing." });
       return;
     }
     if (importedIds.has(employeeId)) {
       result.skipped++;
-      result.errors.push({ row: excelRow, message: `Trùng EmployeeID ${employeeId} trong file.` });
+      result.errors.push({ row: excelRow, message: `Duplicate EmployeeID ${employeeId} in the file.` });
       return;
     }
     importedIds.add(employeeId);
@@ -1866,7 +1866,7 @@ function handleImportEmployeesExcel(data, requester) {
     const email = normalizeImportText(item.email).toLowerCase();
     if (email && existingEmail[email] && existingEmail[email].employeeId !== employeeId) {
       result.skipped++;
-      result.errors.push({ row: excelRow, message: `Email ${email} đã thuộc EmployeeID ${existingEmail[email].employeeId}.` });
+      result.errors.push({ row: excelRow, message: `Email ${email} already belongs to EmployeeID ${existingEmail[email].employeeId}.` });
       return;
     }
 
@@ -2018,7 +2018,7 @@ function handleImportEmployeesExcel(data, requester) {
           result[appendixResult.created ? "appendicesCreated" : "appendicesUpdated"]++;
         }
       } else if (item.appendixNo) {
-        result.errors.push({ row: excelRow, message: "Có AppendixNo nhưng thiếu ContractNo nên không thể tạo phụ lục." });
+        result.errors.push({ row: excelRow, message: "AppendixNo is provided but ContractNo is missing, so the appendix cannot be created." });
       }
     } catch (e) {
       result.errors.push({ row: excelRow, message: e && e.message ? e.message : String(e) });
@@ -2239,11 +2239,11 @@ function buildAllowancesJson(value, jsonValue) {
 }
 
 // ==========================================
-// I. THỦ TỤC NGHỈ VIỆC & KHÓA TÀI KHOẢN
+// I. OFFBOARDING & ACCOUNT LOCKING
 // ==========================================
 function handleDeleteEmployee(empId, req) {
   if (![ROLES.ADMIN, ROLES.HR_ADMIN].includes(normalizeRole(req.role))) {
-    return { status: "ERROR", message: "Không có quyền thực hiện thao tác này!" };
+    return { status: "ERROR", message: "You do not have permission to perform this operation!" };
   }
 
   const empSheet = getSheet(TABLES.EMPLOYEES);
@@ -2258,7 +2258,7 @@ function handleDeleteEmployee(empId, req) {
     }
   }
 
-  if (!found) return { status: "ERROR", message: "Không tìm thấy nhân viên." };
+  if (!found) return { status: "ERROR", message: "Employee not found." };
 
   const userSheet = getSheet(TABLES.USERS);
   const userRows = userSheet.getDataRange().getValues();
@@ -2271,7 +2271,7 @@ function handleDeleteEmployee(empId, req) {
   }
 
   writeAuditLog(req.userId, "DEACTIVATE", "Employees", empId, "ACTIVE", "INACTIVE");
-  return { status: "SUCCESS", message: "Đã vô hiệu hóa hồ sơ và khóa tài khoản thành công." };
+  return { status: "SUCCESS", message: "Employee profile deactivated and account locked successfully." };
 }
 
 // ==========================================
@@ -2279,8 +2279,8 @@ function handleDeleteEmployee(empId, req) {
 // ==========================================
 function validateNewPassword(password) {
   password = String(password || "");
-  if (password.length < 8) return { ok: false, message: "Mật khẩu mới phải có ít nhất 8 ký tự." };
-  if (password.length > 128) return { ok: false, message: "Mật khẩu mới tối đa 128 ký tự." };
+  if (password.length < 8) return { ok: false, message: "The new password must be at least 8 characters." };
+  if (password.length > 128) return { ok: false, message: "The new password can be at most 128 characters." };
   return { ok: true };
 }
 
@@ -2314,39 +2314,39 @@ function handleChangePassword(data, requester, token) {
   const confirmPassword = String(data.confirmPassword || "");
 
   if (!currentPassword || !newPassword || !confirmPassword) {
-    return { status: "ERROR", message: "Vui lòng nhập đầy đủ mật khẩu hiện tại và mật khẩu mới." };
+    return { status: "ERROR", message: "Please enter the current password and new password." };
   }
   if (newPassword !== confirmPassword) {
-    return { status: "ERROR", message: "Mật khẩu mới và xác nhận mật khẩu không giống nhau." };
+    return { status: "ERROR", message: "The new password and confirmation do not match." };
   }
   const valid = validateNewPassword(newPassword);
   if (!valid.ok) return { status: "ERROR", message: valid.message };
   if (currentPassword === newPassword) {
-    return { status: "ERROR", message: "Mật khẩu mới phải khác mật khẩu hiện tại." };
+    return { status: "ERROR", message: "The new password must be different from the current password." };
   }
 
   const found = findUserById(requester.userId);
-  if (!found) return { status: "ERROR", message: "Không tìm thấy tài khoản." };
+  if (!found) return { status: "ERROR", message: "Account not found." };
   const storedHash = String(found.row[2] || "");
   if (storedHash !== hashPassword(currentPassword)) {
-    return { status: "ERROR", message: "Mật khẩu hiện tại không chính xác." };
+    return { status: "ERROR", message: "Current password is incorrect." };
   }
   if (String(found.row[5]).toUpperCase() !== "ACTIVE") {
-    return { status: "ERROR", message: "Tài khoản đang bị khóa." };
+    return { status: "ERROR", message: "The account is locked." };
   }
 
   found.sheet.getRange(found.rowIndex, 3).setValue(hashPassword(newPassword));
   
-  // Hủy tất cả các phiên đăng nhập khác của tài khoản này
+  // Invalidate all other active sessions for this account
   invalidateUserSessions(requester.userId);
 
   writeAuditLog(requester.userId, "CHANGE_PASSWORD", "Users", requester.userId, null, "Password changed");
-  return { status: "SUCCESS", message: "Đổi mật khẩu thành công. Vui lòng đăng nhập lại!" };
+  return { status: "SUCCESS", message: "Password changed successfully. Please log in again!" };
 }
 
 function getAccountUsers(requester) {
   if (![ROLES.ADMIN, ROLES.HR_ADMIN].includes(normalizeRole(requester.role))) {
-    return { status: "ERROR", message: "Bạn không có quyền xem danh sách tài khoản." };
+    return { status: "ERROR", message: "You do not have permission to view the account list." };
   }
 
   const userSheet = getSheet(TABLES.USERS);
@@ -2371,51 +2371,51 @@ function getAccountUsers(requester) {
 
 function adminResetPassword(data, requester) {
   if (normalizeRole(requester.role) !== ROLES.ADMIN) {
-    return { status: "ERROR", message: "Chỉ ADMIN mới được reset mật khẩu cho tài khoản khác." };
+    return { status: "ERROR", message: "Only ADMIN can reset another account's password." };
   }
   data = data || {};
   const userId = String(data.userId || "").trim();
   const newPassword = String(data.newPassword || "");
-  if (!userId || !newPassword) return { status: "ERROR", message: "Thiếu tài khoản hoặc mật khẩu mới." };
+  if (!userId || !newPassword) return { status: "ERROR", message: "Account or new password is required." };
   if (String(userId) === String(requester.userId)) {
-    return { status: "ERROR", message: "Hãy dùng chức năng Đổi mật khẩu cho chính tài khoản ADMIN." };
+    return { status: "ERROR", message: "Please use the Change Password function for the ADMIN account itself." };
   }
   const valid = validateNewPassword(newPassword);
   if (!valid.ok) return { status: "ERROR", message: valid.message };
 
   const found = findUserById(userId);
-  if (!found) return { status: "ERROR", message: "Không tìm thấy tài khoản." };
+  if (!found) return { status: "ERROR", message: "Account not found." };
   found.sheet.getRange(found.rowIndex, 3).setValue(hashPassword(newPassword));
   invalidateUserSessions(userId);
   writeAuditLog(requester.userId, "ADMIN_RESET_PASSWORD", "Users", userId, null, "Password reset by ADMIN");
-  return { status: "SUCCESS", message: "Đã reset mật khẩu và đăng xuất các phiên đang hoạt động của tài khoản." };
+  return { status: "SUCCESS", message: "Password reset completed and all active sessions for the account were logged out." };
 }
 
 function setAccountStatus(data, requester) {
   if (![ROLES.ADMIN, ROLES.HR_ADMIN].includes(normalizeRole(requester.role))) {
-    return { status: "ERROR", message: "Chỉ ADMIN/HR ADMIN được khóa hoặc mở tài khoản." };
+    return { status: "ERROR", message: "Only ADMIN / HR ADMIN can lock or unlock accounts." };
   }
   data = data || {};
   const userId = String(data.userId || "").trim();
   const newStatus = String(data.status || "").trim().toUpperCase();
   if (!userId || !["ACTIVE", "INACTIVE"].includes(newStatus)) {
-    return { status: "ERROR", message: "Trạng thái tài khoản không hợp lệ." };
+    return { status: "ERROR", message: "Invalid account status." };
   }
   if (String(userId) === String(requester.userId) && newStatus === "INACTIVE") {
-    return { status: "ERROR", message: "Không thể tự khóa tài khoản đang đăng nhập." };
+    return { status: "ERROR", message: "You cannot lock the account currently in use." };
   }
 
   const found = findUserById(userId);
-  if (!found) return { status: "ERROR", message: "Không tìm thấy tài khoản." };
+  if (!found) return { status: "ERROR", message: "Account not found." };
   const oldStatus = String(found.row[5] || "").toUpperCase();
   found.sheet.getRange(found.rowIndex, 6).setValue(newStatus);
   if (newStatus === "INACTIVE") invalidateUserSessions(userId);
   writeAuditLog(requester.userId, newStatus === "ACTIVE" ? "UNLOCK_ACCOUNT" : "LOCK_ACCOUNT", "Users", userId, oldStatus, newStatus);
-  return { status: "SUCCESS", message: newStatus === "ACTIVE" ? "Đã mở lại tài khoản." : "Đã khóa tài khoản." };
+  return { status: "SUCCESS", message: newStatus === "ACTIVE" ? "Account unlocked successfully." : "Account locked successfully." };
 }
 
 // ==========================================
-// K. SETUP HỆ THỐNG & HELPER
+// K. SYSTEM SETUP & HELPERS
 // ==========================================
 function setupSystem() {
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
@@ -2469,7 +2469,7 @@ function createEmployeeDriveFolder(employeeId, fullName) {
       try {
         rootFolder = DriveApp.getFolderById(configuredRootId);
       } catch (e) {
-        console.warn("DRIVE_FOLDER_ID không hợp lệ, chuyển sang tìm theo tên.");
+        console.warn("Invalid DRIVE_FOLDER_ID, falling back to name-based lookup.");
       }
     }
 
@@ -2562,7 +2562,7 @@ function writeAuditLog(userId, action, module, targetId, oldValue, newValue) {
 }
 
 function handleGetTimeline(empId, req) {
-  if (!canAccessEmployee(req, empId)) return { status: "ERROR", message: "Không có quyền xem thông tin." };
+  if (!canAccessEmployee(req, empId)) return { status: "ERROR", message: "You do not have permission to view this information." };
 
   const eeSheet = getSheet(TABLES.ENTRY_EXIT);
   const eeRows = eeSheet.getDataRange().getValues().slice(1);
@@ -2589,9 +2589,9 @@ function handleGetTimeline(empId, req) {
       kind: "ENTRY_EXIT",
       rawDate: parseDateSafe(r[3]),
       date: formatDateTime(r[3]),
-      title: r[2] === "ENTRY" ? "✈️ Nhập cảnh Việt Nam" : "🛫 Xuất cảnh Việt Nam",
+      title: r[2] === "ENTRY" ? "✈️ Entry into Vietnam" : "🛫 Exit from Vietnam",
       status: r[2],
-      location: `Cửa khẩu: ${r[4] || "-"} | Chuyến bay: ${flightNo || "-"} | Điểm đến: ${destination || "-"}`,
+      location: `Border gate: ${r[4] || "-"} | Flight: ${flightNo || "-"} | Destination: ${destination || "-"}`,
       purpose: purpose || "",
       tripId: r[12] || ""
     });
@@ -2604,7 +2604,7 @@ function handleGetTimeline(empId, req) {
       rawDate: parseDateSafe(r[4]),
       date: formatDate(r[4]),
       endDate: formatDate(r[5]),
-      title: "🚗 Đi lại / Công tác nội địa",
+      title: "🚗 Domestic Travel / Business Trip",
       status: String(r[6] || "").toUpperCase(),
       location: `${r[2] || "-"} → ${r[3] || "-"}`,
       purpose: r[11] || ""
